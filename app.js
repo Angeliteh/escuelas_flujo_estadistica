@@ -557,7 +557,8 @@ function formatMonthLabel(month) {
 }
 
 function updateAttendanceMonthSummary(students, days, month) {
-  const records = students.flatMap(student => days.map(day => ({
+  const visibleDays = days.filter(day => day.date <= localDateString());
+  const records = students.flatMap(student => visibleDays.map(day => ({
     student,
     day,
     record: getAttendanceRecord(currentUser.group, day.date, getAttendanceStudentId(student)),
@@ -669,6 +670,7 @@ async function fetchAttendanceMonth() {
   if (!month) return;
   const group = currentUser.group;
   const days = getAttendanceWorkdays(month);
+  const daysToFetch = days.filter(day => day.date <= localDateString());
   attendanceLoadedMonth = `${group}|${month}`;
   updateAttendanceMonthSyncStatus('<i class="fa-solid fa-spinner fa-spin"></i> Consultando el historial mensual...');
 
@@ -679,15 +681,20 @@ async function fetchAttendanceMonth() {
   }
 
   try {
-    const responses = await Promise.all(days.map(async day => {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'getAttendance', group, date: day.date }),
-      });
-      const result = await response.json();
-      if (!result.success) throw new Error(result.error || 'No se pudo consultar el historial');
-      return { date: day.date, records: result.data || [] };
-    }));
+    const responses = [];
+    for (let index = 0; index < daysToFetch.length; index += 4) {
+      const batch = daysToFetch.slice(index, index + 4);
+      const batchResponses = await Promise.all(batch.map(async day => {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'getAttendance', group, date: day.date }),
+        });
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error || 'No se pudo consultar el historial');
+        return { date: day.date, records: result.data || [] };
+      }));
+      responses.push(...batchResponses);
+    }
 
     responses.forEach(({ date, records }) => records.forEach(serverRecord => {
       const studentId = String(serverRecord.studentId || '');
