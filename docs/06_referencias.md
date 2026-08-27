@@ -40,7 +40,7 @@ TESTEOAMIGAMAMA/
 
 | Usuario | Contraseña | Rol | Nombre |
 |---------|------------|-----|--------|
-| `directora` | `director2025` | Directora | Mtra. Laura González Reyes |
+| `directora` | `director2025` | Subdirectora / administración | Norma Patricia Ortiz Cabrera |
 | `1A` | `maestro2025` | Maestro | Mtro. Carlos Mendoza |
 | `1B` | `maestro2025` | Maestro | Mtra. Ana López |
 | `1C` | `maestro2025` | Maestro | Mtro. Roberto Sánchez |

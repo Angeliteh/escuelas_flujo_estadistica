@@ -58,7 +58,7 @@
           <p class="demo-label">Accesos de prueba — clic para autocompletar:</p>
           <div class="demo-badges">
             <span class="demo-badge badge-director" onclick="fillDemo('directora','director2025')" tabindex="0">
-              <i class="fa-solid fa-shield-halved"></i> Directora
+              <i class="fa-solid fa-shield-halved"></i> Subdirectora
             </span>
             <span class="demo-badge badge-teacher" onclick="fillDemo('1A','maestro2025')" tabindex="0">
               <i class="fa-solid fa-chalkboard-user"></i> Maestro 1A
@@ -198,12 +198,6 @@
         <div class="attendance-toolbar">
           <div class="attendance-summary" id="attendance-summary" aria-live="polite"></div>
           <div class="attendance-actions">
-            <button class="btn btn-ghost" onclick="markAllAttendance('present')">
-              <i class="fa-solid fa-check-double"></i> Todos asistieron
-            </button>
-            <button class="btn btn-ghost" onclick="clearAttendanceDay()">
-              <i class="fa-solid fa-eraser"></i> Limpiar día
-            </button>
             <button class="btn btn-secondary" onclick="printAttendanceDay()">
               <i class="fa-solid fa-print"></i> Imprimir lista
             </button>

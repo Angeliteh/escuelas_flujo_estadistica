@@ -26,7 +26,7 @@ function getGrade(group) {
 
 // Usuarios base de demostración
 const USERS = {
-  directora: { password: 'director2025', role: 'director', name: 'Mtra. Laura González Reyes' },
+  directora: { password: 'director2025', role: 'director', name: 'Norma Patricia Ortiz Cabrera' },
   '1A': { password: 'maestro2025', role: 'teacher', group: '1A', name: 'Mtro. Carlos Mendoza (1A)' },
   '1B': { password: 'maestro2025', role: 'teacher', group: '1B', name: 'Mtra. Ana López (1B)' },
   '2A': { password: 'maestro2025', role: 'teacher', group: '2A', name: 'Mtro. José García (2A)' },
@@ -311,7 +311,11 @@ async function initData() {
 let currentUser = null;
 
 function getSession() {
-  try { return JSON.parse(sessionStorage.getItem(SESSION_KEY)); }
+  try {
+    const session = JSON.parse(sessionStorage.getItem(SESSION_KEY));
+    const config = session && USERS[session.username];
+    return config ? { username: session.username, ...config } : session;
+  }
   catch { return null; }
 }
 
@@ -1044,24 +1048,6 @@ function updateAttendanceNote(studentId, note) {
   if (!currentUser || !isAttendanceDateAllowed(date)) return;
   setAttendanceRecord(currentUser.group, date, String(studentId), { note: note.slice(0, 180) });
   updateAttendanceSyncStatus();
-}
-
-function markAllAttendance(status) {
-  const date = document.getElementById('attendance-date')?.value;
-  if (!currentUser || !isAttendanceDateAllowed(date)) return;
-  getStudentsByGroup(currentUser.group).forEach(student => {
-    setAttendanceRecord(currentUser.group, date, getAttendanceStudentId(student), { status });
-  });
-  renderAttendanceTable();
-}
-
-function clearAttendanceDay() {
-  const date = document.getElementById('attendance-date')?.value;
-  if (!currentUser || !isAttendanceDateAllowed(date)) return;
-  getStudentsByGroup(currentUser.group).forEach(student => {
-    setAttendanceRecord(currentUser.group, date, getAttendanceStudentId(student), { status: '', note: '' });
-  });
-  renderAttendanceTable();
 }
 
 async function saveAttendanceDay() {

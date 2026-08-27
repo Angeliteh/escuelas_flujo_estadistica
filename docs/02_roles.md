@@ -49,7 +49,7 @@
 
 ---
 
-## 🛡️ Directora
+## 🛡️ Subdirectora / administración
 
 ### Lo que VE (4 pestañas)
 
@@ -88,6 +88,8 @@ Usuario:    directora
 Contraseña: director2025
 ```
 
+La cuenta administrativa corresponde a la subdirectora **Norma Patricia Ortiz Cabrera**. Se conserva la llave interna `directora` para no romper el acceso existente.
+
 ---
 
 ## Cómo cambiar nombres y contraseñas
@@ -99,7 +101,7 @@ const USERS = {
   directora: {
     password: 'director2025',
     role: 'director',
-    name: 'Mtra. Laura González Reyes'  // ← Nombre que aparece en pantalla
+    name: 'Norma Patricia Ortiz Cabrera'  // ← Nombre que aparece en pantalla
   },
   '1A': {
     password: 'maestro2025',            // ← Cambiar aquí
