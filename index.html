@@ -89,7 +89,7 @@
             <i class="fas fa-chalkboard-teacher"></i> <span id="teacher-name-display"></span>
           </div>
           <button class="btn btn-secondary" onclick="printTeacherList()" style="margin-right: 15px;">
-            <i class="fas fa-print"></i> Imprimir Lista Oficial
+            <i class="fas fa-print"></i> Imprimir Padrón
           </button>
           <button class="btn btn-secondary" onclick="logout()">
             <i class="fas fa-sign-out-alt"></i> Salir
@@ -98,7 +98,17 @@
       </div>
     </header>
 
+    <nav class="teacher-nav" aria-label="Secciones del grupo">
+      <button class="teacher-nav-btn active" id="teacher-tab-students" onclick="switchTeacherTab('students')">
+        <i class="fa-solid fa-users"></i> Alumnos
+      </button>
+      <button class="teacher-nav-btn" id="teacher-tab-attendance" onclick="switchTeacherTab('attendance')">
+        <i class="fa-solid fa-calendar-check"></i> Asistencia
+      </button>
+    </nav>
+
     <main class="main-content">
+      <section id="teacher-students-panel">
       <div class="stats-bar">
         <div class="stat-card">
           <div class="stat-icon stat-blue"><i class="fa-solid fa-users"></i></div>
@@ -167,6 +177,60 @@
           </button>
         </div>
       </div>
+      </section>
+
+      <section id="teacher-attendance-panel" class="hidden" aria-labelledby="attendance-title">
+        <div class="attendance-heading">
+          <div>
+            <p class="eyebrow"><i class="fa-solid fa-calendar-check"></i> Registro diario</p>
+            <h2 id="attendance-title">Asistencia de mi grupo</h2>
+            <p id="attendance-subtitle" class="section-subtitle">Marca la situación de cada alumno para la fecha seleccionada.</p>
+          </div>
+          <div class="attendance-date-control">
+            <label for="attendance-date">Fecha</label>
+            <input type="date" id="attendance-date" onchange="changeAttendanceDate()">
+            <button class="btn btn-ghost btn-sm" onclick="setAttendanceToday()">Hoy</button>
+          </div>
+        </div>
+
+        <div class="attendance-toolbar">
+          <div class="attendance-summary" id="attendance-summary" aria-live="polite"></div>
+          <div class="attendance-actions">
+            <button class="btn btn-ghost" onclick="markAllAttendance('present')">
+              <i class="fa-solid fa-check-double"></i> Todos presentes
+            </button>
+            <button class="btn btn-ghost" onclick="clearAttendanceDay()">
+              <i class="fa-solid fa-eraser"></i> Limpiar día
+            </button>
+            <button class="btn btn-secondary" onclick="printAttendanceDay()">
+              <i class="fa-solid fa-print"></i> Imprimir lista
+            </button>
+            <button class="btn btn-primary" id="save-attendance-btn" onclick="saveAttendanceDay()">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Guardar día
+            </button>
+          </div>
+        </div>
+
+        <div id="attendance-sync-status" class="attendance-sync-status" role="status"></div>
+
+        <div class="table-container attendance-table-container">
+          <table class="data-table attendance-table" id="attendance-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Nombre del Alumno</th>
+                <th>Registro del día</th>
+                <th>Observación / actividad</th>
+              </tr>
+            </thead>
+            <tbody id="attendance-tbody"></tbody>
+          </table>
+          <div id="attendance-empty" class="empty-state hidden">
+            <i class="fa-solid fa-calendar-xmark"></i>
+            <p>No hay alumnos registrados en este grupo</p>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 

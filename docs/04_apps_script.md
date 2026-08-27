@@ -19,15 +19,20 @@ https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgk
 
 ---
 
-## Código completo (V3 — alumnos 19 columnas + personal 17 columnas)
+## Código completo (V4 — alumnos 19 columnas + personal 17 columnas + asistencia)
 
 ```javascript
 // ==============================================================================
-// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V3 (ALUMNOS 19 COL + PERSONAL 17 COL)
+// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V4 (ALUMNOS 19 COL + PERSONAL 17 COL + ASISTENCIA)
 // ==============================================================================
 
 const HEADER_ROW = 5;
 const TABS = ['1A','1B','2A','2B','3A','3B','4A','4B','5A','5B','6A','6B'];
+const ATTENDANCE_SHEET = 'ASISTENCIA';
+const ATTENDANCE_HEADERS = [
+  'ID', 'FECHA', 'ALUMNO_ID', 'GRUPO', 'NOMBRE_ALUMNO',
+  'ESTADO', 'OBSERVACION', 'USUARIO', 'ACTUALIZADO_EN'
+];
 
 function doPost(e) {
   try {
@@ -37,6 +42,9 @@ function doPost(e) {
     if (action === 'getStudents') return respond(getStudents());
     if (action === 'saveStudent') return respond(saveStudent(params.data));
     if (action === 'deleteStudent') return respond(deleteStudent(params.grupo, params.id));
+    // ASISTENCIA
+    if (action === 'getAttendance') return respond(getAttendance(params));
+    if (action === 'saveAttendance') return respond(saveAttendance(params.records || []));
     // PERSONAL
     if (action === 'getStaff') return respond(getStaff());
     if (action === 'saveStaff') return respond(saveStaff(params.data));
@@ -214,6 +222,111 @@ function rowToStaffObject(row, rowIndex) {
     perfilEstudios: row[14],
     baseInterino: row[15],
     situacionLaboral: row[16]
+  };
+}
+
+// =====================================================
+// ASISTENCIA DIARIA (hoja técnica separada)
+// =====================================================
+// Una fila representa el estado de un alumno en una fecha concreta.
+// Esto permite consultar por día o generar reportes mensuales sin agregar
+// columnas nuevas a las hojas 1A...6B ni perder el historial.
+function getAttendanceSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(ATTENDANCE_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(ATTENDANCE_SHEET);
+  }
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, ATTENDANCE_HEADERS.length).setValues([ATTENDANCE_HEADERS]);
+    sheet.setFrozenRows(1);
+    sheet.getRange(1, 1, 1, ATTENDANCE_HEADERS.length).setFontWeight('bold');
+  }
+  return sheet;
+}
+
+function getAttendance(params) {
+  const date = String(params.date || '').trim();
+  const group = String(params.group || '').trim();
+  if (!date || !group) return { success: false, error: 'Fecha y grupo son obligatorios' };
+
+  const sheet = getAttendanceSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return { success: true, data: [] };
+
+  const rows = sheet.getRange(2, 1, lastRow - 1, ATTENDANCE_HEADERS.length).getValues();
+  const data = rows
+    .filter(row => String(row[1] || '') === date && String(row[3] || '') === group)
+    .map(attendanceRowToObject);
+  return { success: true, data };
+}
+
+function saveAttendance(records) {
+  if (!Array.isArray(records) || !records.length) {
+    return { success: false, error: 'No hay registros de asistencia para guardar' };
+  }
+
+  const sheet = getAttendanceSheet();
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const lastRow = sheet.getLastRow();
+    const existing = lastRow > 1
+      ? sheet.getRange(2, 1, lastRow - 1, ATTENDANCE_HEADERS.length).getValues()
+      : [];
+    const rowById = {};
+    existing.forEach((row, index) => {
+      if (row[0]) rowById[String(row[0])] = index + 2;
+    });
+
+    let created = 0;
+    let updated = 0;
+    records.forEach(record => {
+      const date = String(record.date || '').trim();
+      const group = String(record.group || '').trim();
+      const studentId = String(record.studentId || '').trim();
+      if (!date || !group || !studentId) return;
+
+      const id = `${group}|${date}|${studentId}`;
+      const rowData = [[
+        id,
+        date,
+        studentId,
+        group,
+        String(record.studentName || ''),
+        String(record.status || ''),
+        String(record.note || ''),
+        String(record.usuario || ''),
+        String(record.updatedAt || new Date().toISOString())
+      ]];
+
+      if (rowById[id]) {
+        sheet.getRange(rowById[id], 1, 1, ATTENDANCE_HEADERS.length).setValues(rowData);
+        updated++;
+      } else {
+        const insertRow = sheet.getLastRow() + 1;
+        sheet.getRange(insertRow, 1, 1, ATTENDANCE_HEADERS.length).setValues(rowData);
+        rowById[id] = insertRow;
+        created++;
+      }
+    });
+    return { success: true, created, updated, message: 'Asistencia guardada' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function attendanceRowToObject(row) {
+  return {
+    id: String(row[0] || ''),
+    date: String(row[1] || ''),
+    studentId: String(row[2] || ''),
+    group: String(row[3] || ''),
+    studentName: String(row[4] || ''),
+    status: String(row[5] || ''),
+    note: String(row[6] || ''),
+    usuario: String(row[7] || ''),
+    updatedAt: String(row[8] || '')
   };
 }
 

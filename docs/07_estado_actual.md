@@ -16,6 +16,10 @@
 - [x] Eliminación con modal de confirmación
 - [x] Todo lo que se escribe se convierte a MAYÚSCULAS automáticamente
 - [x] Exportar Excel de su grupo (XLSX local)
+- [x] Pestaña **Asistencia** con captura diaria del grupo asignado
+- [x] Estados Presente, Falta, Retardo y Justificada, con observación opcional
+- [x] Guardado local para continuar capturando si falla internet
+- [x] Impresión de la lista del día desde el panel
 - [x] Logout
 
 ### Panel de la Directora
@@ -59,8 +63,10 @@
 ### UX pendiente de revisión
 - [x] Revisar que el panel lateral del maestro funcione para **Agregar** (modo vacío) además de editar
 - [x] Verificar que al guardar desde el drawer se refresca la tabla del maestro correctamente
-- [ ] Diseñar el módulo de asistencia diaria/mensual a partir del formato Word
-- [ ] Decidir si se requiere captura sin internet con cola local y sincronización posterior
+- [x] Diseñar la primera vista diaria del módulo de asistencia a partir del formato Word
+- [x] Preparar cola local para captura sin internet
+- [ ] Pegar y publicar V4 del Apps Script para crear/sincronizar la hoja técnica `ASISTENCIA`
+- [ ] Diseñar reporte mensual con la matriz imprimible del formato Word
 
 ---
 
@@ -73,7 +79,7 @@
 | Sin sincronización automática | La directora necesita recargar para ver cambios de maestros | Polling cada 60 segundos |
 | Personal en blanco si la columna Nombre está vacía | La hoja oficial tiene funciones precargadas pero nombres pendientes | Capturar nombres en la columna B o ajustar la política de filas del Apps Script |
 | Sin respaldo automatizado independiente | Un error humano en Sheets puede afectar la fuente operativa | Copias nocturnas con Apps Script y retención |
-| Sin módulo de asistencia | Todavía no se captura la matriz diaria del Word | Diseñar tabla de hechos de asistencia separada |
+| Asistencia pendiente de publicar en API | El panel ya captura localmente, pero la nube todavía requiere Apps Script V4 | Pegar/publicar V4 y verificar la hoja `ASISTENCIA` |
 
 ---
 

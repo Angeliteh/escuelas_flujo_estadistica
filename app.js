@@ -138,9 +138,28 @@ function generateSampleStudents() {
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgkNLf-jc1uEdzIoIU73mSJzLYJNC3Sw/exec';
 const SESSION_KEY = 'ce_session';
+const STUDENTS_CACHE_KEY = 'ce_students_cache_v1';
 
 let allStudentsCache = [];
 let isDataLoaded = false;
+
+function saveStudentsCache() {
+  try { localStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(allStudentsCache)); }
+  catch (error) { console.warn('No se pudo guardar la copia local de alumnos:', error); }
+}
+
+function restoreStudentsCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(STUDENTS_CACHE_KEY) || 'null');
+    if (!Array.isArray(cached)) return false;
+    allStudentsCache = cached;
+    isDataLoaded = true;
+    return true;
+  } catch (error) {
+    console.warn('No se pudo leer la copia local de alumnos:', error);
+    return false;
+  }
+}
 
 async function fetchAllStudents() {
   try {
@@ -153,12 +172,15 @@ async function fetchAllStudents() {
         s.grupoId = (l.length === 1 && n) ? (n + l) : l;
         return s;
       });
+      saveStudentsCache();
       isDataLoaded = true;
     } else {
       console.error('Error fetching students:', result.error);
+      restoreStudentsCache();
     }
   } catch (error) {
     console.error('Network error fetching students:', error);
+    restoreStudentsCache();
   }
 }
 
@@ -347,6 +369,8 @@ function showTeacherView() {
   if (nameEl) nameEl.textContent = currentUser.name;
   document.getElementById('teacher-subtitle').textContent = `Grupo ${currentUser.group} — ${getGrade(currentUser.group)} Grado`;
   document.getElementById('teacher-search').value = '';
+  attendanceLoadedDate = null;
+  switchTeacherTab('students');
   renderTeacherTable();
 }
 
@@ -359,6 +383,406 @@ function showDirectorView() {
 // =====================================================
 // TEACHER VIEW
 // =====================================================
+
+const ATTENDANCE_STORAGE_KEY = 'ce_attendance_cache_v1';
+const ATTENDANCE_STATUS_META = {
+  present: { label: 'Presente', short: 'P', className: 'attendance-present' },
+  absent: { label: 'Falta', short: 'F', className: 'attendance-absent' },
+  late: { label: 'Retardo', short: 'R', className: 'attendance-late' },
+  excused: { label: 'Justificada', short: 'J', className: 'attendance-excused' },
+};
+
+let attendanceCache = {};
+let attendanceLoadedDate = null;
+
+try {
+  attendanceCache = JSON.parse(localStorage.getItem(ATTENDANCE_STORAGE_KEY) || '{}') || {};
+} catch (error) {
+  attendanceCache = {};
+}
+
+function saveAttendanceCache() {
+  try { localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(attendanceCache)); }
+  catch (error) { console.warn('No se pudo guardar la asistencia local:', error); }
+}
+
+function localDateString(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatLongDate(dateString) {
+  if (!dateString) return '';
+  const date = new Date(`${dateString}T12:00:00`);
+  return new Intl.DateTimeFormat('es-MX', {
+    day: 'numeric', month: 'long', year: 'numeric'
+  }).format(date);
+}
+
+function getAttendanceStudentId(student) {
+  return String(student.id || `${student.grupoId || student.grupo}-${student.rowId || ''}`);
+}
+
+function getAttendanceKey(group, date, studentId) {
+  return `${group}|${date}|${studentId}`;
+}
+
+function getAttendanceRecord(group, date, studentId) {
+  return attendanceCache[getAttendanceKey(group, date, studentId)] || {
+    date,
+    group,
+    studentId,
+    status: '',
+    note: '',
+    synced: true,
+  };
+}
+
+function setAttendanceRecord(group, date, studentId, values) {
+  const key = getAttendanceKey(group, date, studentId);
+  attendanceCache[key] = {
+    ...getAttendanceRecord(group, date, studentId),
+    ...values,
+    date,
+    group,
+    studentId,
+    synced: false,
+    updatedAt: new Date().toISOString(),
+  };
+  saveAttendanceCache();
+}
+
+function renderAttendanceStatusButtons(studentId, selectedStatus) {
+  return Object.entries(ATTENDANCE_STATUS_META).map(([status, meta]) => `
+    <button type="button" class="attendance-status-btn ${meta.className} ${selectedStatus === status ? 'selected' : ''}"
+      onclick='setAttendanceStatus(${JSON.stringify(studentId)}, ${JSON.stringify(status)})'
+      aria-pressed="${selectedStatus === status}" title="${meta.label}">
+      <span class="attendance-status-short">${meta.short}</span>
+      <span class="attendance-status-label">${meta.label}</span>
+    </button>
+  `).join('');
+}
+
+function updateAttendanceSummary(students, date) {
+  const records = students.map(student =>
+    getAttendanceRecord(currentUser.group, date, getAttendanceStudentId(student))
+  );
+  const count = status => records.filter(record => record.status === status).length;
+  const pending = records.filter(record => !record.status).length;
+  const summary = document.getElementById('attendance-summary');
+  if (!summary) return;
+  summary.innerHTML = `
+    <span class="attendance-summary-item summary-total"><strong>${students.length}</strong> alumnos</span>
+    <span class="attendance-summary-item summary-pending"><strong>${pending}</strong> pendientes</span>
+    <span class="attendance-summary-item summary-present"><strong>${count('present')}</strong> presentes</span>
+    <span class="attendance-summary-item summary-absent"><strong>${count('absent')}</strong> faltas</span>
+    <span class="attendance-summary-item summary-late"><strong>${count('late')}</strong> retardos</span>
+  `;
+}
+
+function renderAttendanceTable() {
+  if (!currentUser || currentUser.role !== 'teacher') return;
+  const date = document.getElementById('attendance-date')?.value || localDateString();
+  const students = getStudentsByGroup(currentUser.group);
+  const tbody = document.getElementById('attendance-tbody');
+  const table = document.getElementById('attendance-table');
+  const empty = document.getElementById('attendance-empty');
+  if (!tbody || !table || !empty) return;
+
+  updateAttendanceSummary(students, date);
+  if (!students.length) {
+    table.style.display = 'none';
+    empty.classList.remove('hidden');
+    return;
+  }
+
+  table.style.display = '';
+  empty.classList.add('hidden');
+  tbody.innerHTML = students.map((student, index) => {
+    const studentId = getAttendanceStudentId(student);
+    const record = getAttendanceRecord(currentUser.group, date, studentId);
+    return `
+      <tr>
+        <td class="td-number">${index + 1}</td>
+        <td class="td-name">${escHtml(student.nombre) || 'Alumno sin nombre'}</td>
+        <td>
+          <div class="attendance-status-group" role="group" aria-label="Estado de ${escHtml(student.nombre) || 'alumno'}">
+            ${renderAttendanceStatusButtons(studentId, record.status)}
+          </div>
+        </td>
+        <td>
+          <input class="attendance-note-input" type="text" maxlength="180"
+            value="${escHtml(record.note || '')}"
+            placeholder="Opcional"
+            aria-label="Observación de ${escHtml(student.nombre) || 'alumno'}"
+            oninput='updateAttendanceNote(${JSON.stringify(studentId)}, this.value)'>
+        </td>
+      </tr>
+    `;
+  }).join('');
+  updateAttendanceSyncStatus();
+}
+
+function updateAttendanceSyncStatus(message = '') {
+  const statusEl = document.getElementById('attendance-sync-status');
+  if (!statusEl) return;
+  const date = document.getElementById('attendance-date')?.value;
+  const group = currentUser?.group;
+  if (!date || !group) {
+    statusEl.textContent = '';
+    return;
+  }
+  const pending = Object.values(attendanceCache).filter(record =>
+    record.group === group && record.date === date && record.synced === false
+  ).length;
+  statusEl.className = `attendance-sync-status ${pending ? 'is-pending' : 'is-synced'}`;
+  statusEl.innerHTML = message || (pending
+    ? `<i class="fa-solid fa-mobile-screen-button"></i> ${pending} registro(s) guardado(s) en este dispositivo; pendiente(s) de sincronizar.`
+    : `<i class="fa-solid fa-cloud-check"></i> Día consultado. Los cambios se enviarán al guardar.`);
+}
+
+function switchTeacherTab(tab) {
+  const studentsPanel = document.getElementById('teacher-students-panel');
+  const attendancePanel = document.getElementById('teacher-attendance-panel');
+  const studentsTab = document.getElementById('teacher-tab-students');
+  const attendanceTab = document.getElementById('teacher-tab-attendance');
+  if (!studentsPanel || !attendancePanel) return;
+
+  const isAttendance = tab === 'attendance';
+  studentsPanel.classList.toggle('hidden', isAttendance);
+  attendancePanel.classList.toggle('hidden', !isAttendance);
+  studentsTab?.classList.toggle('active', !isAttendance);
+  attendanceTab?.classList.toggle('active', isAttendance);
+
+  if (isAttendance) {
+    const dateInput = document.getElementById('attendance-date');
+    if (dateInput && !dateInput.value) dateInput.value = localDateString();
+    document.getElementById('attendance-subtitle').textContent =
+      `Grupo ${currentUser.group}. Captura una fecha y marca a cada alumno.`;
+    renderAttendanceTable();
+    const date = dateInput?.value;
+    if (date && attendanceLoadedDate !== `${currentUser.group}|${date}`) {
+      fetchAttendanceDay();
+    }
+  }
+}
+
+function setAttendanceToday() {
+  const dateInput = document.getElementById('attendance-date');
+  if (!dateInput) return;
+  dateInput.value = localDateString();
+  changeAttendanceDate();
+}
+
+function changeAttendanceDate() {
+  attendanceLoadedDate = null;
+  renderAttendanceTable();
+  fetchAttendanceDay();
+}
+
+async function fetchAttendanceDay() {
+  if (!currentUser || currentUser.role !== 'teacher') return;
+  const date = document.getElementById('attendance-date')?.value;
+  if (!date) return;
+  const group = currentUser.group;
+  attendanceLoadedDate = `${group}|${date}`;
+  updateAttendanceSyncStatus('<i class="fa-solid fa-spinner fa-spin"></i> Consultando registros del día...');
+
+  if (navigator.onLine === false) {
+    renderAttendanceTable();
+    updateAttendanceSyncStatus();
+    return;
+  }
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'getAttendance', group, date }),
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'La asistencia aún no está habilitada en la API');
+
+    (result.data || []).forEach(serverRecord => {
+      const studentId = String(serverRecord.studentId || '');
+      const key = getAttendanceKey(group, date, studentId);
+      if (!attendanceCache[key] || attendanceCache[key].synced !== false) {
+        attendanceCache[key] = { ...serverRecord, studentId, group, date, synced: true };
+      }
+    });
+    saveAttendanceCache();
+    renderAttendanceTable();
+    updateAttendanceSyncStatus('<i class="fa-solid fa-cloud-check"></i> Registros del día sincronizados.');
+  } catch (error) {
+    renderAttendanceTable();
+    updateAttendanceSyncStatus('<i class="fa-solid fa-mobile-screen-button"></i> Modo local: puedes capturar y quedará pendiente de sincronización.');
+  }
+}
+
+function setAttendanceStatus(studentId, status) {
+  const date = document.getElementById('attendance-date')?.value;
+  if (!currentUser || !date) return;
+  const student = getStudentsByGroup(currentUser.group).find(item => getAttendanceStudentId(item) === String(studentId));
+  if (!student) return;
+  setAttendanceRecord(currentUser.group, date, String(studentId), { status });
+  renderAttendanceTable();
+}
+
+function updateAttendanceNote(studentId, note) {
+  const date = document.getElementById('attendance-date')?.value;
+  if (!currentUser || !date) return;
+  setAttendanceRecord(currentUser.group, date, String(studentId), { note: note.slice(0, 180) });
+  updateAttendanceSyncStatus();
+}
+
+function markAllAttendance(status) {
+  const date = document.getElementById('attendance-date')?.value;
+  if (!currentUser || !date) return;
+  getStudentsByGroup(currentUser.group).forEach(student => {
+    setAttendanceRecord(currentUser.group, date, getAttendanceStudentId(student), { status });
+  });
+  renderAttendanceTable();
+}
+
+function clearAttendanceDay() {
+  const date = document.getElementById('attendance-date')?.value;
+  if (!currentUser || !date) return;
+  getStudentsByGroup(currentUser.group).forEach(student => {
+    setAttendanceRecord(currentUser.group, date, getAttendanceStudentId(student), { status: '', note: '' });
+  });
+  renderAttendanceTable();
+}
+
+async function saveAttendanceDay() {
+  if (!currentUser || currentUser.role !== 'teacher') return;
+  const date = document.getElementById('attendance-date')?.value;
+  const group = currentUser.group;
+  const students = getStudentsByGroup(group);
+  if (!date || !students.length) return;
+
+  const records = students.map(student => {
+    const studentId = getAttendanceStudentId(student);
+    const existing = getAttendanceRecord(group, date, studentId);
+    const record = {
+      date,
+      group,
+      studentId,
+      studentName: student.nombre || '',
+      status: existing.status || '',
+      note: existing.note || '',
+      usuario: currentUser.username,
+      updatedAt: new Date().toISOString(),
+      synced: false,
+    };
+    attendanceCache[getAttendanceKey(group, date, studentId)] = record;
+    return record;
+  });
+  saveAttendanceCache();
+  renderAttendanceTable();
+
+  const button = document.getElementById('save-attendance-btn');
+  if (button) button.disabled = true;
+  updateAttendanceSyncStatus('<i class="fa-solid fa-spinner fa-spin"></i> Guardando asistencia...');
+
+  if (navigator.onLine === false) {
+    if (button) button.disabled = false;
+    updateAttendanceSyncStatus();
+    showToast('Día guardado en este dispositivo; se sincronizará al volver el internet', 'info');
+    return;
+  }
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'saveAttendance', records }),
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'La asistencia aún no está habilitada en la API');
+    records.forEach(record => {
+      const key = getAttendanceKey(group, date, record.studentId);
+      attendanceCache[key].synced = true;
+    });
+    saveAttendanceCache();
+    renderAttendanceTable();
+    updateAttendanceSyncStatus('<i class="fa-solid fa-cloud-check"></i> Asistencia guardada en la nube.');
+    showToast('Asistencia guardada correctamente', 'success');
+  } catch (error) {
+    renderAttendanceTable();
+    updateAttendanceSyncStatus('<i class="fa-solid fa-mobile-screen-button"></i> Guardado localmente; pendiente de sincronización con la nube.');
+    showToast('La asistencia quedó guardada en este dispositivo', 'info');
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function syncPendingAttendance() {
+  if (!currentUser || currentUser.role !== 'teacher' || navigator.onLine === false) return;
+  const pending = Object.values(attendanceCache).filter(record =>
+    record.group === currentUser.group && record.synced === false
+  );
+  if (!pending.length) return;
+
+  updateAttendanceSyncStatus('<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando capturas locales...');
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'saveAttendance', records: pending }),
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'La asistencia aún no está habilitada en la API');
+    pending.forEach(record => {
+      const key = getAttendanceKey(record.group, record.date, record.studentId);
+      if (attendanceCache[key]) attendanceCache[key].synced = true;
+    });
+    saveAttendanceCache();
+    if (document.getElementById('attendance-date')?.value) renderAttendanceTable();
+    updateAttendanceSyncStatus('<i class="fa-solid fa-cloud-check"></i> Capturas locales sincronizadas con la nube.');
+    showToast('Capturas locales sincronizadas', 'success');
+  } catch (error) {
+    updateAttendanceSyncStatus('<i class="fa-solid fa-mobile-screen-button"></i> Aún no se pudo sincronizar; tus capturas siguen guardadas en este dispositivo.');
+  }
+}
+
+window.addEventListener('online', syncPendingAttendance);
+
+function printAttendanceDay() {
+  if (!currentUser || currentUser.role !== 'teacher') return;
+  const group = currentUser.group;
+  const date = document.getElementById('attendance-date')?.value || localDateString();
+  const students = getStudentsByGroup(group);
+  const printContainer = document.getElementById('print-view');
+  const counts = Object.keys(ATTENDANCE_STATUS_META).reduce((result, status) => {
+    result[status] = students.filter(student =>
+      getAttendanceRecord(group, date, getAttendanceStudentId(student)).status === status
+    ).length;
+    return result;
+  }, {});
+
+  printContainer.innerHTML = `
+    <div class="attendance-print-header">
+      <img src="${ESCUDO_B64}" alt="Escudo" width="76" height="76">
+      <div>
+        <h1>ESCUELA PRIMARIA GRAL. ELPIDIO G. VELÁZQUEZ</h1>
+        <p>REGISTRO DE ASISTENCIA Y/O PUNTUALIDAD · CICLO ESCOLAR 2026-2027</p>
+        <strong>Grupo ${escHtml(group)} · ${escHtml(formatLongDate(date))}</strong>
+      </div>
+    </div>
+    <div class="attendance-print-summary">
+      Presentes: ${counts.present} · Faltas: ${counts.absent} · Retardos: ${counts.late} · Justificadas: ${counts.excused}
+    </div>
+    <table class="print-table attendance-print-table">
+      <thead><tr><th>NO.</th><th>NOMBRE DEL ALUMNO</th><th>ESTADO</th><th>OBSERVACIÓN / ACTIVIDAD</th></tr></thead>
+      <tbody>${students.map((student, index) => {
+        const record = getAttendanceRecord(group, date, getAttendanceStudentId(student));
+        const status = ATTENDANCE_STATUS_META[record.status];
+        return `<tr><td>${index + 1}</td><td>${escHtml(student.nombre)}</td><td>${status ? status.label : 'Pendiente'}</td><td>${escHtml(record.note || '')}</td></tr>`;
+      }).join('')}</tbody>
+    </table>
+    <div class="attendance-print-signatures"><span>MAESTRO(A) DEL GRUPO: ${escHtml(currentUser.name)}</span><span>DIRECTORA DEL PLANTEL: ____________________</span></div>
+  `;
+  window.print();
+}
 
 function renderTeacherTable(filterText = '') {
   const all      = getStudentsByGroup(currentUser.group);
