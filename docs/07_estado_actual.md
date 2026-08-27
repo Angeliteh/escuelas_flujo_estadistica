@@ -15,7 +15,7 @@
 - [x] **Panel lateral unificado** — agregar, editar y ver datos de alumno (mismo componente)
 - [x] Eliminación con modal de confirmación
 - [x] Todo lo que se escribe se convierte a MAYÚSCULAS automáticamente
-- [x] Exportar Excel de su grupo (XLSX local)
+- [x] Imprimir padrón del grupo con los datos completos
 - [x] Pestaña **Asistencia** con captura diaria del grupo asignado
 - [x] Dos marcas de asistencia: ✓ Asistió y X No asistió
 - [x] Guardado local para continuar capturando si falla internet
@@ -31,7 +31,7 @@
 - [x] Búsqueda libre por nombre, CURP o tutor
 - [x] Clic en fila → Panel lateral de solo lectura (todos los datos del alumno)
 - [x] Botón "Ver en Sheets" → Google Sheet en vivo
-- [x] Botón "Exportar Excel" (2 hojas: alumnos + resumen por grupo)
+- [x] Impresión del padrón desde la pestaña "Todos los Alumnos"
 - [x] Pestaña "Personal" en modo solo lectura
 - [x] Logout
 

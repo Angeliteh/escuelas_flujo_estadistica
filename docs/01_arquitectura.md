@@ -80,19 +80,19 @@ El panel carga datos una sola vez al iniciar sesión. Si otro maestro agrega un 
 
 ---
 
-## ¿Ver el Sheet en vivo vs. exportar Excel?
+## Panel, Sheet oficial e impresión
 
-Son cosas completamente distintas:
+El panel es la única herramienta de trabajo para maestros y directora durante la captura normal. Google Sheets se conserva como fuente operativa y como respaldo/auditoría, pero los maestros no tienen que abrirlo ni modificarlo.
 
-| | Ver en Google Sheets | Exportar Excel (.xlsx) |
+| Necesidad | Lugar | Resultado |
 |---|---|---|
-| **Qué es** | Abre el archivo real en el navegador | Descarga una foto estática de los datos |
-| **¿En vivo?** | Sí, siempre actualizado | No, es un snapshot del momento |
-| **¿Quién puede?** | Solo quien tenga acceso al Drive | Cualquiera desde el panel |
-| **¿Tiene logo/diseño?** | Sí, el que configuraste en el Sheet | No (solo datos tabulares limpios) |
-| **Uso ideal** | Auditoría, imprimir con membrete oficial | Reportes, análisis, enviar por correo |
+| Capturar o corregir alumnos | Panel → Alumnos | Actualiza la fuente oficial mediante la API |
+| Imprimir datos de inscripción | Panel → Alumnos → Imprimir padrón | Padrón con los campos completos, encabezado y filas del grupo |
+| Capturar asistencia | Panel → Asistencia | Registro diario del grupo asignado |
+| Consultar o imprimir historial | Panel → Historial mensual | Matriz mensual sin crear archivos Excel adicionales |
+| Auditoría o revisión del formato original | Google Sheets | Archivo oficial en vivo, con su diseño y membrete |
 
-El panel tiene un botón "Exportar Excel" para descargar datos tabulares. Ese archivo no sustituye al Sheet oficial ni conserva todo su diseño. La directora tiene además el enlace al Sheet real; el maestro puede imprimir la lista generada por el panel o descargar su Excel.
+Se retiró la descarga de Excel del panel para evitar copias desactualizadas o archivos paralelos.
 
 ---
 

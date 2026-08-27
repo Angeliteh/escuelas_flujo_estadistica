@@ -595,6 +595,7 @@ input, select, button, textarea {
 .attendance-month-cell.attendance-absent { background: rgba(220,38,38,0.28); color: #fca5a5; border-color: rgba(248,113,113,0.55); }
 .attendance-month-empty-cell { color: var(--text3); }
 .attendance-month-future-cell { opacity: 0.45; cursor: default; }
+.attendance-month-future-cell:hover { transform: none; border-color: var(--border); }
 
 /* =========================================================
    STATS BAR (Teacher)
@@ -956,6 +957,7 @@ input, select, button, textarea {
   flex-shrink: 0;
 }
 .modal-title { font-size: 1.05rem; font-weight: 700; }
+.modal-subtitle { margin: 5px 0 0; color: var(--text2); font-size: 0.8rem; }
 .modal-close {
   width: 32px; height: 32px;
   background: transparent; border: none;
@@ -978,6 +980,16 @@ input, select, button, textarea {
   border-top: 1px solid var(--border);
   margin-top: 24px;
 }
+
+.attendance-day-modal { max-width: 900px; }
+.attendance-day-modal-body { padding-top: 18px; }
+.attendance-modal-summary { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 16px; }
+.attendance-day-modal-table-container { max-height: 48vh; overflow: auto; }
+.attendance-day-modal-table-container .data-table { min-width: 620px; }
+.attendance-modal-status { font-weight: 800; }
+.attendance-modal-status.attendance-present { color: #86efac; }
+.attendance-modal-status.attendance-absent { color: #fca5a5; }
+.attendance-modal-mode { margin-right: auto; color: var(--text2); font-size: 0.76rem; }
 
 /* =========================================================
    FORM INSIDE MODAL

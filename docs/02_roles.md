@@ -20,7 +20,8 @@
 - **Agregar alumno** — panel lateral con todos los campos (grado y grupo se asignan automáticamente)
 - **Editar alumno** — clic en la fila → panel lateral con datos precargados → editar → Guardar
 - **Eliminar alumno** — botón rojo en el panel lateral, con confirmación
-- **Exportar Excel de su grupo** — descarga `Lista_Alumnos_Grupo_1A.xlsx`
+- **Imprimir padrón** — desde la pestaña Alumnos, con los datos completos del grupo
+- **Registrar e imprimir asistencia** — desde las pestañas Asistencia e Historial mensual
 
 ### Lo que NO puede hacer
 - Ver alumnos de otros grupos
@@ -50,7 +51,7 @@
 
 ## 🛡️ Directora
 
-### Lo que VE (3 pestañas)
+### Lo que VE (4 pestañas)
 
 **Dashboard**
 - 4 tarjetas: Total alumnos, Grupos activos, Con beca, % de becas
@@ -65,8 +66,9 @@
 - Filtros por Género y Beca (dropdown)
 - Búsqueda libre: nombre, CURP o tutor
 - Clic en cualquier fila → Panel lateral de detalle (solo lectura)
-- Botón **"Ver en Sheets"** → abre el Google Sheet en nueva pestaña
-- Botón **"Exportar Excel"** → descarga 2 hojas: todos los alumnos + resumen
+- Botón **"Ver en Sheets"** → abre el Google Sheet en nueva pestaña para auditoría
+- **Imprimir padrón** desde la pestaña Todos los Alumnos, con los datos completos
+- **Asistencia mensual** en modo consulta; puede abrir el detalle de cada día sin editarlo
 
 **Personal**
 - Consulta de los 17 campos del registro de personal

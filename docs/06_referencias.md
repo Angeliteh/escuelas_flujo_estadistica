@@ -21,7 +21,7 @@ https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgk
 TESTEOAMIGAMAMA/
 ├── index.html          ← Estructura HTML (login, vistas, modales)
 ├── styles.css          ← Estilos (glassmorphism, responsive, animaciones)
-├── app.js              ← Toda la lógica JS (auth, API, render, export)
+├── app.js              ← Toda la lógica JS (auth, API, render e impresión)
 └── docs/
     ├── README.md       ← Índice de documentación (este archivo)
     ├── 01_arquitectura.md
@@ -61,7 +61,6 @@ TESTEOAMIGAMAMA/
 | Librería | Versión | Para qué |
 |----------|---------|----------|
 | [Chart.js](https://www.chartjs.org/) | 4.x | Gráficas del Dashboard de la directora |
-| [SheetJS (XLSX)](https://sheetjs.com/) | 0.20.x | Exportación a Excel (.xlsx) |
 | [Font Awesome](https://fontawesome.com/) | 6.x | Iconografía |
 | [Google Fonts (Inter)](https://fonts.google.com/specimen/Inter) | — | Tipografía |
 

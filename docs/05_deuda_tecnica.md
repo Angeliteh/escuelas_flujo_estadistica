@@ -80,10 +80,10 @@ Los maestros y la directora accederían a esa URL desde cualquier dispositivo, s
 
 **Solución:** Agregar en el Apps Script un registro automático en una hoja separada llamada `HISTORIAL` cada vez que se guarda o elimina un alumno.
 
-### Exportación con formato oficial (logo + membrete)
-**Necesidad:** El Excel exportado desde el panel no tiene el logo de la escuela.
+### Reportes impresos con formato oficial
+**Necesidad:** Los trabajadores necesitan copias físicas para auditoría o referencia, pero no archivos Excel paralelos.
 
-**Solución:** Usar la librería **ExcelJS** (más potente que SheetJS) o generar el archivo directamente desde el Apps Script para que herede el formato del Sheet.
+**Estado:** El panel imprime el padrón con los datos completos y genera listas diaria/mensual de asistencia. Google Sheets sigue disponible para auditoría de dirección.
 
 ### Asistencia por período
 **Necesidad futura posible:** Marcar asistencia diaria o por período.
@@ -109,7 +109,7 @@ Una base de datos como PostgreSQL/Neon o Supabase será recomendable cuando se n
 
 ### Asistencia: módulo separado
 
-El Word de agosto de 2026 contiene una matriz mensual por grupo, con días y espacios para actividad, puntualidad, notas y asistencia. No debe convertirse en columnas dentro de la hoja maestra de alumnos. Debe existir una tabla o pestaña independiente de asistencia, relacionada por `alumnoId`, `grupo` y `fecha`, y el formato mensual debe generarse como vista de impresión/exportación.
+El Word de agosto de 2026 contiene una matriz mensual por grupo, con días y espacios para actividad, puntualidad, notas y asistencia. No debe convertirse en columnas dentro de la hoja maestra de alumnos. Debe existir una tabla o pestaña independiente de asistencia, relacionada por `alumnoId`, `grupo` y `fecha`, y el formato mensual debe generarse como vista de impresión.
 
 ---
 

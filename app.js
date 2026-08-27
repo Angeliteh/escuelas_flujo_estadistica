@@ -4,7 +4,7 @@ const ESCUDO_B64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAKACAIAAA
 
 /* =========================================================
    CONTROL DE ASISTENCIA — APP.JS
-   Prototype with localStorage persistence, Chart.js & XLSX export
+   Prototype with localStorage persistence and Chart.js
    ========================================================= */
 
 // =====================================================
@@ -681,7 +681,7 @@ function renderAttendanceMonthTable() {
           const cell = isFuture
             ? `<span class="attendance-month-cell attendance-month-empty-cell attendance-month-future-cell" title="Aún no disponible">—</span>`
             : `<button type="button" class="attendance-month-cell ${status ? status.className : 'attendance-month-empty-cell'}"
-                onclick='openAttendanceDateFromMonth(${JSON.stringify(day.date)})'
+                onclick='openAttendanceDayModal(${JSON.stringify(currentUser.group)}, ${JSON.stringify(day.date)})'
                 title="${escHtml(`${formatLongDate(day.date)}: ${label}${note}`)}"
                 aria-label="${escHtml(`${student.nombre || 'Alumno'} · ${formatLongDate(day.date)} · ${label}`)}">
                 ${status ? status.short : '—'}
@@ -774,6 +774,71 @@ async function fetchAttendanceMonth() {
     renderAttendanceMonthTable();
     updateAttendanceMonthSyncStatus('<i class="fa-solid fa-mobile-screen-button"></i> Modo local: se muestran las capturas disponibles en este dispositivo.');
   }
+}
+
+function closeAttendanceDayModal(event) {
+  const overlay = document.getElementById('attendance-day-modal');
+  if (!overlay) return;
+  if (event && event.target !== overlay) return;
+  overlay.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function openAttendanceDayModal(group, date) {
+  if (!currentUser || !group || !isAttendanceDateAllowed(date)) return;
+  if (currentUser.role === 'teacher' && currentUser.group !== group) return;
+
+  const students = getStudentsByGroup(group);
+  const records = students.map(student => ({
+    student,
+    record: getAttendanceRecord(group, date, getAttendanceStudentId(student)),
+  }));
+  const present = records.filter(item => item.record.status === 'present').length;
+  const absent = records.filter(item => item.record.status === 'absent').length;
+  const pending = records.length - present - absent;
+
+  const title = document.getElementById('attendance-day-modal-title');
+  const subtitle = document.getElementById('attendance-day-modal-subtitle');
+  const summary = document.getElementById('attendance-day-modal-summary');
+  const tbody = document.getElementById('attendance-day-modal-tbody');
+  const mode = document.getElementById('attendance-day-modal-mode');
+  const editButton = document.getElementById('attendance-day-modal-edit-btn');
+  const overlay = document.getElementById('attendance-day-modal');
+  if (!title || !subtitle || !summary || !tbody || !mode || !editButton || !overlay) return;
+
+  title.textContent = 'Detalle de asistencia';
+  subtitle.textContent = `Grupo ${group} · ${formatLongDate(date)}`;
+  summary.innerHTML = `
+    <span class="attendance-summary-item summary-total"><strong>${students.length}</strong> alumnos</span>
+    <span class="attendance-summary-item summary-present"><strong>${present}</strong> asistieron</span>
+    <span class="attendance-summary-item summary-absent"><strong>${absent}</strong> no asistieron</span>
+    <span class="attendance-summary-item summary-pending"><strong>${pending}</strong> pendientes</span>
+  `;
+  tbody.innerHTML = records.map(({ student, record }, index) => {
+    const status = ATTENDANCE_STATUS_META[record.status];
+    const statusLabel = status ? `${status.short} ${status.label}` : '— Pendiente';
+    return `
+      <tr>
+        <td class="td-number">${index + 1}</td>
+        <td class="td-name">${escHtml(student.nombre) || 'Alumno sin nombre'}</td>
+        <td class="attendance-modal-status ${status ? status.className : ''}">${escHtml(statusLabel)}</td>
+        <td>${escHtml(record.note) || '—'}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const canEdit = currentUser.role === 'teacher' && currentUser.group === group;
+  mode.textContent = canEdit
+    ? 'El maestro puede corregir este día desde la captura diaria.'
+    : 'Vista de solo lectura para dirección.';
+  editButton.classList.toggle('hidden', !canEdit);
+  editButton.onclick = canEdit ? () => {
+    closeAttendanceDayModal();
+    openAttendanceDateFromMonth(date);
+  } : null;
+
+  overlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
 }
 
 function openAttendanceDateFromMonth(date) {
@@ -1205,112 +1270,6 @@ function renderTeacherTable(filterText = '') {
   }
 }
 
-// =====================================================
-// EXCEL EXPORTS
-// =====================================================
-
-const STUDENT_EXPORT_HEADERS = [
-  'NO.', 'GRADO', 'GRUPO', 'NOMBRE DEL ALUMNO', 'BARRERA DE APRENDIZAJE',
-  'FECHA DE NACIMIENTO', 'CURP ALUMNO', 'GENERO', 'BECA', 'PESO', 'ESTATURA',
-  'TALLA', 'NOMBRE DEL TUTOR', 'NUMERO DE TELEFONO', 'CURP TUTOR', 'CORREO',
-  'DOMICILIO', 'NIVEL DE ESTUDIO', 'OCUPACION'
-];
-
-function studentToExportRow(student, index) {
-  const groupId = student.grupoId || student.grupo || '';
-  const group = String(student.grupo || '').length === 1
-    ? student.grupo
-    : String(groupId).slice(-1);
-
-  return [
-    index + 1,
-    student.grado || '',
-    group,
-    student.nombre || '',
-    student.barreraAprendizaje || '',
-    student.fechaNacimiento || '',
-    student.curpAlumno || '',
-    student.genero || '',
-    student.beca || '',
-    student.peso ?? '',
-    student.estatura ?? '',
-    student.talla || '',
-    student.tutor || '',
-    student.telefono || '',
-    student.curpTutor || '',
-    student.correo || '',
-    student.domicilio || '',
-    student.nivelEstudio || '',
-    student.ocupacion || ''
-  ];
-}
-
-function exportStudentsToExcel(students, filename, includeSummary = false) {
-  if (typeof XLSX === 'undefined') {
-    showToast('No se pudo cargar el exportador de Excel', 'error');
-    return;
-  }
-
-  const workbook = XLSX.utils.book_new();
-  const rows = [
-    STUDENT_EXPORT_HEADERS,
-    ...students.map((student, index) => studentToExportRow(student, index))
-  ];
-  const worksheet = XLSX.utils.aoa_to_sheet(rows);
-  worksheet['!cols'] = [
-    { wch: 6 }, { wch: 9 }, { wch: 8 }, { wch: 34 }, { wch: 24 },
-    { wch: 16 }, { wch: 20 }, { wch: 12 }, { wch: 10 }, { wch: 10 },
-    { wch: 10 }, { wch: 10 }, { wch: 32 }, { wch: 18 }, { wch: 20 },
-    { wch: 30 }, { wch: 38 }, { wch: 22 }, { wch: 28 }
-  ];
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Alumnos');
-
-  if (includeSummary) {
-    const summaryRows = [
-      ['GRUPO', 'GRADO', 'TOTAL', 'HOMBRES', 'MUJERES', 'CON BECA'],
-      ...GROUPS_LIST.map(group => {
-        const groupStudents = students.filter(s =>
-          s.grupoId === group || s.grupo === group ||
-          (String(s.grado || '').charAt(0) + String(s.grupo || '')) === group
-        );
-        return [
-          group,
-          getGrade(group),
-          groupStudents.length,
-          groupStudents.filter(s => s.genero === 'Masculino').length,
-          groupStudents.filter(s => s.genero === 'Femenino').length,
-          groupStudents.filter(s => s.beca === 'Sí').length
-        ];
-      })
-    ];
-    const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
-    summarySheet['!cols'] = [
-      { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
-    ];
-    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumen');
-  }
-
-  XLSX.writeFile(workbook, filename);
-  showToast('Excel descargado correctamente', 'success');
-}
-
-function exportTeacherExcel() {
-  const group = currentUser && currentUser.group;
-  if (!group) return;
-  exportStudentsToExcel(
-    getStudentsByGroup(group),
-    `Lista_Alumnos_Grupo_${group}.xlsx`
-  );
-}
-
-function exportDirectorExcel() {
-  exportStudentsToExcel(
-    dirFilteredStudents,
-    'Lista_Alumnos_Direccion.xlsx',
-    true
-  );
-}
-
 function filterTeacherTable() {
   renderTeacherTable(document.getElementById('teacher-search').value);
 }
@@ -1479,7 +1438,15 @@ function renderDirectorAttendanceTable() {
           const isFuture = day.date > today;
           const record = isFuture ? null : getAttendanceRecord(group, day.date, studentId);
           const status = record && ATTENDANCE_STATUS_META[record.status];
-          return `<td class="attendance-month-cell-wrap"><span class="attendance-month-cell ${status ? status.className : 'attendance-month-empty-cell'} ${isFuture ? 'attendance-month-future-cell' : ''}" title="${isFuture ? 'Aún no disponible' : escHtml(`${formatLongDate(day.date)}: ${status ? status.label : 'Pendiente'}`)}">${status ? status.short : '—'}</span></td>`;
+          const cell = isFuture
+            ? `<span class="attendance-month-cell attendance-month-empty-cell attendance-month-future-cell" title="Aún no disponible">—</span>`
+            : `<button type="button" class="attendance-month-cell ${status ? status.className : 'attendance-month-empty-cell'}"
+                onclick='openAttendanceDayModal(${JSON.stringify(group)}, ${JSON.stringify(day.date)})'
+                title="${escHtml(`${formatLongDate(day.date)}: ${status ? status.label : 'Pendiente'}`)}"
+                aria-label="${escHtml(`${student.nombre || 'Alumno'} · ${formatLongDate(day.date)} · ${status ? status.label : 'Pendiente'}`)}">
+                ${status ? status.short : '—'}
+              </button>`;
+          return `<td class="attendance-month-cell-wrap">${cell}</td>`;
         }).join('')}
       </tr>
     `;
@@ -2088,6 +2055,7 @@ document.addEventListener('keydown', e => {
   }
   // Escape closes drawer and confirm dialog
   if (e.key === 'Escape') {
+    closeAttendanceDayModal();
     closeStudentDrawer();
     closeStaffDrawer();
     closeConfirm();
@@ -2108,27 +2076,39 @@ document.addEventListener('input', e => {
 // =====================================================
 
 function printTeacherList() {
-  const group = currentUser.group;
-  const students = getStudentsByGroup(group);
+  if (!currentUser || currentUser.role !== 'teacher') return;
+  printStudentRoster(getStudentsByGroup(currentUser.group), currentUser.group);
+}
+
+function printDirectorRoster() {
+  if (!currentUser || currentUser.role !== 'director') return;
+  const students = dirFilteredStudents.length ? dirFilteredStudents : getAllStudents();
+  printStudentRoster(students, null);
+}
+
+function printStudentRoster(students, group = null) {
   const printContainer = document.getElementById('print-view');
 
-  // En Excel siempre hay típicamente unas 30 filas para rellenar a mano
-  const TOTAL_ROWS = 30;
+  const rosterLabel = group ? `GRUPO ${group}` : 'TODOS LOS ALUMNOS';
+  const totalRows = group ? Math.max(30, students.length) : students.length;
   let rowsHtml = '';
 
-  for (let i = 0; i < TOTAL_ROWS; i++) {
+  for (let i = 0; i < totalRows; i++) {
     const s = students[i];
     if (s) {
+      const studentGroup = String(s.grupo || '').length === 1
+        ? s.grupo
+        : String(s.grupoId || '').slice(-1);
       rowsHtml += `
         <tr>
           <td style="text-align:center">${i + 1}</td>
-          <td style="text-align:center">${getGrade(group)}</td>
-          <td style="text-align:center">${group.charAt(1) || group}</td>
+          <td style="text-align:center">${escHtml(s.grado || (group ? getGrade(group) : ''))}</td>
+          <td style="text-align:center">${escHtml(group ? group.charAt(1) : studentGroup)}</td>
           <td>${escHtml(s.nombre)}</td>
           <td>${escHtml(s.barreraAprendizaje) || ''}</td>
           <td>${fmtDate(s.fechaNacimiento)}</td>
           <td class="td-sm">${escHtml(s.curpAlumno)}</td>
-          <td>${s.genero}</td>
+          <td>${escHtml(s.genero)}</td>
           <td style="text-align:center">${s.beca === 'Sí' ? 'Sí' : ''}</td>
           <td>${s.peso || ''}</td>
           <td>${s.estatura || ''}</td>
@@ -2173,7 +2153,7 @@ function printTeacherList() {
             <span>CCT 10DPR0519X</span>
           </div>
           <div style="font-size:10pt; font-weight:bold; margin-top:3px; border-bottom:1px solid #000; padding-bottom:3px;">
-            REGISTRO DE ASISTENCIA CICLO ESCOLAR 2026-2027 &nbsp;&nbsp;&nbsp; (GRUPO ${group})
+            REGISTRO DE ASISTENCIA CICLO ESCOLAR 2026-2027 &nbsp;&nbsp;&nbsp; (${rosterLabel})
           </div>
         </td>
       </tr>

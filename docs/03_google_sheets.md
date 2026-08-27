@@ -79,7 +79,7 @@ Si se agrega un grado nuevo, también hay que actualizar el Apps Script y `app.j
 
 ---
 
-## Ver el Sheet vs. exportar Excel
+## Ver el Sheet e imprimir desde el panel
 
 ## Hojas mensuales de asistencia
 
@@ -91,10 +91,11 @@ El panel solamente escribe `✓` o `X` en la celda correspondiente al alumno y a
 |--------|-------------|-----------|
 | Ver Sheet en vivo | La directora abre el link del Drive | Ve los datos en tiempo real con el diseño oficial (logo, colores) |
 | Imprimir con membrete | Desde el Sheet: Archivo → Imprimir | Hoja con formato de la escuela |
-| Exportar desde el panel | Botón "Exportar Excel" | Archivo `.xlsx` sin diseño, solo datos tabulares limpios |
+| Imprimir padrón desde el panel | Pestaña "Alumnos" → "Imprimir padrón" | Copia impresa de los datos completos del grupo |
+| Imprimir asistencia | Pestaña "Asistencia" o "Historial mensual" | Lista diaria o matriz mensual |
 | Ver en el panel | Pestaña "Todos los Alumnos" | Tabla interactiva con filtros y búsqueda |
 
-> Exportar desde el panel produce una copia tabular del momento. No conserva automáticamente toda la maquetación, combinaciones, logo y fórmulas del Sheet oficial.
+> El panel no descarga archivos Excel. Así se evita que circulen copias desconectadas del registro oficial.
 
 ---
 
