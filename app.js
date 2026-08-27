@@ -170,6 +170,26 @@ function getStudentsByGroup(group) {
   return allStudentsCache.filter(s => s.grupoId === group || s.grupo === group);
 }
 
+function genderBadge(gender) {
+  if (gender === 'Masculino') {
+    return '<span class="badge badge-male"><i class="fa-solid fa-mars"></i> Masc.</span>';
+  }
+  if (gender === 'Femenino') {
+    return '<span class="badge badge-female"><i class="fa-solid fa-venus"></i> Fem.</span>';
+  }
+  return '<span class="badge">—</span>';
+}
+
+function scholarshipBadge(scholarship) {
+  if (scholarship === 'Sí') {
+    return '<span class="badge badge-beca">✓ Sí</span>';
+  }
+  if (scholarship === 'No') {
+    return '<span class="badge badge-no-beca">✗ No</span>';
+  }
+  return '<span class="badge">—</span>';
+}
+
 async function upsertStudent(data, id = null) {
   const previousCache = allStudentsCache.map(student => ({ ...student }));
 
@@ -374,17 +394,8 @@ function renderTeacherTable(filterText = '') {
       <tr class="row-clickable" onclick='openStudentDrawer(${JSON.stringify(s.id)})'>
         <td class="td-number">${i + 1}</td>
         <td class="td-name">${escHtml(s.nombre)}</td>
-        <td>
-          <span class="badge ${s.genero === 'Masculino' ? 'badge-male' : 'badge-female'}">
-            <i class="fa-solid ${s.genero === 'Masculino' ? 'fa-mars' : 'fa-venus'}"></i>
-            ${s.genero === 'Masculino' ? 'Masc.' : 'Fem.'}
-          </span>
-        </td>
-        <td>
-          <span class="badge ${s.beca === 'Sí' ? 'badge-beca' : 'badge-no-beca'}">
-            ${s.beca === 'Sí' ? '✓ Sí' : '✗ No'}
-          </span>
-        </td>
+        <td>${genderBadge(s.genero)}</td>
+        <td>${scholarshipBadge(s.beca)}</td>
         <td class="td-curp">${escHtml(s.curpAlumno) || '—'}</td>
         <td>${escHtml(s.tutor) || '—'}</td>
         <td>${escHtml(s.telefono) || '—'}</td>
@@ -552,16 +563,8 @@ function renderDirectorTable() {
         <td>${escHtml(s.barreraAprendizaje) || ''}</td>
         <td>${s.fechaNacimiento ? fmtDate(s.fechaNacimiento) : '—'}</td>
         <td class="td-curp">${escHtml(s.curpAlumno)}</td>
-        <td>
-          <span class="badge ${s.genero === 'Masculino' ? 'badge-male' : 'badge-female'}">
-            ${s.genero === 'Masculino' ? 'Masc.' : 'Fem.'}
-          </span>
-        </td>
-        <td>
-          <span class="badge ${s.beca === 'Sí' ? 'badge-beca' : 'badge-no-beca'}">
-            ${s.beca === 'Sí' ? '✓ Sí' : '✗ No'}
-          </span>
-        </td>
+        <td>${genderBadge(s.genero)}</td>
+        <td>${scholarshipBadge(s.beca)}</td>
         <td>${escHtml(s.talla) || '—'}</td>
         <td>${escHtml(s.peso) ? s.peso + ' kg' : '—'}</td>
         <td>${escHtml(s.estatura) ? s.estatura + ' cm' : '—'}</td>
