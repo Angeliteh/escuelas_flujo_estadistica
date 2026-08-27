@@ -62,10 +62,11 @@ function getStudents() {
     if (!sheet) return;
     const lastRow = sheet.getLastRow();
     if (lastRow <= HEADER_ROW) return;
-    const data = sheet.getRange(HEADER_ROW + 1, 1, lastRow - HEADER_ROW, 17).getValues();
+    // Leer 18 columnas empezando desde la 1 (A hasta R)
+    const data = sheet.getRange(HEADER_ROW + 1, 1, lastRow - HEADER_ROW, 18).getValues();
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
-      if (!row[2]) continue; // ignorar filas sin nombre (ahora el nombre es row[2])
+      if (!row[3]) continue; // ignorar filas sin nombre (ahora el nombre es row[3])
       allStudents.push(rowToObject(row, i + HEADER_ROW + 1, tabName));
     }
   });
@@ -75,20 +76,21 @@ function getStudents() {
 // Guarda o actualiza un alumno
 function saveStudent(student) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  // El panel manda la letra ("A") y el grado ("1°"). Reconstruimos el nombre de la hoja.
   const gradoNum = String(student.grado).charAt(0);
   const hojaNombre = (student.grupo.length === 1 && gradoNum) ? (gradoNum + student.grupo) : student.grupo;
   if (!TABS.includes(hojaNombre)) return { success: false, error: 'Grupo no válido: ' + hojaNombre };
   let sheet = ss.getSheetByName(hojaNombre);
   if (!sheet) return { success: false, error: 'La hoja no existe: ' + hojaNombre };
-  const rowData = objectToRow(student);
+  
   if (student.rowId) {
-    // Actualización: escribir en la fila exacta
+    // Actualización
+    const rowData = objectToRow(student, student.rowId - HEADER_ROW);
     sheet.getRange(student.rowId, 1, 1, rowData.length).setValues([rowData]);
   } else {
-    // Nuevo alumno: encontrar primera fila vacía después del header
+    // Nuevo alumno
     const lastRow = sheet.getLastRow();
     const insertRow = Math.max(lastRow + 1, HEADER_ROW + 1);
+    const rowData = objectToRow(student, insertRow - HEADER_ROW);
     sheet.getRange(insertRow, 1, 1, rowData.length).setValues([rowData]);
   }
   return { success: true, message: 'Guardado' };
@@ -100,14 +102,14 @@ function deleteStudent(grupo, rowId) {
   const sheet = ss.getSheetByName(grupo);
   if (!sheet) return { success: false, error: 'Hoja no encontrada: ' + grupo };
   if (!rowId || rowId <= HEADER_ROW) return { success: false, error: 'Fila inválida' };
-  sheet.getRange(rowId, 1, 1, 17).clearContent();
+  sheet.getRange(rowId, 1, 1, 18).clearContent();
   return { success: true, message: 'Eliminado' };
 }
 
-// Convierte objeto JS → array de 17 valores para escribir en el Sheet (SIN ID INTERNO)
-function objectToRow(s) {
+// Convierte objeto JS → array de 18 valores para escribir en el Sheet (CON NÚMERO DE LISTA)
+function objectToRow(s, num) {
   return [
-    s.grado, s.grupo, s.nombre, s.fechaNacimiento, s.curpAlumno,
+    num, s.grado, s.grupo, s.nombre, s.fechaNacimiento, s.curpAlumno,
     s.genero, s.beca, s.peso, s.estatura, s.talla, s.tutor,
     s.telefono, s.curpTutor, s.correo, s.domicilio, s.nivelEstudio, s.ocupacion
   ];
@@ -118,23 +120,23 @@ function rowToObject(row, rowIndex, tabName) {
   return {
     rowId: rowIndex,
     id: tabName + '-' + rowIndex, // ID dinámico generado al vuelo
-    grado: row[0],
-    grupo: row[1] || tabName,
-    nombre: row[2],
-    fechaNacimiento: formatDate(row[3]),
-    curpAlumno: row[4],
-    genero: row[5],
-    beca: row[6],
-    peso: row[7],
-    estatura: row[8],
-    talla: row[9],
-    tutor: row[10],
-    telefono: row[11],
-    curpTutor: row[12],
-    correo: row[13],
-    domicilio: row[14],
-    nivelEstudio: row[15],
-    ocupacion: row[16]
+    grado: row[1],
+    grupo: row[2] || tabName,
+    nombre: row[3],
+    fechaNacimiento: formatDate(row[4]),
+    curpAlumno: row[5],
+    genero: row[6],
+    beca: row[7],
+    peso: row[8],
+    estatura: row[9],
+    talla: row[10],
+    tutor: row[11],
+    telefono: row[12],
+    curpTutor: row[13],
+    correo: row[14],
+    domicilio: row[15],
+    nivelEstudio: row[16],
+    ocupacion: row[17]
   };
 }
 
