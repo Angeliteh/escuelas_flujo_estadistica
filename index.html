@@ -107,6 +107,9 @@
       <button class="teacher-nav-btn" id="teacher-tab-attendance" onclick="switchTeacherTab('attendance')">
         <i class="fa-solid fa-calendar-check"></i> Asistencia
       </button>
+      <button class="teacher-nav-btn" id="teacher-tab-month" onclick="switchTeacherTab('month')">
+        <i class="fa-solid fa-calendar-days"></i> Historial mensual
+      </button>
     </nav>
 
     <main class="main-content">
@@ -228,6 +231,46 @@
             <tbody id="attendance-tbody"></tbody>
           </table>
           <div id="attendance-empty" class="empty-state hidden">
+            <i class="fa-solid fa-calendar-xmark"></i>
+            <p>No hay alumnos registrados en este grupo</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="teacher-attendance-month-panel" class="hidden" aria-labelledby="attendance-month-title">
+        <div class="attendance-heading">
+          <div>
+            <p class="eyebrow"><i class="fa-solid fa-calendar-days"></i> Consulta e impresión</p>
+            <h2 id="attendance-month-title">Historial mensual</h2>
+            <p class="section-subtitle">Consulta todos los días hábiles del grupo. Para corregir, abre el día correspondiente.</p>
+          </div>
+          <div class="attendance-date-control">
+            <label for="attendance-month">Mes</label>
+            <input type="month" id="attendance-month" onchange="changeAttendanceMonth()">
+            <button class="btn btn-ghost btn-sm" onclick="setAttendanceCurrentMonth()">Este mes</button>
+          </div>
+        </div>
+
+        <div class="attendance-toolbar">
+          <div class="attendance-summary" id="attendance-month-summary" aria-live="polite"></div>
+          <div class="attendance-actions">
+            <button class="btn btn-ghost" onclick="goToAttendanceToday()">
+              <i class="fa-solid fa-calendar-check"></i> Ir a hoy
+            </button>
+            <button class="btn btn-secondary" onclick="printAttendanceMonth()">
+              <i class="fa-solid fa-print"></i> Imprimir mes
+            </button>
+          </div>
+        </div>
+
+        <div id="attendance-month-sync-status" class="attendance-sync-status" role="status"></div>
+
+        <div class="table-container attendance-month-container">
+          <table class="data-table attendance-month-table" id="attendance-month-table">
+            <thead id="attendance-month-head"></thead>
+            <tbody id="attendance-month-tbody"></tbody>
+          </table>
+          <div id="attendance-month-empty" class="empty-state hidden">
             <i class="fa-solid fa-calendar-xmark"></i>
             <p>No hay alumnos registrados en este grupo</p>
           </div>

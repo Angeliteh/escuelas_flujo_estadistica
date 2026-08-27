@@ -547,6 +547,45 @@ input, select, button, textarea {
   text-align: center;
 }
 
+.attendance-month-container { max-height: calc(100vh - 300px); }
+.attendance-month-table { min-width: max-content; }
+.attendance-month-table th,
+.attendance-month-table td { text-align: center; }
+.attendance-month-table th:nth-child(2),
+.attendance-month-table td:nth-child(2) { text-align: left; }
+.attendance-month-table th:first-child,
+.attendance-month-table td:first-child { position: sticky; left: 0; z-index: 3; background: var(--surface2); }
+.attendance-month-table th:nth-child(2),
+.attendance-month-table td:nth-child(2) { position: sticky; left: 36px; z-index: 2; background: var(--surface); }
+.attendance-month-table thead th:nth-child(2) { background: var(--surface2); z-index: 4; }
+.attendance-month-day-head { min-width: 42px; padding: 8px 5px !important; }
+.attendance-month-day-head span,
+.attendance-month-day-head small { display: block; text-align: center; }
+.attendance-month-day-head span { color: var(--accent2); font-size: 0.7rem; }
+.attendance-month-day-head small { margin-top: 3px; color: var(--text); font-size: 0.72rem; }
+.attendance-month-name { min-width: 245px; }
+.attendance-month-cell-wrap { padding: 5px 4px !important; }
+.attendance-month-cell {
+  width: 31px;
+  height: 31px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface2);
+  color: var(--text2);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.attendance-month-cell:hover { transform: scale(1.08); border-color: var(--accent2); }
+.attendance-month-cell.attendance-present { background: rgba(22,163,74,0.28); color: #86efac; border-color: rgba(74,222,128,0.55); }
+.attendance-month-cell.attendance-absent { background: rgba(220,38,38,0.28); color: #fca5a5; border-color: rgba(248,113,113,0.55); }
+.attendance-month-cell.attendance-late { background: rgba(217,119,6,0.3); color: #fcd34d; border-color: rgba(251,191,36,0.55); }
+.attendance-month-cell.attendance-excused { background: rgba(37,99,235,0.3); color: #93c5fd; border-color: rgba(96,165,250,0.55); }
+.attendance-month-empty-cell { color: var(--text3); }
+
 /* =========================================================
    STATS BAR (Teacher)
    ========================================================= */
@@ -1369,6 +1408,11 @@ input, select, button, textarea {
   .attendance-print-table { font-size: 8pt; }
   .attendance-print-table th,
   .attendance-print-table td { height: 22px; padding: 4px; }
+  .attendance-print-month-table { font-size: 6.5pt; }
+  .attendance-print-month-table th,
+  .attendance-print-month-table td { padding: 2px; height: 18px; text-align: center; }
+  .attendance-print-month-table th:nth-child(2),
+  .attendance-print-month-table td:nth-child(2) { text-align: left; }
   .attendance-print-signatures {
     display: flex;
     justify-content: space-between;
