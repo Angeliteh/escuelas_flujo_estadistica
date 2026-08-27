@@ -1,0 +1,19 @@
+{
+  "name": "Control de Asistencia | Gestión Escolar",
+  "short_name": "AsistPanel",
+  "description": "Captura diaria de asistencia por grupo escolar.",
+  "lang": "es-MX",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#070b14",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "./escudo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

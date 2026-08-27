@@ -1850,6 +1850,14 @@ async function removeStaffRecord(id) {
 
 document.getElementById('login-btn').addEventListener('click', login);
 
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(error => {
+      console.warn('No se pudo activar el modo instalable sin conexión:', error);
+    });
+  });
+}
+
 (async function init() {
   await initData();
   const session = getSession();
