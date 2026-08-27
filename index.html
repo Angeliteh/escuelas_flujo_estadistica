@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Control de Asistencia — Sistema centralizado de registro de alumnos por grupo para directivos y maestros.">
+  <title>Control de Asistencia | Gestión Escolar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ===================== LOGIN VIEW ===================== -->
+  <div id="view-login" class="view active">
+    <div class="login-bg">
+      <div class="login-orb orb-1"></div>
+      <div class="login-orb orb-2"></div>
+      <div class="login-orb orb-3"></div>
+    </div>
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-logo">
+          <div class="logo-icon">
+            <i class="fa-solid fa-graduation-cap"></i>
+          </div>
+          <h1 class="login-title">Control de Asistencia</h1>
+          <p class="login-subtitle">Sistema de Registro Escolar</p>
+        </div>
+        <div class="login-form">
+          <div class="form-group">
+            <label for="login-user">Usuario</label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-user"></i>
+              <input type="text" id="login-user" placeholder="Ej: directora  ó  1A" autocomplete="username">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="login-pass">Contraseña</label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-lock"></i>
+              <input type="password" id="login-pass" placeholder="••••••••••" autocomplete="current-password">
+            </div>
+          </div>
+          <div id="login-error" class="login-error hidden">
+            <i class="fa-solid fa-circle-exclamation"></i> Usuario o contraseña incorrectos
+          </div>
+          <button id="login-btn" class="btn btn-primary btn-full">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> Iniciar Sesión
+          </button>
+        </div>
+        <div class="login-demo">
+          <p class="demo-label">Accesos de prueba — clic para autocompletar:</p>
+          <div class="demo-badges">
+            <span class="demo-badge badge-director" onclick="fillDemo('directora','director2025')" tabindex="0">
+              <i class="fa-solid fa-shield-halved"></i> Directora
+            </span>
+            <span class="demo-badge badge-teacher" onclick="fillDemo('1A','maestro2025')" tabindex="0">
+              <i class="fa-solid fa-chalkboard-user"></i> Maestro 1A
+            </span>
+            <span class="demo-badge badge-teacher" onclick="fillDemo('2B','maestro2025')" tabindex="0">
+              <i class="fa-solid fa-chalkboard-user"></i> Maestro 2B
+            </span>
+            <span class="demo-badge badge-teacher" onclick="fillDemo('6A','maestro2025')" tabindex="0">
+              <i class="fa-solid fa-chalkboard-user"></i> Maestro 6A
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== TEACHER VIEW ===================== -->
+  <div id="view-teacher" class="view">
+    <header class="app-header">
+      <div class="header-left">
+        <div class="header-logo"><i class="fa-solid fa-graduation-cap"></i></div>
+        <div>
+          <h1 class="header-title">Mi Grupo</h1>
+          <p id="teacher-subtitle" class="header-subtitle"></p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="header-actions">
+          <div class="user-info">
+            <i class="fas fa-chalkboard-teacher"></i> <span id="teacher-name-display"></span>
+          </div>
+          <button class="btn btn-secondary" onclick="printTeacherList()" style="margin-right: 15px;">
+            <i class="fas fa-print"></i> Imprimir Lista Oficial
+          </button>
+          <button class="btn btn-secondary" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i> Salir
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="stats-bar">
+        <div class="stat-card">
+          <div class="stat-icon stat-blue"><i class="fa-solid fa-users"></i></div>
+          <div class="stat-info">
+            <span id="t-stat-total" class="stat-value">0</span>
+            <span class="stat-label">Total Alumnos</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-indigo"><i class="fa-solid fa-mars"></i></div>
+          <div class="stat-info">
+            <span id="t-stat-h" class="stat-value">0</span>
+            <span class="stat-label">Hombres</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-pink"><i class="fa-solid fa-venus"></i></div>
+          <div class="stat-info">
+            <span id="t-stat-m" class="stat-value">0</span>
+            <span class="stat-label">Mujeres</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-amber"><i class="fa-solid fa-award"></i></div>
+          <div class="stat-info">
+            <span id="t-stat-beca" class="stat-value">0</span>
+            <span class="stat-label">Con Beca</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-controls">
+        <div class="search-bar">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="teacher-search" placeholder="Buscar por nombre o CURP..." oninput="filterTeacherTable()">
+        </div>
+        <button class="btn btn-primary" onclick="openStudentDrawer()" id="add-student-btn">
+          <i class="fa-solid fa-plus"></i> Agregar Alumno
+        </button>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table" id="teacher-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nombre del Alumno</th>
+              <th>Género</th>
+              <th>Beca</th>
+              <th>CURP Alumno</th>
+              <th>Nombre del Tutor</th>
+              <th>Teléfono</th>
+              <th class="actions-col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="teacher-tbody"></tbody>
+        </table>
+        <div id="teacher-empty" class="empty-state hidden">
+          <i class="fa-solid fa-user-slash"></i>
+          <p>No hay alumnos registrados en este grupo</p>
+          <button class="btn btn-primary" onclick="openStudentDrawer()">
+            <i class="fa-solid fa-plus"></i> Agregar primer alumno
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ===================== DIRECTOR VIEW ===================== -->
+  <div id="view-director" class="view">
+    <header class="app-header">
+      <div class="header-left">
+        <div class="header-logo"><i class="fa-solid fa-graduation-cap"></i></div>
+        <div>
+          <h1 class="header-title">Control de Asistencia</h1>
+          <p class="header-subtitle">Panel de Dirección</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="header-actions">
+          <div class="header-user">
+            <div class="user-avatar director-avatar"><i class="fa-solid fa-shield-halved"></i></div>
+            <span id="director-name" class="user-name"></span>
+          </div>
+          <a href="https://docs.google.com/spreadsheets/d/1jAPfaac3miW8izCGrq1rosCntdjAMw3TMKLCxHYtSzI/edit" target="_blank" class="btn btn-sheets">
+            <i class="fa-brands fa-google-drive"></i> Ver en Sheets
+          </a>
+          <button class="btn btn-ghost btn-icon" onclick="logout()" id="director-logout-btn">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span>Salir</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="tab-nav" role="tablist">
+      <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')" role="tab" id="tab-btn-dashboard">
+        <i class="fa-solid fa-chart-pie"></i> Dashboard
+      </button>
+      <button class="tab-btn" data-tab="students" onclick="switchTab('students')" role="tab" id="tab-btn-students">
+        <i class="fa-solid fa-list"></i> Todos los Alumnos
+      </button>
+    </nav>
+
+    <main class="main-content">
+
+      <!-- DASHBOARD TAB -->
+      <div id="tab-dashboard" class="tab-content active" role="tabpanel">
+        <div class="stats-grid">
+          <div class="stat-card stat-card-lg gradient-blue">
+            <div class="stat-icon-lg"><i class="fa-solid fa-users"></i></div>
+            <div>
+              <span id="d-stat-total" class="stat-value-lg">0</span>
+              <span class="stat-label-lg">Total de Alumnos</span>
+            </div>
+          </div>
+          <div class="stat-card stat-card-lg gradient-purple">
+            <div class="stat-icon-lg"><i class="fa-solid fa-layer-group"></i></div>
+            <div>
+              <span id="d-stat-grupos" class="stat-value-lg">12</span>
+              <span class="stat-label-lg">Grupos Activos</span>
+            </div>
+          </div>
+          <div class="stat-card stat-card-lg gradient-emerald">
+            <div class="stat-icon-lg"><i class="fa-solid fa-award"></i></div>
+            <div>
+              <span id="d-stat-becas" class="stat-value-lg">0</span>
+              <span class="stat-label-lg">Alumnos con Beca</span>
+            </div>
+          </div>
+          <div class="stat-card stat-card-lg gradient-amber">
+            <div class="stat-icon-lg"><i class="fa-solid fa-percent"></i></div>
+            <div>
+              <span id="d-stat-pct-beca" class="stat-value-lg">0%</span>
+              <span class="stat-label-lg">Cobertura de Becas</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3 class="chart-title"><i class="fa-solid fa-venus-mars"></i> Distribución por Género</h3>
+            <div class="chart-wrapper"><canvas id="chart-gender"></canvas></div>
+          </div>
+          <div class="chart-card chart-wide">
+            <h3 class="chart-title"><i class="fa-solid fa-chart-bar"></i> Alumnos por Grupo</h3>
+            <div class="chart-wrapper"><canvas id="chart-groups"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title"><i class="fa-solid fa-award"></i> Becas por Grado</h3>
+            <div class="chart-wrapper"><canvas id="chart-becas"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title"><i class="fa-solid fa-weight-scale"></i> Promedio Peso / Estatura</h3>
+            <div class="chart-wrapper"><canvas id="chart-anthropo"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALL STUDENTS TAB -->
+      <div id="tab-students" class="tab-content" role="tabpanel">
+        <div class="table-controls">
+          <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="director-search" placeholder="Buscar por nombre, CURP, tutor..." oninput="filterDirectorTable()">
+          </div>
+          <div class="filters">
+            <input type="hidden" id="filter-grado" value="">
+            <input type="hidden" id="filter-grupo" value="">
+            
+            <div class="pill-container">
+              <div class="pill-group" id="pill-grado">
+                <button class="pill pill-active" data-val="" onclick="setGrado('')">Todos</button>
+                <button class="pill" data-val="1°" onclick="setGrado('1°')">1°</button>
+                <button class="pill" data-val="2°" onclick="setGrado('2°')">2°</button>
+                <button class="pill" data-val="3°" onclick="setGrado('3°')">3°</button>
+                <button class="pill" data-val="4°" onclick="setGrado('4°')">4°</button>
+                <button class="pill" data-val="5°" onclick="setGrado('5°')">5°</button>
+                <button class="pill" data-val="6°" onclick="setGrado('6°')">6°</button>
+              </div>
+              <div class="pill-group" id="pill-grupo">
+                <button class="pill pill-active" data-val="" onclick="setGrupo('')">Todos</button>
+                <button class="pill" data-val="A" onclick="setGrupo('A')">A</button>
+                <button class="pill" data-val="B" onclick="setGrupo('B')">B</button>
+              </div>
+            </div>
+
+            <select id="filter-genero" onchange="filterDirectorTable()">
+              <option value="">Todos los géneros</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Femenino">Femenino</option>
+            </select>
+            <select id="filter-beca" onchange="filterDirectorTable()">
+              <option value="">Beca: Todos</option>
+              <option value="Sí">Con Beca</option>
+              <option value="No">Sin Beca</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-meta">
+          <span id="director-count" class="table-count"></span>
+        </div>
+        <div class="table-container">
+          <table class="data-table" id="director-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Grado</th>
+                <th>Grupo</th>
+                <th>Nombre del Alumno</th>
+                <th>F. Nacimiento</th>
+                <th>CURP Alumno</th>
+                <th>Género</th>
+                <th>Beca</th>
+                <th>Talla</th>
+                <th>Peso (kg)</th>
+                <th>Estatura (cm)</th>
+                <th>Nombre del Tutor</th>
+                <th>Teléfono</th>
+                <th>CURP Tutor</th>
+                <th>Correo</th>
+                <th>Domicilio</th>
+                <th>Nivel de Estudio</th>
+                <th>Ocupación</th>
+              </tr>
+            </thead>
+            <tbody id="director-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+
+
+  <!-- CONFIRM MODAL -->
+  <div id="confirm-modal" class="modal-overlay hidden" role="alertdialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 class="modal-title"><i class="fa-solid fa-triangle-exclamation" style="color:#ef4444"></i> Confirmar Eliminación</h2>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-text" class="confirm-text"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeConfirm()">Cancelar</button>
+        <button class="btn btn-danger" id="confirm-ok-btn">
+          <i class="fa-solid fa-trash"></i> Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="toast hidden" role="alert" aria-live="polite">
+    <i id="toast-icon" class="fa-solid fa-check-circle"></i>
+    <span id="toast-msg"></span>
+  </div>
+
+  <!-- STUDENT DETAIL / EDIT DRAWER -->
+  <div id="detail-overlay" class="detail-overlay hidden" onclick="closeStudentDrawer(event)">
+    <div id="detail-drawer" class="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="detail-name">
+      <div class="detail-header">
+        <div class="detail-avatar" id="detail-avatar-icon">
+          <i class="fa-solid fa-user-graduate"></i>
+        </div>
+        <div class="detail-title-block">
+          <h2 id="detail-name" class="detail-student-name">Nuevo Alumno</h2>
+          <span id="detail-grupo-badge" class="badge badge-grade"></span>
+        </div>
+        <button class="detail-close" onclick="closeStudentDrawer()" aria-label="Cerrar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="student-form" class="drawer-form-wrapper" onsubmit="saveStudent(event)" novalidate>
+        <input type="hidden" id="student-id">
+        <div class="detail-body">
+          
+          <div class="form-section">
+            <h3 class="form-section-title"><i class="fa-solid fa-user-graduate"></i> Datos del Alumno</h3>
+            <div class="form-grid">
+              <div class="form-group form-group-full">
+                <label for="f-nombre">Nombre del Alumno <span class="req">*</span></label>
+                <input type="text" id="f-nombre" required placeholder="Apellido Apellido Nombre(s)">
+              </div>
+              <div class="form-group">
+                <label for="f-fecha">Fecha de Nacimiento <span class="req">*</span></label>
+                <input type="date" id="f-fecha" required>
+              </div>
+              <div class="form-group">
+                <label for="f-curp">CURP del Alumno <span class="req">*</span></label>
+                <input type="text" id="f-curp" required placeholder="AAAA000000XXXXXX00" maxlength="18" class="uppercase">
+              </div>
+              <div class="form-group">
+                <label for="f-genero">Género <span class="req">*</span></label>
+                <select id="f-genero" required>
+                  <option value="">Seleccionar...</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Femenino">Femenino</option>
+                  <option value="No especificado">No especificado</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="f-beca">Beca <span class="req">*</span></label>
+                <select id="f-beca" required>
+                  <option value="">Seleccionar...</option>
+                  <option value="Sí">Sí</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="f-nivel">Nivel de Estudio <span class="req">*</span></label>
+                <input type="text" id="f-nivel" required placeholder="Ej: Secundaria">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3 class="form-section-title"><i class="fa-solid fa-ruler"></i> Datos Físicos</h3>
+            <div class="form-grid form-grid-3">
+              <div class="form-group">
+                <label for="f-peso">Peso (kg)</label>
+                <input type="number" id="f-peso" placeholder="45.5" step="0.1" min="10" max="200">
+              </div>
+              <div class="form-group">
+                <label for="f-estatura">Estatura (cm)</label>
+                <input type="number" id="f-estatura" placeholder="155" step="0.5" min="50" max="250">
+              </div>
+              <div class="form-group">
+                <label for="f-talla">Talla</label>
+                <select id="f-talla">
+                  <option value="">—</option>
+                  <option>2</option><option>4</option><option>6</option><option>8</option>
+                  <option>10</option><option>12</option><option>14</option><option>16</option>
+                  <option>CH</option><option>M</option><option>G</option><option>XG</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3 class="form-section-title"><i class="fa-solid fa-person"></i> Datos del Tutor</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="f-tutor">Nombre del Tutor <span class="req">*</span></label>
+                <input type="text" id="f-tutor" required placeholder="Apellido Apellido Nombre(s)">
+              </div>
+              <div class="form-group">
+                <label for="f-telefono">Teléfono <span class="req">*</span></label>
+                <input type="tel" id="f-telefono" required placeholder="5512345678" maxlength="10">
+              </div>
+              <div class="form-group">
+                <label for="f-curp-tutor">CURP del Tutor</label>
+                <input type="text" id="f-curp-tutor" placeholder="AAAA000000XXXXXX00" maxlength="18" class="uppercase">
+              </div>
+              <div class="form-group">
+                <label for="f-correo">Correo Electrónico</label>
+                <input type="email" id="f-correo" placeholder="correo@ejemplo.com">
+              </div>
+              <div class="form-group">
+                <label for="f-domicilio">Domicilio</label>
+                <input type="text" id="f-domicilio" placeholder="Calle, Número, Colonia, Municipio">
+              </div>
+              <div class="form-group">
+                <label for="f-ocupacion">Ocupación</label>
+                <input type="text" id="f-ocupacion" placeholder="Ej: Empleado, Hogar...">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="detail-footer" id="detail-footer-actions">
+          <button type="button" class="btn btn-ghost" onclick="closeStudentDrawer()">Cerrar</button>
+          
+          <button type="button" class="btn btn-danger" id="detail-delete-btn" onclick="deleteFromDrawer()">
+            <i class="fa-solid fa-trash"></i> Eliminar
+          </button>
+
+          <button type="submit" class="btn btn-primary" id="detail-save-btn">
+            <i class="fa-solid fa-floppy-disk"></i> Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== PRINT VIEW ===================== -->
+  <div id="print-view" class="print-view hidden">
+    <!-- Contenido inyectado por JS -->
+  </div>
+
+  <!-- CDN Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
