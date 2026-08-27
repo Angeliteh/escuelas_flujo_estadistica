@@ -81,6 +81,12 @@ Si se agrega un grado nuevo, también hay que actualizar el Apps Script y `app.j
 
 ## Ver el Sheet vs. exportar Excel
 
+## Hojas mensuales de asistencia
+
+Cada grupo debe tener una hoja mensual formateada con el nombre exacto `ASISTENCIA (1A)`, `ASISTENCIA (1B)`, hasta `ASISTENCIA (6B)`. La plantilla usa la fila 6 para las iniciales de los días, la fila 7 para los números del mes, la fila 8 en adelante para los alumnos y la columna B para sus nombres.
+
+El panel solamente escribe `✓` o `X` en la celda correspondiente al alumno y al día. El Apps Script V5 no crea una pestaña nueva: si la hoja del grupo no existe, devuelve un aviso y no escribe nada. Las fechas futuras no se pueden capturar.
+
 | Acción | Cómo hacerlo | Resultado |
 |--------|-------------|-----------|
 | Ver Sheet en vivo | La directora abre el link del Drive | Ve los datos en tiempo real con el diseño oficial (logo, colores) |

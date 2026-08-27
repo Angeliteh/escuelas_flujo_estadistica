@@ -189,7 +189,7 @@
           <div>
             <p class="eyebrow"><i class="fa-solid fa-calendar-check"></i> Registro diario</p>
             <h2 id="attendance-title">Asistencia de mi grupo</h2>
-            <p id="attendance-subtitle" class="section-subtitle">Marca la situación de cada alumno para la fecha seleccionada.</p>
+            <p id="attendance-subtitle" class="section-subtitle">Marca ✓ si asistió o X si no asistió. Las fechas futuras están bloqueadas.</p>
           </div>
           <div class="attendance-date-control">
             <label for="attendance-date">Fecha</label>
@@ -202,7 +202,7 @@
           <div class="attendance-summary" id="attendance-summary" aria-live="polite"></div>
           <div class="attendance-actions">
             <button class="btn btn-ghost" onclick="markAllAttendance('present')">
-              <i class="fa-solid fa-check-double"></i> Todos presentes
+              <i class="fa-solid fa-check-double"></i> Todos asistieron
             </button>
             <button class="btn btn-ghost" onclick="clearAttendanceDay()">
               <i class="fa-solid fa-eraser"></i> Limpiar día
@@ -224,8 +224,7 @@
               <tr>
                 <th>#</th>
                 <th>Nombre del Alumno</th>
-                <th>Registro del día</th>
-                <th>Observación / actividad</th>
+                <th>Asistencia del día</th>
               </tr>
             </thead>
             <tbody id="attendance-tbody"></tbody>
@@ -315,6 +314,9 @@
       </button>
       <button class="tab-btn" data-tab="staff" onclick="switchTab('staff')" role="tab" id="tab-btn-staff">
         <i class="fa-solid fa-chalkboard-user"></i> Personal
+      </button>
+      <button class="tab-btn" data-tab="attendance" onclick="switchTab('attendance')" role="tab" id="tab-btn-attendance">
+        <i class="fa-solid fa-calendar-days"></i> Asistencia mensual
       </button>
     </nav>
 
@@ -446,6 +448,59 @@
             </thead>
             <tbody id="director-tbody"></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- MONTHLY ATTENDANCE TAB -->
+      <div id="tab-attendance" class="tab-content" role="tabpanel">
+        <div class="attendance-heading">
+          <div>
+            <p class="eyebrow"><i class="fa-solid fa-calendar-days"></i> Consulta de dirección</p>
+            <h2>Asistencia mensual</h2>
+            <p class="section-subtitle">Consulta la asistencia de un grupo. Esta vista es de solo lectura.</p>
+          </div>
+          <div class="attendance-date-control">
+            <label for="director-attendance-group">Grupo</label>
+            <select id="director-attendance-group" onchange="changeDirectorAttendanceGroup()">
+              <option value="1A">1A</option>
+              <option value="1B">1B</option>
+              <option value="2A">2A</option>
+              <option value="2B" selected>2B</option>
+              <option value="3A">3A</option>
+              <option value="3B">3B</option>
+              <option value="4A">4A</option>
+              <option value="4B">4B</option>
+              <option value="5A">5A</option>
+              <option value="5B">5B</option>
+              <option value="6A">6A</option>
+              <option value="6B">6B</option>
+            </select>
+            <label for="director-attendance-month">Mes</label>
+            <input type="month" id="director-attendance-month" onchange="changeDirectorAttendanceMonth()">
+            <button class="btn btn-ghost btn-sm" onclick="setDirectorAttendanceCurrentMonth()">Este mes</button>
+          </div>
+        </div>
+
+        <div class="attendance-toolbar">
+          <div class="attendance-summary" id="director-attendance-summary" aria-live="polite"></div>
+          <div class="attendance-actions">
+            <button class="btn btn-secondary" onclick="printDirectorAttendanceMonth()">
+              <i class="fa-solid fa-print"></i> Imprimir mes
+            </button>
+          </div>
+        </div>
+
+        <div id="director-attendance-sync-status" class="attendance-sync-status" role="status"></div>
+
+        <div class="table-container attendance-month-container">
+          <table class="data-table attendance-month-table" id="director-attendance-table">
+            <thead id="director-attendance-head"></thead>
+            <tbody id="director-attendance-tbody"></tbody>
+          </table>
+          <div id="director-attendance-empty" class="empty-state hidden">
+            <i class="fa-solid fa-calendar-xmark"></i>
+            <p>No hay alumnos registrados en este grupo</p>
+          </div>
         </div>
       </div>
 

@@ -88,9 +88,9 @@ Los maestros y la directora accederían a esa URL desde cualquier dispositivo, s
 ### Asistencia por período
 **Necesidad futura posible:** Marcar asistencia diaria o por período.
 
-**Estado actual:** El panel ya incluye una primera vista diaria por grupo, con estados Presente, Falta, Retardo y Justificada, observaciones, impresión y almacenamiento local temporal.
+**Estado actual:** El panel incluye captura diaria por grupo con dos marcas: ✓ Asistió y X No asistió. También tiene vista mensual, impresión y almacenamiento local temporal.
 
-**Siguiente paso:** publicar el endpoint V4 de Apps Script para guardar cada registro en la hoja técnica `ASISTENCIA`. El reporte mensual del formato Word se generará después desde esos registros, sin agregarlos como columnas en la ficha del alumno.
+**Siguiente paso:** publicar el endpoint V5 de Apps Script. La asistencia se escribirá en la hoja mensual existente del grupo (`ASISTENCIA (1A)`, `ASISTENCIA (2B)`, etc.), respetando sus filas, encabezado y columnas de días. El script no crea una hoja genérica `ASISTENCIA`.
 
 ### Vista de impresión del maestro
 **Necesidad:** Los maestros podrían necesitar imprimir su lista con el encabezado de la escuela.

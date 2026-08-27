@@ -387,15 +387,14 @@ function showDirectorView() {
 
 const ATTENDANCE_STORAGE_KEY = 'ce_attendance_cache_v1';
 const ATTENDANCE_STATUS_META = {
-  present: { label: 'Presente', short: 'P', className: 'attendance-present' },
-  absent: { label: 'Falta', short: 'F', className: 'attendance-absent' },
-  late: { label: 'Retardo', short: 'R', className: 'attendance-late' },
-  excused: { label: 'Justificada', short: 'J', className: 'attendance-excused' },
+  present: { label: 'Asistió', short: '✓', className: 'attendance-present' },
+  absent: { label: 'No asistió', short: 'X', className: 'attendance-absent' },
 };
 
 let attendanceCache = {};
 let attendanceLoadedDate = null;
 let attendanceLoadedMonth = null;
+let attendanceApiReady = null;
 
 try {
   attendanceCache = JSON.parse(localStorage.getItem(ATTENDANCE_STORAGE_KEY) || '{}') || {};
@@ -431,8 +430,57 @@ function getAttendanceKey(group, date, studentId) {
   return `${group}|${date}|${studentId}`;
 }
 
+function normalizeAttendanceStatus(status) {
+  const value = String(status || '').trim().toLowerCase();
+  if (['present', 'presente', 'asistio', 'asistió', '✓', '✔'].includes(value)) return 'present';
+  if (['absent', 'falta', 'no asistio', 'no asistió', 'x', '✗', '✕'].includes(value)) return 'absent';
+  return '';
+}
+
+function isAttendanceDateAllowed(date) {
+  return Boolean(date) && date <= localDateString();
+}
+
+function setAttendanceDateLimits() {
+  const today = localDateString();
+  const dateInput = document.getElementById('attendance-date');
+  const monthInput = document.getElementById('attendance-month');
+  const directorMonthInput = document.getElementById('director-attendance-month');
+  if (dateInput) {
+    dateInput.max = today;
+    if (dateInput.value && dateInput.value > today) dateInput.value = today;
+  }
+  if (monthInput) {
+    monthInput.max = today.slice(0, 7);
+    if (monthInput.value && monthInput.value > monthInput.max) monthInput.value = monthInput.max;
+  }
+  if (directorMonthInput) {
+    directorMonthInput.max = today.slice(0, 7);
+    if (directorMonthInput.value && directorMonthInput.value > directorMonthInput.max) directorMonthInput.value = directorMonthInput.max;
+  }
+}
+
+async function ensureAttendanceApiReady() {
+  if (attendanceApiReady !== null) return attendanceApiReady;
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'getAttendanceConfig' }),
+    });
+    const result = await response.json();
+    attendanceApiReady = Boolean(result.success && result.mode === 'formatted-monthly-sheet');
+  } catch (error) {
+    attendanceApiReady = false;
+  }
+  return attendanceApiReady;
+}
+
+function attendanceApiSetupMessage() {
+  return '<i class="fa-solid fa-triangle-exclamation"></i> Falta publicar la versión del Apps Script que usa las hojas ASISTENCIA (GRUPO). No se escribió ninguna hoja.';
+}
+
 function getAttendanceRecord(group, date, studentId) {
-  return attendanceCache[getAttendanceKey(group, date, studentId)] || {
+  const record = attendanceCache[getAttendanceKey(group, date, studentId)] || {
     date,
     group,
     studentId,
@@ -440,6 +488,7 @@ function getAttendanceRecord(group, date, studentId) {
     note: '',
     synced: true,
   };
+  return { ...record, status: normalizeAttendanceStatus(record.status) };
 }
 
 function setAttendanceRecord(group, date, studentId, values) {
@@ -478,14 +527,14 @@ function updateAttendanceSummary(students, date) {
   summary.innerHTML = `
     <span class="attendance-summary-item summary-total"><strong>${students.length}</strong> alumnos</span>
     <span class="attendance-summary-item summary-pending"><strong>${pending}</strong> pendientes</span>
-    <span class="attendance-summary-item summary-present"><strong>${count('present')}</strong> presentes</span>
-    <span class="attendance-summary-item summary-absent"><strong>${count('absent')}</strong> faltas</span>
-    <span class="attendance-summary-item summary-late"><strong>${count('late')}</strong> retardos</span>
+    <span class="attendance-summary-item summary-present"><strong>${count('present')}</strong> asistieron</span>
+    <span class="attendance-summary-item summary-absent"><strong>${count('absent')}</strong> no asistieron</span>
   `;
 }
 
 function renderAttendanceTable() {
   if (!currentUser || currentUser.role !== 'teacher') return;
+  setAttendanceDateLimits();
   const date = document.getElementById('attendance-date')?.value || localDateString();
   const students = getStudentsByGroup(currentUser.group);
   const tbody = document.getElementById('attendance-tbody');
@@ -513,13 +562,6 @@ function renderAttendanceTable() {
           <div class="attendance-status-group" role="group" aria-label="Estado de ${escHtml(student.nombre) || 'alumno'}">
             ${renderAttendanceStatusButtons(studentId, record.status)}
           </div>
-        </td>
-        <td>
-          <input class="attendance-note-input" type="text" maxlength="180"
-            value="${escHtml(record.note || '')}"
-            placeholder="Opcional"
-            aria-label="Observación de ${escHtml(student.nombre) || 'alumno'}"
-            oninput='updateAttendanceNote(${JSON.stringify(studentId)}, this.value)'>
         </td>
       </tr>
     `;
@@ -571,9 +613,8 @@ function updateAttendanceMonthSummary(students, days, month) {
     <span class="attendance-summary-item summary-total"><strong>${students.length}</strong> alumnos</span>
     <span class="attendance-summary-item"><strong>${days.length}</strong> días hábiles</span>
     <span class="attendance-summary-item summary-pending"><strong>${pending}</strong> pendientes</span>
-    <span class="attendance-summary-item summary-present"><strong>${count('present')}</strong> presentes</span>
-    <span class="attendance-summary-item summary-absent"><strong>${count('absent')}</strong> faltas</span>
-    <span class="attendance-summary-item summary-late"><strong>${count('late')}</strong> retardos</span>
+    <span class="attendance-summary-item summary-present"><strong>${count('present')}</strong> asistieron</span>
+    <span class="attendance-summary-item summary-absent"><strong>${count('absent')}</strong> no asistieron</span>
   `;
 }
 
@@ -597,6 +638,7 @@ function updateAttendanceMonthSyncStatus(message = '') {
 
 function renderAttendanceMonthTable() {
   if (!currentUser || currentUser.role !== 'teacher') return;
+  setAttendanceDateLimits();
   const month = document.getElementById('attendance-month')?.value || localMonthString();
   const students = getStudentsByGroup(currentUser.group);
   const days = getAttendanceWorkdays(month);
@@ -623,6 +665,7 @@ function renderAttendanceMonthTable() {
       ${days.map(day => `<th class="attendance-month-day-head"><span>${day.weekday}</span><small>${day.number}</small></th>`).join('')}
     </tr>
   `;
+  const today = localDateString();
   tbody.innerHTML = students.map((student, index) => {
     const studentId = getAttendanceStudentId(student);
     return `
@@ -634,16 +677,16 @@ function renderAttendanceMonthTable() {
           const status = ATTENDANCE_STATUS_META[record.status];
           const label = status ? status.label : 'Pendiente';
           const note = record.note ? ` · ${record.note}` : '';
-          return `
-            <td class="attendance-month-cell-wrap">
-              <button type="button" class="attendance-month-cell ${status ? status.className : 'attendance-month-empty-cell'}"
+          const isFuture = day.date > today;
+          const cell = isFuture
+            ? `<span class="attendance-month-cell attendance-month-empty-cell attendance-month-future-cell" title="Aún no disponible">—</span>`
+            : `<button type="button" class="attendance-month-cell ${status ? status.className : 'attendance-month-empty-cell'}"
                 onclick='openAttendanceDateFromMonth(${JSON.stringify(day.date)})'
                 title="${escHtml(`${formatLongDate(day.date)}: ${label}${note}`)}"
                 aria-label="${escHtml(`${student.nombre || 'Alumno'} · ${formatLongDate(day.date)} · ${label}`)}">
                 ${status ? status.short : '—'}
-              </button>
-            </td>
-          `;
+              </button>`;
+          return `<td class="attendance-month-cell-wrap">${cell}</td>`;
         }).join('')}
       </tr>
     `;
@@ -659,6 +702,12 @@ function setAttendanceCurrentMonth() {
 }
 
 function changeAttendanceMonth() {
+  setAttendanceDateLimits();
+  const monthInput = document.getElementById('attendance-month');
+  if (monthInput && monthInput.value > localMonthString()) {
+    monthInput.value = localMonthString();
+    showToast('No se pueden consultar meses futuros', 'info');
+  }
   attendanceLoadedMonth = null;
   renderAttendanceMonthTable();
   fetchAttendanceMonth();
@@ -680,6 +729,12 @@ async function fetchAttendanceMonth() {
     return;
   }
 
+  if (!(await ensureAttendanceApiReady())) {
+    renderAttendanceMonthTable();
+    updateAttendanceMonthSyncStatus(attendanceApiSetupMessage());
+    return;
+  }
+
   try {
     const responses = [];
     for (let index = 0; index < daysToFetch.length; index += 4) {
@@ -691,6 +746,7 @@ async function fetchAttendanceMonth() {
         });
         const result = await response.json();
         if (!result.success) throw new Error(result.error || 'No se pudo consultar el historial');
+        if (result.sheetName !== `ASISTENCIA (${group})`) throw new Error('La API no está conectada a la hoja mensual del grupo');
         return { date: day.date, records: result.data || [] };
       }));
       responses.push(...batchResponses);
@@ -701,7 +757,14 @@ async function fetchAttendanceMonth() {
       if (!studentId) return;
       const key = getAttendanceKey(group, date, studentId);
       if (!attendanceCache[key] || attendanceCache[key].synced !== false) {
-        attendanceCache[key] = { ...serverRecord, studentId, group, date, synced: true };
+        attendanceCache[key] = {
+          ...serverRecord,
+          studentId,
+          group,
+          date,
+          status: normalizeAttendanceStatus(serverRecord.status),
+          synced: true,
+        };
       }
     }));
     saveAttendanceCache();
@@ -716,6 +779,7 @@ async function fetchAttendanceMonth() {
 function openAttendanceDateFromMonth(date) {
   const dateInput = document.getElementById('attendance-date');
   if (!dateInput) return;
+  if (!isAttendanceDateAllowed(date)) return;
   dateInput.value = date;
   attendanceLoadedDate = null;
   switchTeacherTab('attendance');
@@ -753,7 +817,7 @@ function printAttendanceMonth() {
       </div>
     </div>
     <div class="attendance-print-summary">
-      Presentes: ${counts.present} · Faltas: ${counts.absent} · Retardos: ${counts.late} · Justificadas: ${counts.excused}
+    Asistieron: ${counts.present} · No asistieron: ${counts.absent}
     </div>
     <table class="print-table attendance-print-month-table">
       <thead><tr><th>NO.</th><th>NOMBRE DEL ALUMNO</th>${days.map(day => `<th>${day.weekday}<br>${day.number}</th>`).join('')}</tr></thead>
@@ -810,7 +874,7 @@ function switchTeacherTab(tab) {
     const dateInput = document.getElementById('attendance-date');
     if (dateInput && !dateInput.value) dateInput.value = localDateString();
     document.getElementById('attendance-subtitle').textContent =
-      `Grupo ${currentUser.group}. Captura una fecha y marca a cada alumno.`;
+      `Grupo ${currentUser.group}. Marca ✓ si asistió o X si no asistió.`;
     renderAttendanceTable();
     const date = dateInput?.value;
     if (date && attendanceLoadedDate !== `${currentUser.group}|${date}`) {
@@ -837,6 +901,12 @@ function setAttendanceToday() {
 }
 
 function changeAttendanceDate() {
+  setAttendanceDateLimits();
+  const dateInput = document.getElementById('attendance-date');
+  if (dateInput && !isAttendanceDateAllowed(dateInput.value)) {
+    dateInput.value = localDateString();
+    showToast('No se pueden capturar fechas futuras', 'info');
+  }
   attendanceLoadedDate = null;
   renderAttendanceTable();
   fetchAttendanceDay();
@@ -846,6 +916,7 @@ async function fetchAttendanceDay() {
   if (!currentUser || currentUser.role !== 'teacher') return;
   const date = document.getElementById('attendance-date')?.value;
   if (!date) return;
+  if (!isAttendanceDateAllowed(date)) return;
   const group = currentUser.group;
   attendanceLoadedDate = `${group}|${date}`;
   updateAttendanceSyncStatus('<i class="fa-solid fa-spinner fa-spin"></i> Consultando registros del día...');
@@ -856,6 +927,12 @@ async function fetchAttendanceDay() {
     return;
   }
 
+  if (!(await ensureAttendanceApiReady())) {
+    renderAttendanceTable();
+    updateAttendanceSyncStatus(attendanceApiSetupMessage());
+    return;
+  }
+
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -863,12 +940,20 @@ async function fetchAttendanceDay() {
     });
     const result = await response.json();
     if (!result.success) throw new Error(result.error || 'La asistencia aún no está habilitada en la API');
+    if (result.sheetName !== `ASISTENCIA (${group})`) throw new Error('La API no está conectada a la hoja mensual del grupo');
 
     (result.data || []).forEach(serverRecord => {
       const studentId = String(serverRecord.studentId || '');
       const key = getAttendanceKey(group, date, studentId);
       if (!attendanceCache[key] || attendanceCache[key].synced !== false) {
-        attendanceCache[key] = { ...serverRecord, studentId, group, date, synced: true };
+        attendanceCache[key] = {
+          ...serverRecord,
+          studentId,
+          group,
+          date,
+          status: normalizeAttendanceStatus(serverRecord.status),
+          synced: true,
+        };
       }
     });
     saveAttendanceCache();
@@ -882,7 +967,7 @@ async function fetchAttendanceDay() {
 
 function setAttendanceStatus(studentId, status) {
   const date = document.getElementById('attendance-date')?.value;
-  if (!currentUser || !date) return;
+  if (!currentUser || !isAttendanceDateAllowed(date)) return;
   const student = getStudentsByGroup(currentUser.group).find(item => getAttendanceStudentId(item) === String(studentId));
   if (!student) return;
   setAttendanceRecord(currentUser.group, date, String(studentId), { status });
@@ -891,14 +976,14 @@ function setAttendanceStatus(studentId, status) {
 
 function updateAttendanceNote(studentId, note) {
   const date = document.getElementById('attendance-date')?.value;
-  if (!currentUser || !date) return;
+  if (!currentUser || !isAttendanceDateAllowed(date)) return;
   setAttendanceRecord(currentUser.group, date, String(studentId), { note: note.slice(0, 180) });
   updateAttendanceSyncStatus();
 }
 
 function markAllAttendance(status) {
   const date = document.getElementById('attendance-date')?.value;
-  if (!currentUser || !date) return;
+  if (!currentUser || !isAttendanceDateAllowed(date)) return;
   getStudentsByGroup(currentUser.group).forEach(student => {
     setAttendanceRecord(currentUser.group, date, getAttendanceStudentId(student), { status });
   });
@@ -907,7 +992,7 @@ function markAllAttendance(status) {
 
 function clearAttendanceDay() {
   const date = document.getElementById('attendance-date')?.value;
-  if (!currentUser || !date) return;
+  if (!currentUser || !isAttendanceDateAllowed(date)) return;
   getStudentsByGroup(currentUser.group).forEach(student => {
     setAttendanceRecord(currentUser.group, date, getAttendanceStudentId(student), { status: '', note: '' });
   });
@@ -919,7 +1004,10 @@ async function saveAttendanceDay() {
   const date = document.getElementById('attendance-date')?.value;
   const group = currentUser.group;
   const students = getStudentsByGroup(group);
-  if (!date || !students.length) return;
+  if (!isAttendanceDateAllowed(date) || !students.length) {
+    showToast('Solo puedes guardar asistencia hasta la fecha de hoy', 'info');
+    return;
+  }
 
   const records = students.map(student => {
     const studentId = getAttendanceStudentId(student);
@@ -952,6 +1040,13 @@ async function saveAttendanceDay() {
     return;
   }
 
+  if (!(await ensureAttendanceApiReady())) {
+    if (button) button.disabled = false;
+    updateAttendanceSyncStatus(attendanceApiSetupMessage());
+    showToast('Primero hay que publicar la versión correcta del Apps Script', 'info');
+    return;
+  }
+
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -959,6 +1054,9 @@ async function saveAttendanceDay() {
     });
     const result = await response.json();
     if (!result.success) throw new Error(result.error || 'La asistencia aún no está habilitada en la API');
+    if (result.mode !== 'formatted-monthly-sheet' || result.sheetName !== `ASISTENCIA (${group})`) {
+      throw new Error('La API no está conectada a la hoja mensual del grupo');
+    }
     records.forEach(record => {
       const key = getAttendanceKey(group, date, record.studentId);
       attendanceCache[key].synced = true;
@@ -984,6 +1082,10 @@ async function syncPendingAttendance() {
   if (!pending.length) return;
 
   updateAttendanceSyncStatus('<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando capturas locales...');
+  if (!(await ensureAttendanceApiReady())) {
+    updateAttendanceSyncStatus(attendanceApiSetupMessage());
+    return;
+  }
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -991,6 +1093,9 @@ async function syncPendingAttendance() {
     });
     const result = await response.json();
     if (!result.success) throw new Error(result.error || 'La asistencia aún no está habilitada en la API');
+    if (result.mode !== 'formatted-monthly-sheet' || result.sheetName !== `ASISTENCIA (${currentUser.group})`) {
+      throw new Error('La API no está conectada a la hoja mensual del grupo');
+    }
     pending.forEach(record => {
       const key = getAttendanceKey(record.group, record.date, record.studentId);
       if (attendanceCache[key]) attendanceCache[key].synced = true;
@@ -1010,6 +1115,10 @@ function printAttendanceDay() {
   if (!currentUser || currentUser.role !== 'teacher') return;
   const group = currentUser.group;
   const date = document.getElementById('attendance-date')?.value || localDateString();
+  if (!isAttendanceDateAllowed(date)) {
+    showToast('No se pueden imprimir fechas futuras', 'info');
+    return;
+  }
   const students = getStudentsByGroup(group);
   const printContainer = document.getElementById('print-view');
   const counts = Object.keys(ATTENDANCE_STATUS_META).reduce((result, status) => {
@@ -1029,14 +1138,14 @@ function printAttendanceDay() {
       </div>
     </div>
     <div class="attendance-print-summary">
-      Presentes: ${counts.present} · Faltas: ${counts.absent} · Retardos: ${counts.late} · Justificadas: ${counts.excused}
+    Asistieron: ${counts.present} · No asistieron: ${counts.absent}
     </div>
     <table class="print-table attendance-print-table">
-      <thead><tr><th>NO.</th><th>NOMBRE DEL ALUMNO</th><th>ESTADO</th><th>OBSERVACIÓN / ACTIVIDAD</th></tr></thead>
+      <thead><tr><th>NO.</th><th>NOMBRE DEL ALUMNO</th><th>ASISTENCIA</th></tr></thead>
       <tbody>${students.map((student, index) => {
         const record = getAttendanceRecord(group, date, getAttendanceStudentId(student));
         const status = ATTENDANCE_STATUS_META[record.status];
-        return `<tr><td>${index + 1}</td><td>${escHtml(student.nombre)}</td><td>${status ? status.label : 'Pendiente'}</td><td>${escHtml(record.note || '')}</td></tr>`;
+        return `<tr><td>${index + 1}</td><td>${escHtml(student.nombre)}</td><td>${status ? status.short : 'Pendiente'}</td></tr>`;
       }).join('')}</tbody>
     </table>
     <div class="attendance-print-signatures"><span>MAESTRO(A) DEL GRUPO: ${escHtml(currentUser.name)}</span><span>DIRECTORA DEL PLANTEL: ____________________</span></div>
@@ -1284,6 +1393,223 @@ function filterDirectorTable() {
 }
 
 // =====================================================
+// DIRECTOR VIEW — MONTHLY ATTENDANCE (READ ONLY)
+// =====================================================
+
+let directorAttendanceLoadedMonth = null;
+
+function getDirectorAttendanceGroup() {
+  return document.getElementById('director-attendance-group')?.value || GROUPS_LIST[0];
+}
+
+function getDirectorAttendanceMonth() {
+  return document.getElementById('director-attendance-month')?.value || localMonthString();
+}
+
+function updateDirectorAttendanceSummary(students, days, month) {
+  const visibleDays = days.filter(day => day.date <= localDateString());
+  const records = students.flatMap(student => visibleDays.map(day =>
+    getAttendanceRecord(getDirectorAttendanceGroup(), day.date, getAttendanceStudentId(student))
+  ));
+  const count = status => records.filter(record => record.status === status).length;
+  const pending = records.filter(record => !record.status).length;
+  const summary = document.getElementById('director-attendance-summary');
+  if (!summary) return;
+  summary.innerHTML = `
+    <span class="attendance-summary-item summary-total"><strong>${students.length}</strong> alumnos</span>
+    <span class="attendance-summary-item"><strong>${days.length}</strong> días hábiles</span>
+    <span class="attendance-summary-item summary-pending"><strong>${pending}</strong> pendientes</span>
+    <span class="attendance-summary-item summary-present"><strong>${count('present')}</strong> asistieron</span>
+    <span class="attendance-summary-item summary-absent"><strong>${count('absent')}</strong> no asistieron</span>
+  `;
+}
+
+function updateDirectorAttendanceStatus(message = '') {
+  const statusEl = document.getElementById('director-attendance-sync-status');
+  if (!statusEl) return;
+  const month = getDirectorAttendanceMonth();
+  const group = getDirectorAttendanceGroup();
+  const pending = Object.values(attendanceCache).filter(record =>
+    record.group === group && String(record.date || '').startsWith(`${month}-`) && record.synced === false
+  ).length;
+  statusEl.className = `attendance-sync-status ${pending ? 'is-pending' : 'is-synced'}`;
+  statusEl.innerHTML = message || (pending
+    ? `<i class="fa-solid fa-mobile-screen-button"></i> ${pending} registro(s) local(es) pendiente(s) de sincronizar.`
+    : `<i class="fa-solid fa-cloud-check"></i> Historial consultado: ${escHtml(formatMonthLabel(month))}.`);
+}
+
+function renderDirectorAttendanceTable() {
+  if (!currentUser || currentUser.role !== 'director') return;
+  setAttendanceDateLimits();
+  const group = getDirectorAttendanceGroup();
+  const month = getDirectorAttendanceMonth();
+  const students = getStudentsByGroup(group);
+  const days = getAttendanceWorkdays(month);
+  const table = document.getElementById('director-attendance-table');
+  const head = document.getElementById('director-attendance-head');
+  const tbody = document.getElementById('director-attendance-tbody');
+  const empty = document.getElementById('director-attendance-empty');
+  if (!table || !head || !tbody || !empty) return;
+
+  updateDirectorAttendanceSummary(students, days, month);
+  if (!students.length) {
+    table.style.display = 'none';
+    empty.classList.remove('hidden');
+    updateDirectorAttendanceStatus();
+    return;
+  }
+
+  table.style.display = '';
+  empty.classList.add('hidden');
+  head.innerHTML = `
+    <tr>
+      <th>#</th>
+      <th>Nombre del Alumno</th>
+      ${days.map(day => `<th class="attendance-month-day-head"><span>${day.weekday}</span><small>${day.number}</small></th>`).join('')}
+    </tr>
+  `;
+  const today = localDateString();
+  tbody.innerHTML = students.map((student, index) => {
+    const studentId = getAttendanceStudentId(student);
+    return `
+      <tr>
+        <td class="td-number">${index + 1}</td>
+        <td class="td-name attendance-month-name">${escHtml(student.nombre) || 'Alumno sin nombre'}</td>
+        ${days.map(day => {
+          const isFuture = day.date > today;
+          const record = isFuture ? null : getAttendanceRecord(group, day.date, studentId);
+          const status = record && ATTENDANCE_STATUS_META[record.status];
+          return `<td class="attendance-month-cell-wrap"><span class="attendance-month-cell ${status ? status.className : 'attendance-month-empty-cell'} ${isFuture ? 'attendance-month-future-cell' : ''}" title="${isFuture ? 'Aún no disponible' : escHtml(`${formatLongDate(day.date)}: ${status ? status.label : 'Pendiente'}`)}">${status ? status.short : '—'}</span></td>`;
+        }).join('')}
+      </tr>
+    `;
+  }).join('');
+  updateDirectorAttendanceStatus();
+}
+
+function setDirectorAttendanceCurrentMonth() {
+  const monthInput = document.getElementById('director-attendance-month');
+  if (!monthInput) return;
+  monthInput.value = localMonthString();
+  changeDirectorAttendanceMonth();
+}
+
+function changeDirectorAttendanceGroup() {
+  directorAttendanceLoadedMonth = null;
+  renderDirectorAttendanceTable();
+  fetchDirectorAttendanceMonth();
+}
+
+function changeDirectorAttendanceMonth() {
+  setAttendanceDateLimits();
+  const monthInput = document.getElementById('director-attendance-month');
+  if (monthInput && monthInput.value > localMonthString()) {
+    monthInput.value = localMonthString();
+    showToast('No se pueden consultar meses futuros', 'info');
+  }
+  directorAttendanceLoadedMonth = null;
+  renderDirectorAttendanceTable();
+  fetchDirectorAttendanceMonth();
+}
+
+async function fetchDirectorAttendanceMonth() {
+  if (!currentUser || currentUser.role !== 'director') return;
+  const group = getDirectorAttendanceGroup();
+  const month = getDirectorAttendanceMonth();
+  const days = getAttendanceWorkdays(month);
+  const daysToFetch = days.filter(day => day.date <= localDateString());
+  directorAttendanceLoadedMonth = `${group}|${month}`;
+  updateDirectorAttendanceStatus('<i class="fa-solid fa-spinner fa-spin"></i> Consultando el historial mensual...');
+
+  if (navigator.onLine === false) {
+    renderDirectorAttendanceTable();
+    updateDirectorAttendanceStatus();
+    return;
+  }
+  if (!(await ensureAttendanceApiReady())) {
+    renderDirectorAttendanceTable();
+    updateDirectorAttendanceStatus(attendanceApiSetupMessage());
+    return;
+  }
+
+  try {
+    const responses = [];
+    for (let index = 0; index < daysToFetch.length; index += 4) {
+      const batch = daysToFetch.slice(index, index + 4);
+      const batchResponses = await Promise.all(batch.map(async day => {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'getAttendance', group, date: day.date }),
+        });
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error || 'No se pudo consultar el historial');
+        if (result.sheetName !== `ASISTENCIA (${group})`) throw new Error('La API no está conectada a la hoja mensual del grupo');
+        return { date: day.date, records: result.data || [] };
+      }));
+      responses.push(...batchResponses);
+    }
+    responses.forEach(({ date, records }) => records.forEach(serverRecord => {
+      const studentId = String(serverRecord.studentId || '');
+      if (!studentId) return;
+      const key = getAttendanceKey(group, date, studentId);
+      if (!attendanceCache[key] || attendanceCache[key].synced !== false) {
+        attendanceCache[key] = {
+          ...serverRecord,
+          studentId,
+          group,
+          date,
+          status: normalizeAttendanceStatus(serverRecord.status),
+          synced: true,
+        };
+      }
+    }));
+    saveAttendanceCache();
+    renderDirectorAttendanceTable();
+    updateDirectorAttendanceStatus('<i class="fa-solid fa-cloud-check"></i> Historial mensual sincronizado.');
+  } catch (error) {
+    renderDirectorAttendanceTable();
+    updateDirectorAttendanceStatus('<i class="fa-solid fa-mobile-screen-button"></i> Modo local: se muestran las capturas disponibles en este dispositivo.');
+  }
+}
+
+function printDirectorAttendanceMonth() {
+  if (!currentUser || currentUser.role !== 'director') return;
+  const group = getDirectorAttendanceGroup();
+  const month = getDirectorAttendanceMonth();
+  const students = getStudentsByGroup(group);
+  const days = getAttendanceWorkdays(month);
+  const printContainer = document.getElementById('print-view');
+  const counts = Object.keys(ATTENDANCE_STATUS_META).reduce((result, status) => {
+    result[status] = students.reduce((total, student) => total + days.filter(day =>
+      day.date <= localDateString() && getAttendanceRecord(group, day.date, getAttendanceStudentId(student)).status === status
+    ).length, 0);
+    return result;
+  }, {});
+  printContainer.innerHTML = `
+    <div class="attendance-print-header">
+      <img src="${ESCUDO_B64}" alt="Escudo" width="76" height="76">
+      <div>
+        <h1>ESCUELA PRIMARIA GRAL. ELPIDIO G. VELÁZQUEZ</h1>
+        <p>REGISTRO DE ASISTENCIA · CICLO ESCOLAR 2026-2027</p>
+        <strong>Grupo ${escHtml(group)} · ${escHtml(formatMonthLabel(month))}</strong>
+      </div>
+    </div>
+    <div class="attendance-print-summary">Asistieron: ${counts.present} · No asistieron: ${counts.absent}</div>
+    <table class="print-table attendance-print-month-table">
+      <thead><tr><th>NO.</th><th>NOMBRE DEL ALUMNO</th>${days.map(day => `<th>${day.weekday}<br>${day.number}</th>`).join('')}</tr></thead>
+      <tbody>${students.map((student, index) => `
+        <tr><td>${index + 1}</td><td>${escHtml(student.nombre)}</td>${days.map(day => {
+          const status = day.date <= localDateString() && ATTENDANCE_STATUS_META[getAttendanceRecord(group, day.date, getAttendanceStudentId(student)).status];
+          return `<td>${status ? status.short : ''}</td>`;
+        }).join('')}</tr>
+      `).join('')}</tbody>
+    </table>
+    <div class="attendance-print-signatures"><span>CONSULTA DE DIRECCIÓN</span><span>DIRECTORA DEL PLANTEL: ____________________</span></div>
+  `;
+  window.print();
+}
+
+// =====================================================
 // DIRECTOR VIEW — GROUP CARDS
 // =====================================================
 
@@ -1481,6 +1807,15 @@ function switchTab(tab) {
       fetchAllStaff().then(() => renderStaffTable());
     } else {
       renderStaffTable();
+    }
+  } else if (tab === 'attendance') {
+    const monthInput = document.getElementById('director-attendance-month');
+    if (monthInput && !monthInput.value) monthInput.value = localMonthString();
+    renderDirectorAttendanceTable();
+    const month = monthInput?.value;
+    const group = getDirectorAttendanceGroup();
+    if (month && directorAttendanceLoadedMonth !== `${group}|${month}`) {
+      fetchDirectorAttendanceMonth();
     }
   }
 }
