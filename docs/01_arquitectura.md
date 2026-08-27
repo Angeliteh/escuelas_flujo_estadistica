@@ -29,7 +29,7 @@ El sistema es una **aplicación web estática** (3 archivos: HTML + CSS + JS) qu
 │             GOOGLE SHEETS  (la "base de datos")                  │
 │                                                                  │
 │   ┌────┐ ┌────┐ ┌────┐ ┌────┐ ... ┌────┐                       │
-│   │ 1A │ │ 1B │ │ 2A │ │ 2B │     │ 3D │   12 pestañas         │
+│   │ 1A │ │ 1B │ │ 2A │ │ 2B │     │ 6B │   12 pestañas         │
 │   └────┘ └────┘ └────┘ └────┘     └────┘                       │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -45,7 +45,7 @@ El sistema es una **aplicación web estática** (3 archivos: HTML + CSS + JS) qu
 | Base de datos real (Firebase, Supabase, MySQL) | Costo, complejidad y necesidad de servidor. Excesivo para este caso. |
 | localStorage solamente | Los datos viven solo en el navegador de cada persona. Sin centralización real. |
 
-**Decisión final:** Un solo Google Sheet + Apps Script + Web App. Los maestros solo ven la Web App (nunca el Sheet). La directora puede usar ambos.
+**Decisión operativa:** Un solo Google Sheet + Apps Script + Web App. Los maestros capturan y consultan desde el panel, sin acceso al Sheet. La directora puede consultar el Sheet oficial cuando necesite auditar o imprimir.
 
 ---
 
@@ -57,8 +57,8 @@ El sistema es una **aplicación web estática** (3 archivos: HTML + CSS + JS) qu
 3. fetch POST → Apps Script con { action: "saveStudent", data: {...} }
 4. Apps Script combina grado + grupo → determina hoja = "1A"
 5. appendRow() escribe la fila en la hoja "1A" a partir de la fila 7
-6. El panel actualiza la tabla inmediatamente (sin esperar respuesta)
-7. Si hay error al guardar, muestra un toast de error
+6. El panel actualiza la tabla de forma optimista
+7. Si la API falla, el panel revierte el cambio y muestra un error
 ```
 
 ## Flujo: cargar datos al abrir sesión
@@ -92,4 +92,16 @@ Son cosas completamente distintas:
 | **¿Tiene logo/diseño?** | Sí, el que configuraste en el Sheet | No (solo datos tabulares limpios) |
 | **Uso ideal** | Auditoría, imprimir con membrete oficial | Reportes, análisis, enviar por correo |
 
-El panel tiene un botón "Exportar Excel" para descargar datos. Se puede agregar fácilmente un botón "Ver en Google Sheets" que abre el link directo al archivo.
+El panel tiene un botón "Exportar Excel" para descargar datos tabulares. Ese archivo no sustituye al Sheet oficial ni conserva todo su diseño. La directora tiene además el enlace al Sheet real; el maestro puede imprimir la lista generada por el panel o descargar su Excel.
+
+---
+
+## Modelo de datos para la siguiente fase
+
+Las hojas actuales son el **catálogo maestro de alumnos**: una fila por alumno y 19 columnas. La asistencia del Word no debe agregarse a esas filas, porque un mismo alumno tendrá muchos registros, uno por fecha.
+
+La siguiente fase debe añadir un módulo separado de asistencia, idealmente con registros como:
+
+`fecha · grupo · alumnoId · estado · puntualidad · actividad · nota · usuario · fechaActualizacion`
+
+Así se podrán generar después listas mensuales, estadísticas y validaciones sin duplicar los datos personales del alumno.

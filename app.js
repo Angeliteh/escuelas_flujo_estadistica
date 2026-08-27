@@ -171,6 +171,8 @@ function getStudentsByGroup(group) {
 }
 
 async function upsertStudent(data, id = null) {
+  const previousCache = allStudentsCache.map(student => ({ ...student }));
+
   // Generar grupoId para la cache
   let n = String(data.grado || '').charAt(0);
   let l = String(data.grupo || '').trim();
@@ -200,16 +202,26 @@ async function upsertStudent(data, id = null) {
     });
     const result = await response.json();
     if (!result.success) {
+      allStudentsCache = previousCache;
+      if (currentUser.role === 'director') renderDirectorTable();
+      else renderTeacherTable(document.getElementById('teacher-search').value);
       showToast('Error al guardar en la nube: ' + result.error, 'error');
+      return false;
     }
+    return true;
   } catch (error) {
+    allStudentsCache = previousCache;
+    if (currentUser.role === 'director') renderDirectorTable();
+    else renderTeacherTable(document.getElementById('teacher-search').value);
     showToast('Error de conexión al guardar', 'error');
+    return false;
   }
 }
 
 async function removeStudent(id) {
   const student = allStudentsCache.find(s => s.id === id || s.rowId === id);
-  if (!student) return;
+  if (!student) return false;
+  const previousCache = allStudentsCache.map(item => ({ ...item }));
   const realRowId = student.rowId;
   const sheetTab = student.grupoId; // "1A" instead of just "A"
 
@@ -227,10 +239,19 @@ async function removeStudent(id) {
     });
     const result = await response.json();
     if (!result.success) {
+      allStudentsCache = previousCache;
+      if (currentUser.role === 'director') renderDirectorTable();
+      else renderTeacherTable(document.getElementById('teacher-search').value);
       showToast('Error al eliminar en la nube: ' + result.error, 'error');
+      return false;
     }
+    return true;
   } catch (error) {
+    allStudentsCache = previousCache;
+    if (currentUser.role === 'director') renderDirectorTable();
+    else renderTeacherTable(document.getElementById('teacher-search').value);
     showToast('Error de conexión al eliminar', 'error');
+    return false;
   }
 }
 
@@ -324,8 +345,8 @@ function renderTeacherTable(filterText = '') {
   const ft       = filterText.toLowerCase();
   const filtered = ft
     ? all.filter(s =>
-        s.nombre.toLowerCase().includes(ft) ||
-        s.curpAlumno.toLowerCase().includes(ft)
+        (s.nombre || '').toLowerCase().includes(ft) ||
+        (s.curpAlumno || '').toLowerCase().includes(ft)
       )
     : all;
 
@@ -380,6 +401,112 @@ function renderTeacherTable(filterText = '') {
   }
 }
 
+// =====================================================
+// EXCEL EXPORTS
+// =====================================================
+
+const STUDENT_EXPORT_HEADERS = [
+  'NO.', 'GRADO', 'GRUPO', 'NOMBRE DEL ALUMNO', 'BARRERA DE APRENDIZAJE',
+  'FECHA DE NACIMIENTO', 'CURP ALUMNO', 'GENERO', 'BECA', 'PESO', 'ESTATURA',
+  'TALLA', 'NOMBRE DEL TUTOR', 'NUMERO DE TELEFONO', 'CURP TUTOR', 'CORREO',
+  'DOMICILIO', 'NIVEL DE ESTUDIO', 'OCUPACION'
+];
+
+function studentToExportRow(student, index) {
+  const groupId = student.grupoId || student.grupo || '';
+  const group = String(student.grupo || '').length === 1
+    ? student.grupo
+    : String(groupId).slice(-1);
+
+  return [
+    index + 1,
+    student.grado || '',
+    group,
+    student.nombre || '',
+    student.barreraAprendizaje || '',
+    student.fechaNacimiento || '',
+    student.curpAlumno || '',
+    student.genero || '',
+    student.beca || '',
+    student.peso ?? '',
+    student.estatura ?? '',
+    student.talla || '',
+    student.tutor || '',
+    student.telefono || '',
+    student.curpTutor || '',
+    student.correo || '',
+    student.domicilio || '',
+    student.nivelEstudio || '',
+    student.ocupacion || ''
+  ];
+}
+
+function exportStudentsToExcel(students, filename, includeSummary = false) {
+  if (typeof XLSX === 'undefined') {
+    showToast('No se pudo cargar el exportador de Excel', 'error');
+    return;
+  }
+
+  const workbook = XLSX.utils.book_new();
+  const rows = [
+    STUDENT_EXPORT_HEADERS,
+    ...students.map((student, index) => studentToExportRow(student, index))
+  ];
+  const worksheet = XLSX.utils.aoa_to_sheet(rows);
+  worksheet['!cols'] = [
+    { wch: 6 }, { wch: 9 }, { wch: 8 }, { wch: 34 }, { wch: 24 },
+    { wch: 16 }, { wch: 20 }, { wch: 12 }, { wch: 10 }, { wch: 10 },
+    { wch: 10 }, { wch: 10 }, { wch: 32 }, { wch: 18 }, { wch: 20 },
+    { wch: 30 }, { wch: 38 }, { wch: 22 }, { wch: 28 }
+  ];
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Alumnos');
+
+  if (includeSummary) {
+    const summaryRows = [
+      ['GRUPO', 'GRADO', 'TOTAL', 'HOMBRES', 'MUJERES', 'CON BECA'],
+      ...GROUPS_LIST.map(group => {
+        const groupStudents = students.filter(s =>
+          s.grupoId === group || s.grupo === group ||
+          (String(s.grado || '').charAt(0) + String(s.grupo || '')) === group
+        );
+        return [
+          group,
+          getGrade(group),
+          groupStudents.length,
+          groupStudents.filter(s => s.genero === 'Masculino').length,
+          groupStudents.filter(s => s.genero === 'Femenino').length,
+          groupStudents.filter(s => s.beca === 'Sí').length
+        ];
+      })
+    ];
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+    summarySheet['!cols'] = [
+      { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
+    ];
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumen');
+  }
+
+  XLSX.writeFile(workbook, filename);
+  showToast('Excel descargado correctamente', 'success');
+}
+
+function exportTeacherExcel() {
+  const group = currentUser && currentUser.group;
+  if (!group) return;
+  exportStudentsToExcel(
+    getStudentsByGroup(group),
+    `Lista_Alumnos_Grupo_${group}.xlsx`
+  );
+}
+
+function exportDirectorExcel() {
+  exportStudentsToExcel(
+    dirFilteredStudents,
+    'Lista_Alumnos_Direccion.xlsx',
+    true
+  );
+}
+
 function filterTeacherTable() {
   renderTeacherTable(document.getElementById('teacher-search').value);
 }
@@ -401,8 +528,8 @@ function renderDirectorTable() {
 
   dirFilteredStudents = all.filter(s => {
     const ms = !search ||
-      s.nombre.toLowerCase().includes(search) ||
-      s.curpAlumno.toLowerCase().includes(search) ||
+      (s.nombre || '').toLowerCase().includes(search) ||
+      (s.curpAlumno || '').toLowerCase().includes(search) ||
       (s.tutor || '').toLowerCase().includes(search);
     const matchGrupo = !grupo || s.grupoId === grupo || s.grupo === grupo;
     return ms &&
@@ -422,6 +549,7 @@ function renderDirectorTable() {
         <td><span class="badge badge-grade">${s.grado}</span></td>
         <td><span class="badge badge-group">${s.grupo}</span></td>
         <td class="td-name">${escHtml(s.nombre)}</td>
+        <td>${escHtml(s.barreraAprendizaje) || ''}</td>
         <td>${s.fechaNacimiento ? fmtDate(s.fechaNacimiento) : '—'}</td>
         <td class="td-curp">${escHtml(s.curpAlumno)}</td>
         <td>
@@ -661,6 +789,12 @@ function switchTab(tab) {
     chartsInitialized = true;
   } else if (tab === 'students') {
     renderDirectorTable();
+  } else if (tab === 'staff') {
+    if (!isStaffLoaded) {
+      fetchAllStaff().then(() => renderStaffTable());
+    } else {
+      renderStaffTable();
+    }
   }
 }
 
@@ -679,7 +813,7 @@ function openStudentDrawer(id = null) {
   document.getElementById('student-form').reset();
   
   const formFields = [
-    'f-nombre', 'f-fecha', 'f-curp', 'f-genero', 'f-beca', 'f-nivel',
+    'f-nombre', 'f-barrera', 'f-fecha', 'f-curp', 'f-genero', 'f-beca', 'f-nivel',
     'f-peso', 'f-estatura', 'f-talla', 'f-tutor', 'f-telefono', 'f-curp-tutor',
     'f-correo', 'f-domicilio', 'f-ocupacion'
   ];
@@ -690,7 +824,7 @@ function openStudentDrawer(id = null) {
   });
 
   if (id) {
-    const s = getAllStudents().find(s => s.id === id);
+    const s = getAllStudents().find(s => s.id === id || s.rowId === id);
     if (!s) return;
     
     document.getElementById('detail-name').textContent = s.nombre || '—';
@@ -699,6 +833,7 @@ function openStudentDrawer(id = null) {
       `detail-avatar ${s.genero === 'Masculino' ? 'avatar-male' : 'avatar-female'}`;
 
     document.getElementById('f-nombre').value    = s.nombre       || '';
+    document.getElementById('f-barrera').value   = s.barreraAprendizaje || '';
     document.getElementById('f-fecha').value     = s.fechaNacimiento || '';
     document.getElementById('f-curp').value      = s.curpAlumno   || '';
     document.getElementById('f-genero').value    = s.genero       || '';
@@ -753,13 +888,22 @@ function deleteFromDrawer() {
   setTimeout(() => askDelete(id), 100);
 }
 
-function saveStudent(e) {
+async function saveStudent(e) {
   e.preventDefault();
+
+  const form = document.getElementById('student-form');
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
+
+  const savedId = editingId;
   
   let gradeToSave, groupToSave;
   
-  if (editingId) {
-    const existing = getAllStudents().find(s => s.id === editingId);
+  if (savedId) {
+    const existing = getAllStudents().find(s => s.id === savedId || s.rowId === savedId);
+    if (!existing) return;
     gradeToSave = existing.grado;
     groupToSave = existing.grupo;
   } else {
@@ -773,6 +917,7 @@ function saveStudent(e) {
     grado:           gradeToSave,
     grupo:           groupToSave,
     nombre:          document.getElementById('f-nombre').value.trim().toUpperCase(),
+    barreraAprendizaje: document.getElementById('f-barrera').value.trim().toUpperCase(),
     fechaNacimiento: document.getElementById('f-fecha').value,
     curpAlumno:      document.getElementById('f-curp').value.trim().toUpperCase(),
     genero:          document.getElementById('f-genero').value,
@@ -789,15 +934,12 @@ function saveStudent(e) {
     ocupacion:       document.getElementById('f-ocupacion').value.trim().toUpperCase(),
   };
 
-  upsertStudent(data, editingId);
+  const saved = await upsertStudent(data, savedId);
 
   closeStudentDrawer();
-  if (currentUser.role === 'director') {
-    renderDirectorTable();
-  } else {
-    renderTeacherTable(document.getElementById('teacher-search').value);
+  if (saved) {
+    showToast(savedId ? 'Alumno actualizado correctamente' : 'Alumno agregado correctamente', 'success');
   }
-  showToast(editingId ? 'Alumno actualizado correctamente' : 'Alumno agregado correctamente', 'success');
 }
 
 // =====================================================
@@ -805,11 +947,13 @@ function saveStudent(e) {
 // =====================================================
 
 let pendingDeleteId = null;
+let pendingDeleteType = null;
 
 function askDelete(id) {
-  const s = getAllStudents().find(s => s.id === id);
+  const s = getAllStudents().find(s => s.id === id || s.rowId === id);
   if (!s) return;
   pendingDeleteId = id;
+  pendingDeleteType = 'student';
   document.getElementById('confirm-text').innerHTML =
     `¿Eliminar al alumno <strong>${escHtml(s.nombre)}</strong>?<br>Esta acción no se puede deshacer.`;
   document.getElementById('confirm-modal').classList.remove('hidden');
@@ -820,15 +964,22 @@ function closeConfirm() {
   document.getElementById('confirm-modal').classList.add('hidden');
   document.body.style.overflow = '';
   pendingDeleteId = null;
+  pendingDeleteType = null;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('confirm-ok-btn').addEventListener('click', () => {
-    if (pendingDeleteId !== null) {
-      removeStudent(pendingDeleteId);
-      renderTeacherTable(document.getElementById('teacher-search').value);
-      showToast('Alumno eliminado', 'error');
-      closeConfirm();
+  document.getElementById('confirm-ok-btn').addEventListener('click', async () => {
+    const id = pendingDeleteId;
+    const type = pendingDeleteType;
+    if (id === null) return;
+
+    closeConfirm();
+    if (type === 'staff') {
+      const removed = await removeStaffRecord(id);
+      if (removed) showToast('Personal eliminado', 'error');
+    } else {
+      const removed = await removeStudent(id);
+      if (removed) showToast('Alumno eliminado', 'error');
     }
   });
 });
@@ -916,6 +1067,7 @@ document.addEventListener('keydown', e => {
   // Escape closes drawer and confirm dialog
   if (e.key === 'Escape') {
     closeStudentDrawer();
+    closeStaffDrawer();
     closeConfirm();
   }
 });
@@ -948,9 +1100,10 @@ function printTeacherList() {
       rowsHtml += `
         <tr>
           <td style="text-align:center">${i + 1}</td>
-          <td style="text-align:center">${getGrade(group)}°</td>
+          <td style="text-align:center">${getGrade(group)}</td>
           <td style="text-align:center">${group.charAt(1) || group}</td>
           <td>${escHtml(s.nombre)}</td>
+          <td>${escHtml(s.barreraAprendizaje) || ''}</td>
           <td>${fmtDate(s.fechaNacimiento)}</td>
           <td class="td-sm">${escHtml(s.curpAlumno)}</td>
           <td>${s.genero}</td>
@@ -972,7 +1125,7 @@ function printTeacherList() {
       rowsHtml += `
         <tr>
           <td style="text-align:center; color:#999;">${i + 1}</td>
-          <td></td><td></td><td></td><td></td><td></td>
+          <td></td><td></td><td></td><td></td><td></td><td></td>
           <td></td><td></td><td></td><td></td><td></td>
           <td></td><td></td><td></td><td></td><td></td>
           <td></td><td></td>
@@ -1010,6 +1163,7 @@ function printTeacherList() {
           <th>GRADO</th>
           <th>GRUPO</th>
           <th>NOMBRE DEL ALUMNO</th>
+          <th>BARRERA APREND.</th>
           <th>FECHA NAC.</th>
           <th>CURP ALUMNO</th>
           <th>GÉNERO</th>
@@ -1033,6 +1187,234 @@ function printTeacherList() {
   `;
 
   window.print();
+}
+
+// =====================================================
+// PERSONAL — CRUD MODULE
+// =====================================================
+
+let allStaffCache = [];
+let isStaffLoaded = false;
+let editingStaffId = null;
+const STAFF_READ_ONLY = true;
+
+async function fetchAllStaff() {
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'getStaff' }),
+    });
+    const result = await response.json();
+    if (result.success) {
+      allStaffCache = result.data || [];
+      isStaffLoaded = true;
+    } else {
+      console.warn('Staff fetch warning:', result.error);
+      isStaffLoaded = true; // Marcar como cargado aunque esté vacío
+    }
+  } catch (error) {
+    console.error('Error fetching staff:', error);
+    isStaffLoaded = true;
+  }
+}
+
+function renderStaffTable() {
+  const search = (document.getElementById('staff-search')?.value || '').toLowerCase();
+  const filtered = search
+    ? allStaffCache.filter(s =>
+        (s.nombre || '').toLowerCase().includes(search) ||
+        (s.funcion || '').toLowerCase().includes(search) ||
+        (s.rfc || '').toLowerCase().includes(search)
+      )
+    : allStaffCache;
+
+  document.getElementById('staff-count').textContent =
+    `Mostrando ${filtered.length} de ${allStaffCache.length} trabajadores`;
+
+  const tbody = document.getElementById('staff-tbody');
+  const table = document.getElementById('staff-table');
+  const empty = document.getElementById('staff-empty');
+
+  if (filtered.length === 0) {
+    table.style.display = 'none';
+    empty.classList.remove('hidden');
+  } else {
+    table.style.display = '';
+    empty.classList.add('hidden');
+    tbody.innerHTML = filtered.map((s, i) => `
+      <tr class="row-clickable" onclick='openStaffDrawer(${JSON.stringify(s.id)})'>
+        <td class="td-number">${i + 1}</td>
+        <td class="td-name">${escHtml(s.nombre)}</td>
+        <td>${escHtml(s.funcion) || '—'}</td>
+        <td style="text-align:center">${s.numAlumnos || '—'}</td>
+        <td>${escHtml(s.rfc) || '—'}</td>
+        <td class="td-curp">${escHtml(s.curp) || '—'}</td>
+        <td>${escHtml(s.celular) || '—'}</td>
+        <td>${escHtml(s.correo) || '—'}</td>
+        <td>${s.fechaIngreso ? fmtDate(s.fechaIngreso) : '—'}</td>
+        <td style="text-align:center">${s.anosServicio || '—'}</td>
+        <td>${escHtml(s.perfilEstudios) || '—'}</td>
+        <td>${escHtml(s.baseInterino) || '—'}</td>
+        <td>${escHtml(s.situacionLaboral) || '—'}</td>
+      </tr>
+    `).join('');
+  }
+}
+
+function filterStaffTable() {
+  renderStaffTable();
+}
+
+function openStaffDrawer(id = null) {
+  if (STAFF_READ_ONLY && !id) return;
+  editingStaffId = id;
+  document.getElementById('staff-form').reset();
+
+  if (id) {
+    const s = allStaffCache.find(x => x.id === id || x.rowId === id);
+    if (!s) return;
+    document.getElementById('staff-drawer-title').textContent = s.nombre || 'Trabajador';
+    document.getElementById('sf-id').value = id;
+    document.getElementById('sf-nombre').value          = s.nombre || '';
+    document.getElementById('sf-funcion').value         = s.funcion || '';
+    document.getElementById('sf-num-alumnos').value     = s.numAlumnos || '';
+    document.getElementById('sf-clave').value           = s.clavePresupuestal || '';
+    document.getElementById('sf-rfc').value             = s.rfc || '';
+    document.getElementById('sf-curp').value            = s.curp || '';
+    document.getElementById('sf-celular').value         = s.celular || '';
+    document.getElementById('sf-tel-casa').value        = s.telCasa || '';
+    document.getElementById('sf-tel-adicional').value   = s.telAdicional || '';
+    document.getElementById('sf-correo').value          = s.correo || '';
+    document.getElementById('sf-domicilio').value       = s.domicilio || '';
+    document.getElementById('sf-fecha-ingreso').value   = s.fechaIngreso || '';
+    document.getElementById('sf-anos-servicio').value   = s.anosServicio || '';
+    document.getElementById('sf-perfil').value          = s.perfilEstudios || '';
+    document.getElementById('sf-base-interino').value   = s.baseInterino || '';
+    document.getElementById('sf-situacion').value       = s.situacionLaboral || '';
+    document.getElementById('staff-delete-btn').classList.toggle('hidden', STAFF_READ_ONLY);
+  } else {
+    document.getElementById('staff-drawer-title').textContent = 'Nuevo Trabajador';
+    document.getElementById('sf-id').value = '';
+    document.getElementById('staff-delete-btn').classList.add('hidden');
+  }
+
+  document.querySelectorAll('#staff-form input, #staff-form select, #staff-form textarea')
+    .forEach(field => { field.disabled = STAFF_READ_ONLY; });
+  document.getElementById('staff-save-btn').classList.toggle('hidden', STAFF_READ_ONLY);
+  document.getElementById('staff-form').classList.toggle('readonly-mode', STAFF_READ_ONLY);
+
+  const overlay = document.getElementById('staff-overlay');
+  overlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => {
+    document.getElementById('staff-drawer').classList.add('drawer-open');
+  });
+}
+
+function closeStaffDrawer(e) {
+  if (e && e.target !== document.getElementById('staff-overlay')) return;
+  const drawer = document.getElementById('staff-drawer');
+  drawer.classList.remove('drawer-open');
+  setTimeout(() => {
+    document.getElementById('staff-overlay').classList.add('hidden');
+    document.body.style.overflow = '';
+    editingStaffId = null;
+  }, 280);
+}
+
+function saveStaffRecord(e) {
+  e.preventDefault();
+  if (STAFF_READ_ONLY) return;
+  const data = {
+    nombre:            document.getElementById('sf-nombre').value.trim().toUpperCase(),
+    funcion:           document.getElementById('sf-funcion').value.trim().toUpperCase(),
+    numAlumnos:        document.getElementById('sf-num-alumnos').value,
+    clavePresupuestal: document.getElementById('sf-clave').value.trim().toUpperCase(),
+    rfc:               document.getElementById('sf-rfc').value.trim().toUpperCase(),
+    curp:              document.getElementById('sf-curp').value.trim().toUpperCase(),
+    celular:           document.getElementById('sf-celular').value.trim(),
+    telCasa:           document.getElementById('sf-tel-casa').value.trim(),
+    telAdicional:      document.getElementById('sf-tel-adicional').value.trim(),
+    correo:            document.getElementById('sf-correo').value.trim(),
+    domicilio:         document.getElementById('sf-domicilio').value.trim().toUpperCase(),
+    fechaIngreso:      document.getElementById('sf-fecha-ingreso').value,
+    anosServicio:      document.getElementById('sf-anos-servicio').value,
+    perfilEstudios:    document.getElementById('sf-perfil').value.trim().toUpperCase(),
+    baseInterino:      document.getElementById('sf-base-interino').value,
+    situacionLaboral:  document.getElementById('sf-situacion').value.trim().toUpperCase(),
+  };
+
+  // Optimistic update
+  if (editingStaffId) {
+    const idx = allStaffCache.findIndex(s => s.id === editingStaffId || s.rowId === editingStaffId);
+    if (idx !== -1) {
+      data.rowId = allStaffCache[idx].rowId;
+      data.id    = allStaffCache[idx].id;
+      allStaffCache[idx] = { ...allStaffCache[idx], ...data };
+    }
+  } else {
+    data.id = 'staff-' + Date.now();
+    allStaffCache.push(data);
+  }
+
+  renderStaffTable();
+  closeStaffDrawer();
+  showToast(editingStaffId ? 'Personal actualizado' : 'Personal agregado', 'success');
+
+  // Send to API
+  fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'saveStaff', data: { ...data } }),
+  }).then(r => r.json()).then(result => {
+    if (!result.success) showToast('Error al guardar: ' + result.error, 'error');
+  }).catch(() => showToast('Error de conexión', 'error'));
+}
+
+function deleteFromStaffDrawer() {
+  if (STAFF_READ_ONLY) return;
+  if (!editingStaffId) return;
+  const id = editingStaffId;
+  closeStaffDrawer();
+  setTimeout(() => askDeleteStaff(id), 100);
+}
+
+function askDeleteStaff(id) {
+  if (STAFF_READ_ONLY) return;
+  const s = allStaffCache.find(x => x.id === id || x.rowId === id);
+  if (!s) return;
+  pendingDeleteId = id;
+  pendingDeleteType = 'staff';
+  document.getElementById('confirm-text').textContent =
+    `¿Eliminar a "${s.nombre}" del registro de personal? Esta acción no se puede deshacer.`;
+  document.getElementById('confirm-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+async function removeStaffRecord(id) {
+  const staff = allStaffCache.find(s => s.id === id || s.rowId === id);
+  if (!staff) return false;
+  allStaffCache = allStaffCache.filter(s => s.id !== id && s.rowId !== id);
+  renderStaffTable();
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'deleteStaff', id: staff.rowId }),
+    });
+    const result = await response.json();
+    if (!result.success) {
+      allStaffCache.push(staff);
+      renderStaffTable();
+      showToast('Error al eliminar: ' + result.error, 'error');
+      return false;
+    }
+    return true;
+  } catch {
+    allStaffCache.push(staff);
+    renderStaffTable();
+    showToast('Error de conexión al eliminar', 'error');
+    return false;
+  }
 }
 
 // =====================================================

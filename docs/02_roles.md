@@ -50,7 +50,7 @@
 
 ## 🛡️ Directora
 
-### Lo que VE (2 pestañas)
+### Lo que VE (3 pestañas)
 
 **Dashboard**
 - 4 tarjetas: Total alumnos, Grupos activos, Con beca, % de becas
@@ -60,7 +60,7 @@
 - Gráfica doble: peso y estatura promedio por grado
 
 **Todos los Alumnos**
-- Tabla completa con las **18 columnas** de cada alumno (equivalente al Excel)
+- Tabla completa con las **19 columnas** de cada alumno (equivalente a la hoja oficial)
 - Filtros rápidos por **Grado** (botones 1° al 6°) y **Grupo** (botones A / B)
 - Filtros por Género y Beca (dropdown)
 - Búsqueda libre: nombre, CURP o tutor
@@ -68,9 +68,16 @@
 - Botón **"Ver en Sheets"** → abre el Google Sheet en nueva pestaña
 - Botón **"Exportar Excel"** → descarga 2 hojas: todos los alumnos + resumen
 
+**Personal**
+- Consulta de los 17 campos del registro de personal
+- Búsqueda por nombre, función o RFC
+- Modo **solo lectura**; por ahora no se agregan, editan ni eliminan registros desde la aplicación
+
 ### Lo que PUEDE hacer además
 - Abrir el Google Sheet para imprimir con membrete
 - Ver todos los datos exactamente como los ingresaron los maestros
+
+La directora conserva la posibilidad de abrir el Sheet oficial porque es la fuente operativa, pero se recomienda no editarlo durante la captura normal para proteger el formato y la trazabilidad.
 
 ### Credenciales
 

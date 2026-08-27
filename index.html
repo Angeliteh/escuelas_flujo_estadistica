@@ -134,6 +134,9 @@
           <i class="fa-solid fa-magnifying-glass"></i>
           <input type="text" id="teacher-search" placeholder="Buscar por nombre o CURP..." oninput="filterTeacherTable()">
         </div>
+        <button class="btn btn-secondary" onclick="exportTeacherExcel()" id="teacher-export-btn">
+          <i class="fa-solid fa-file-excel"></i> Exportar Excel
+        </button>
         <button class="btn btn-primary" onclick="openStudentDrawer()" id="add-student-btn">
           <i class="fa-solid fa-plus"></i> Agregar Alumno
         </button>
@@ -200,6 +203,9 @@
       <button class="tab-btn" data-tab="students" onclick="switchTab('students')" role="tab" id="tab-btn-students">
         <i class="fa-solid fa-list"></i> Todos los Alumnos
       </button>
+      <button class="tab-btn" data-tab="staff" onclick="switchTab('staff')" role="tab" id="tab-btn-staff">
+        <i class="fa-solid fa-chalkboard-user"></i> Personal
+      </button>
     </nav>
 
     <main class="main-content">
@@ -264,6 +270,9 @@
             <i class="fa-solid fa-magnifying-glass"></i>
             <input type="text" id="director-search" placeholder="Buscar por nombre, CURP, tutor..." oninput="filterDirectorTable()">
           </div>
+          <button class="btn btn-secondary" onclick="exportDirectorExcel()" id="director-export-btn">
+            <i class="fa-solid fa-file-excel"></i> Exportar Excel
+          </button>
           <div class="filters">
             <input type="hidden" id="filter-grado" value="">
             <input type="hidden" id="filter-grupo" value="">
@@ -308,6 +317,7 @@
                 <th>Grado</th>
                 <th>Grupo</th>
                 <th>Nombre del Alumno</th>
+                <th>Barrera Ap.</th>
                 <th>F. Nacimiento</th>
                 <th>CURP Alumno</th>
                 <th>Género</th>
@@ -326,6 +336,48 @@
             </thead>
             <tbody id="director-tbody"></tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- PERSONAL TAB -->
+      <div id="tab-staff" class="tab-content" role="tabpanel">
+        <div class="toolbar">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="staff-search" placeholder="Buscar por nombre, función, RFC..." oninput="filterStaffTable()">
+          </div>
+          <span class="badge badge-group" title="La información de Personal está disponible en modo consulta">
+            <i class="fa-solid fa-eye"></i> Solo lectura
+          </span>
+        </div>
+        <div class="table-meta">
+          <span id="staff-count" class="table-count"></span>
+        </div>
+        <div class="table-container">
+          <table class="data-table" id="staff-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Nombre del Trabajador</th>
+                <th>Función / Grupo</th>
+                <th>No. Alumnos</th>
+                <th>RFC</th>
+                <th>CURP</th>
+                <th>Celular</th>
+                <th>Correo</th>
+                <th>Fecha Ingreso SEP</th>
+                <th>Años Servicio</th>
+                <th>Perfil de Estudios</th>
+                <th>Base / Interino</th>
+                <th>Situación Laboral</th>
+              </tr>
+            </thead>
+            <tbody id="staff-tbody"></tbody>
+          </table>
+        </div>
+        <div id="staff-empty" class="empty-state hidden">
+          <i class="fa-solid fa-users-slash"></i>
+          <p>No hay personal registrado</p>
         </div>
       </div>
 
@@ -374,7 +426,7 @@
         </button>
       </div>
 
-      <form id="student-form" class="drawer-form-wrapper" onsubmit="saveStudent(event)" novalidate>
+      <form id="student-form" class="drawer-form-wrapper" onsubmit="saveStudent(event)">
         <input type="hidden" id="student-id">
         <div class="detail-body">
           
@@ -384,6 +436,10 @@
               <div class="form-group form-group-full">
                 <label for="f-nombre">Nombre del Alumno <span class="req">*</span></label>
                 <input type="text" id="f-nombre" required placeholder="Apellido Apellido Nombre(s)">
+              </div>
+              <div class="form-group form-group-full">
+                <label for="f-barrera">Barrera de Aprendizaje</label>
+                <input type="text" id="f-barrera" placeholder="Dejar en blanco si no aplica">
               </div>
               <div class="form-group">
                 <label for="f-fecha">Fecha de Nacimiento <span class="req">*</span></label>
@@ -492,8 +548,130 @@
     <!-- Contenido inyectado por JS -->
   </div>
 
+  <!-- STAFF DRAWER -->
+  <div id="staff-overlay" class="detail-overlay hidden" onclick="closeStaffDrawer(event)">
+    <div id="staff-drawer" class="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="staff-drawer-title">
+      <div class="detail-header">
+        <div class="detail-avatar avatar-male">
+          <i class="fa-solid fa-chalkboard-user"></i>
+        </div>
+        <div class="detail-title-block">
+          <h2 id="staff-drawer-title" class="detail-student-name">Nuevo Trabajador</h2>
+          <span class="badge badge-grade">Personal Escolar</span>
+        </div>
+        <button class="detail-close" onclick="closeStaffDrawer()" aria-label="Cerrar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="staff-form" class="drawer-form-wrapper" onsubmit="saveStaffRecord(event)">
+        <input type="hidden" id="sf-id">
+        <div class="detail-body">
+
+          <div class="form-section">
+            <h3 class="form-section-title"><i class="fa-solid fa-id-card"></i> Datos del Trabajador</h3>
+            <div class="form-grid">
+              <div class="form-group form-group-full">
+                <label for="sf-nombre">Nombre del Trabajador <span class="req">*</span></label>
+                <input type="text" id="sf-nombre" required placeholder="Apellido Apellido Nombre(s)">
+              </div>
+              <div class="form-group">
+                <label for="sf-funcion">Función / Grupo</label>
+                <input type="text" id="sf-funcion" placeholder="Ej: 1A, Directora, USAER...">
+              </div>
+              <div class="form-group">
+                <label for="sf-num-alumnos">No. de Alumnos</label>
+                <input type="number" id="sf-num-alumnos" placeholder="30" min="0">
+              </div>
+              <div class="form-group">
+                <label for="sf-clave">Clave Presupuestal</label>
+                <input type="text" id="sf-clave" placeholder="Clave">
+              </div>
+              <div class="form-group">
+                <label for="sf-rfc">RFC</label>
+                <input type="text" id="sf-rfc" placeholder="RFC" class="uppercase" maxlength="13">
+              </div>
+              <div class="form-group">
+                <label for="sf-curp">CURP</label>
+                <input type="text" id="sf-curp" placeholder="CURP" class="uppercase" maxlength="18">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3 class="form-section-title"><i class="fa-solid fa-phone"></i> Contacto</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="sf-celular">No. Celular</label>
+                <input type="tel" id="sf-celular" placeholder="5512345678" maxlength="10">
+              </div>
+              <div class="form-group">
+                <label for="sf-tel-casa">No. de Casa</label>
+                <input type="tel" id="sf-tel-casa" placeholder="5512345678" maxlength="10">
+              </div>
+              <div class="form-group">
+                <label for="sf-tel-adicional">Teléfono Adicional</label>
+                <input type="tel" id="sf-tel-adicional" placeholder="5512345678" maxlength="10">
+              </div>
+              <div class="form-group form-group-full">
+                <label for="sf-correo">Correo Electrónico</label>
+                <input type="email" id="sf-correo" placeholder="correo@ejemplo.com">
+              </div>
+              <div class="form-group form-group-full">
+                <label for="sf-domicilio">Domicilio (Calle, No., C.P.)</label>
+                <input type="text" id="sf-domicilio" placeholder="Calle Número, CP">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3 class="form-section-title"><i class="fa-solid fa-briefcase"></i> Datos Laborales</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="sf-fecha-ingreso">Fecha de Ingreso a la SEP</label>
+                <input type="date" id="sf-fecha-ingreso">
+              </div>
+              <div class="form-group">
+                <label for="sf-anos-servicio">Años de Servicio</label>
+                <input type="number" id="sf-anos-servicio" placeholder="10" min="0">
+              </div>
+              <div class="form-group">
+                <label for="sf-perfil">Perfil de Estudios (con título)</label>
+                <input type="text" id="sf-perfil" placeholder="Lic. Educación Primaria">
+              </div>
+              <div class="form-group">
+                <label for="sf-base-interino">Base o Interino</label>
+                <select id="sf-base-interino">
+                  <option value="">Seleccionar...</option>
+                  <option value="Base">Base</option>
+                  <option value="Interino">Interino</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="sf-situacion">Situación Laboral</label>
+                <input type="text" id="sf-situacion" placeholder="Ej: Activo, Comisión...">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="detail-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeStaffDrawer()">Cerrar</button>
+          <button type="button" class="btn btn-danger" id="staff-delete-btn" onclick="deleteFromStaffDrawer()">
+            <i class="fa-solid fa-trash"></i> Eliminar
+          </button>
+          <button type="submit" class="btn btn-primary" id="staff-save-btn">
+            <i class="fa-solid fa-floppy-disk"></i> Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- CDN Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

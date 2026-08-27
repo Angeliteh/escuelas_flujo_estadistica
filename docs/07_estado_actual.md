@@ -21,13 +21,14 @@
 ### Panel de la Directora
 - [x] Login con usuario/contraseña de directora
 - [x] Dashboard con 4 métricas clave y 4 gráficas (Chart.js)
-- [x] **Pestaña "Todos los Alumnos"** con las 18 columnas completas (como el Excel)
+- [x] **Pestaña "Todos los Alumnos"** con las 19 columnas completas (como la hoja oficial)
 - [x] **Filtros rápidos tipo píldora** para Grado (1° al 6°) y Grupo (A / B)
 - [x] Filtros adicionales por Género y Beca (dropdown)
 - [x] Búsqueda libre por nombre, CURP o tutor
 - [x] Clic en fila → Panel lateral de solo lectura (todos los datos del alumno)
 - [x] Botón "Ver en Sheets" → Google Sheet en vivo
 - [x] Botón "Exportar Excel" (2 hojas: alumnos + resumen por grupo)
+- [x] Pestaña "Personal" en modo solo lectura
 - [x] Logout
 
 ### Sincronización con Google Sheets
@@ -45,21 +46,21 @@
 - [ ] **Probar desde dispositivo móvil** — abrir `index.html` en el teléfono para ver si el layout responde bien
 
 ### Acceso para pruebas
-- [ ] Decidir cómo van a acceder los maestros y la directora:
+- [x] Sitio publicado en Vercel: `https://asistpanel.vercel.app/`
 
 | Opción | Esfuerzo | Acceso |
 |--------|---------|--------|
 | **A) Archivo compartido por WhatsApp** | Muy bajo | Descargar el .html y abrirlo en el navegador |
-| **B) Subir a GitHub Pages** | Bajo (30 min) | URL pública desde cualquier dispositivo |
+| **B) Vercel conectado al repositorio** | Bajo | URL pública desde cualquier dispositivo |
 | **C) Servidor local en tu PC** | Bajo | Solo quien esté en la misma red Wi-Fi |
 
-> **Recomendado para pruebas: Opción B (GitHub Pages)**  
-> Solo subes `index.html`, `styles.css` y `app.js` a un repositorio GitHub y activas Pages.  
-> URL resultante: `https://tu-usuario.github.io/control-asistencia/`
+> **Actual:** el repositorio está conectado a Vercel. Cada push a `main` genera una nueva implementación.
 
 ### UX pendiente de revisión
-- [ ] Revisar que el panel lateral del maestro funcione para **Agregar** (modo vacío) además de editar
-- [ ] Verificar que al guardar desde el drawer se refresca la tabla del maestro correctamente
+- [x] Revisar que el panel lateral del maestro funcione para **Agregar** (modo vacío) además de editar
+- [x] Verificar que al guardar desde el drawer se refresca la tabla del maestro correctamente
+- [ ] Diseñar el módulo de asistencia diaria/mensual a partir del formato Word
+- [ ] Decidir si se requiere captura sin internet con cola local y sincronización posterior
 
 ---
 
@@ -70,7 +71,9 @@
 | Contraseñas en texto plano en app.js | Cualquier maestro técnico puede ver la de la directora | Autenticación real (Firebase, Google OAuth) |
 | Apps Script URL pública | Alguien con la URL puede leer todos los datos | Agregar token secreto en cada petición |
 | Sin sincronización automática | La directora necesita recargar para ver cambios de maestros | Polling cada 60 segundos |
-| Archivo local (`file:///`) | Tracking Prevention warnings en Edge | Subir a GitHub Pages |
+| Personal en blanco si la columna Nombre está vacía | La hoja oficial tiene funciones precargadas pero nombres pendientes | Capturar nombres en la columna B o ajustar la política de filas del Apps Script |
+| Sin respaldo automatizado independiente | Un error humano en Sheets puede afectar la fuente operativa | Copias nocturnas con Apps Script y retención |
+| Sin módulo de asistencia | Todavía no se captura la matriz diaria del Word | Diseñar tabla de hechos de asistencia separada |
 
 ---
 
@@ -83,12 +86,12 @@
 4. **Limitación:** cada quien tiene sus propios datos en localStorage (no comparten datos entre dispositivos)
 > ⚠️ Esto no es útil para probar sincronización real. Es solo para revisar la interfaz.
 
-### Opción B — GitHub Pages (recomendada)
+### Opción B — Vercel (actual)
 1. Crear cuenta en [github.com](https://github.com) si no tienes
 2. Crear repositorio nuevo (ej: `control-asistencia`)
 3. Subir: `index.html`, `styles.css`, `app.js`
-4. Ir a Settings → Pages → Source: `main` / `/ (root)` → Save
-5. Esperar ~2 min, la URL estará en Settings → Pages
+4. Hacer push a `main`; Vercel crea la implementación automáticamente
+5. Abrir `https://asistpanel.vercel.app/`
 6. Compartir la URL con maestros y directora
 > ✅ Todos acceden desde su celular/computadora al mismo panel. Los datos van al mismo Google Sheet.
 
@@ -104,3 +107,5 @@
 | Tabla de 18 columnas en la directora | La directora necesita ver TODOS los datos, no un resumen |
 | Modo solo lectura en el drawer de directora | Misma interfaz, sin duplicar código |
 | Todo en MAYÚSCULAS al escribir | Consistencia con el formato del Google Sheet |
+| Personal en modo solo lectura inicialmente | Evita modificar datos laborales hasta confirmar el proceso administrativo |
+| Asistencia separada del catálogo de alumnos | Permite múltiples registros por alumno sin duplicar datos |

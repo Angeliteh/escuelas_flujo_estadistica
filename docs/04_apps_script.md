@@ -19,27 +19,29 @@ https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgk
 
 ---
 
-## Código completo (V2 — con Ocupación, 18 columnas)
+## Código completo (V3 — alumnos 19 columnas + personal 17 columnas)
 
 ```javascript
 // ==============================================================================
-// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V2
+// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V3 (ALUMNOS 19 COL + PERSONAL 17 COL)
 // ==============================================================================
 
-// Fila donde están los encabezados de columnas (ID_INTERNO, GRADO, etc.)
-// Las filas 1 a (HEADER_ROW-1) son el diseño visual (logo, título, etc.)
 const HEADER_ROW = 5;
-
-// Nombres exactos de las pestañas. Deben coincidir al 100% con los tabs del Sheet.
 const TABS = ['1A','1B','2A','2B','3A','3B','4A','4B','5A','5B','6A','6B'];
 
 function doPost(e) {
   try {
     const params = JSON.parse(e.postData.contents);
     const action = params.action;
+    // ALUMNOS
     if (action === 'getStudents') return respond(getStudents());
     if (action === 'saveStudent') return respond(saveStudent(params.data));
     if (action === 'deleteStudent') return respond(deleteStudent(params.grupo, params.id));
+    // PERSONAL
+    if (action === 'getStaff') return respond(getStaff());
+    if (action === 'saveStaff') return respond(saveStaff(params.data));
+    if (action === 'deleteStaff') return respond(deleteStaff(params.id));
+
     return respond({ error: 'Acción no válida' }, 400);
   } catch (error) {
     return respond({ error: error.message }, 500);
@@ -53,7 +55,9 @@ function doGet(e) {
   return respond(getStudents());
 }
 
-// Lee todos los alumnos de todas las hojas
+// =====================================================
+// ALUMNOS (19 Columnas)
+// =====================================================
 function getStudents() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let allStudents = [];
@@ -62,18 +66,16 @@ function getStudents() {
     if (!sheet) return;
     const lastRow = sheet.getLastRow();
     if (lastRow <= HEADER_ROW) return;
-    // Leer 18 columnas empezando desde la 1 (A hasta R)
-    const data = sheet.getRange(HEADER_ROW + 1, 1, lastRow - HEADER_ROW, 18).getValues();
+    const data = sheet.getRange(HEADER_ROW + 1, 1, lastRow - HEADER_ROW, 19).getValues();
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
-      if (!row[3]) continue; // ignorar filas sin nombre (ahora el nombre es row[3])
+      if (!row[3]) continue; // ignorar filas sin nombre
       allStudents.push(rowToObject(row, i + HEADER_ROW + 1, tabName));
     }
   });
   return { success: true, data: allStudents };
 }
 
-// Guarda o actualiza un alumno
 function saveStudent(student) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const gradoNum = String(student.grado).charAt(0);
@@ -81,13 +83,11 @@ function saveStudent(student) {
   if (!TABS.includes(hojaNombre)) return { success: false, error: 'Grupo no válido: ' + hojaNombre };
   let sheet = ss.getSheetByName(hojaNombre);
   if (!sheet) return { success: false, error: 'La hoja no existe: ' + hojaNombre };
-  
+
   if (student.rowId) {
-    // Actualización
     const rowData = objectToRow(student, student.rowId - HEADER_ROW);
     sheet.getRange(student.rowId, 1, 1, rowData.length).setValues([rowData]);
   } else {
-    // Nuevo alumno
     const lastRow = sheet.getLastRow();
     const insertRow = Math.max(lastRow + 1, HEADER_ROW + 1);
     const rowData = objectToRow(student, insertRow - HEADER_ROW);
@@ -96,50 +96,130 @@ function saveStudent(student) {
   return { success: true, message: 'Guardado' };
 }
 
-// Elimina el contenido de una fila (no borra la fila)
 function deleteStudent(grupo, rowId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(grupo);
-  if (!sheet) return { success: false, error: 'Hoja no encontrada: ' + grupo };
+  if (!sheet) return { success: false, error: 'Hoja no encontrada' };
   if (!rowId || rowId <= HEADER_ROW) return { success: false, error: 'Fila inválida' };
-  sheet.getRange(rowId, 1, 1, 18).clearContent();
+  sheet.getRange(rowId, 1, 1, 19).clearContent();
   return { success: true, message: 'Eliminado' };
 }
 
-// Convierte objeto JS → array de 18 valores para escribir en el Sheet (CON NÚMERO DE LISTA)
 function objectToRow(s, num) {
   return [
-    num, s.grado, s.grupo, s.nombre, s.fechaNacimiento, s.curpAlumno,
-    s.genero, s.beca, s.peso, s.estatura, s.talla, s.tutor,
+    num, s.grado, s.grupo, s.nombre, s.barreraAprendizaje, s.fechaNacimiento,
+    s.curpAlumno, s.genero, s.beca, s.peso, s.estatura, s.talla, s.tutor,
     s.telefono, s.curpTutor, s.correo, s.domicilio, s.nivelEstudio, s.ocupacion
   ];
 }
 
-// Convierte una fila del Sheet → objeto JS para el panel
 function rowToObject(row, rowIndex, tabName) {
   return {
     rowId: rowIndex,
-    id: tabName + '-' + rowIndex, // ID dinámico generado al vuelo
+    id: tabName + '-' + rowIndex,
     grado: row[1],
     grupo: row[2] || tabName,
     nombre: row[3],
-    fechaNacimiento: formatDate(row[4]),
-    curpAlumno: row[5],
-    genero: row[6],
-    beca: row[7],
-    peso: row[8],
-    estatura: row[9],
-    talla: row[10],
-    tutor: row[11],
-    telefono: row[12],
-    curpTutor: row[13],
-    correo: row[14],
-    domicilio: row[15],
-    nivelEstudio: row[16],
-    ocupacion: row[17]
+    barreraAprendizaje: row[4],
+    fechaNacimiento: formatDate(row[5]),
+    curpAlumno: row[6],
+    genero: row[7],
+    beca: row[8],
+    peso: row[9],
+    estatura: row[10],
+    talla: row[11],
+    tutor: row[12],
+    telefono: row[13],
+    curpTutor: row[14],
+    correo: row[15],
+    domicilio: row[16],
+    nivelEstudio: row[17],
+    ocupacion: row[18]
   };
 }
 
+// =====================================================
+// PERSONAL (17 Columnas)
+// =====================================================
+function getStaff() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('PERSONAL');
+  if (!sheet) return { success: false, error: 'Hoja PERSONAL no encontrada' };
+
+  let allStaff = [];
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= HEADER_ROW) return { success: true, data: [] };
+
+  const data = sheet.getRange(HEADER_ROW + 1, 1, lastRow - HEADER_ROW, 17).getValues();
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    if (!row[1] && !row[2]) continue; // ignorar filas sin nombre ni función
+    allStaff.push(rowToStaffObject(row, i + HEADER_ROW + 1));
+  }
+  return { success: true, data: allStaff };
+}
+
+function saveStaff(staff) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('PERSONAL');
+  if (!sheet) return { success: false, error: 'Hoja PERSONAL no encontrada' };
+
+  if (staff.rowId) {
+    const rowData = staffObjectToRow(staff, staff.rowId - HEADER_ROW);
+    sheet.getRange(staff.rowId, 1, 1, rowData.length).setValues([rowData]);
+  } else {
+    const lastRow = sheet.getLastRow();
+    const insertRow = Math.max(lastRow + 1, HEADER_ROW + 1);
+    const rowData = staffObjectToRow(staff, insertRow - HEADER_ROW);
+    sheet.getRange(insertRow, 1, 1, rowData.length).setValues([rowData]);
+  }
+  return { success: true, message: 'Guardado' };
+}
+
+function deleteStaff(rowId) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('PERSONAL');
+  if (!sheet) return { success: false, error: 'Hoja PERSONAL no encontrada' };
+  if (!rowId || rowId <= HEADER_ROW) return { success: false, error: 'Fila inválida' };
+  sheet.getRange(rowId, 1, 1, 17).clearContent();
+  return { success: true, message: 'Eliminado' };
+}
+
+function staffObjectToRow(s, num) {
+  return [
+    num, s.nombre, s.funcion, s.numAlumnos, s.clavePresupuestal, s.rfc,
+    s.curp, s.celular, s.telCasa, s.correo, s.fechaIngreso,
+    s.anosServicio, s.domicilio, s.telAdicional, s.perfilEstudios,
+    s.baseInterino, s.situacionLaboral
+  ];
+}
+
+function rowToStaffObject(row, rowIndex) {
+  return {
+    rowId: rowIndex,
+    id: 'staff-' + rowIndex,
+    nombre: row[1],
+    funcion: row[2],
+    numAlumnos: row[3],
+    clavePresupuestal: row[4],
+    rfc: row[5],
+    curp: row[6],
+    celular: row[7],
+    telCasa: row[8],
+    correo: row[9],
+    fechaIngreso: formatDate(row[10]),
+    anosServicio: row[11],
+    domicilio: row[12],
+    telAdicional: row[13],
+    perfilEstudios: row[14],
+    baseInterino: row[15],
+    situacionLaboral: row[16]
+  };
+}
+
+// =====================================================
+// UTILS
+// =====================================================
 function formatDate(dateObj) {
   if (!dateObj) return '';
   if (typeof dateObj === 'string') return dateObj;

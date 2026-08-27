@@ -97,6 +97,20 @@ Los maestros y la directora accederían a esa URL desde cualquier dispositivo, s
 
 ---
 
+## Respaldo y evolución de datos
+
+Google Sheets funciona como fuente operativa para el tamaño actual, pero no debe ser el único respaldo. Se recomienda crear un respaldo automático nocturno desde Apps Script hacia otro archivo de Drive, con fecha y hora en el nombre y una retención de varias copias. El respaldo debe ser independiente del archivo que usa el personal.
+
+Antes de construir validaciones entre filas o tablas, conviene agregar un identificador estable por alumno. El `rowId` actual representa la fila física de la hoja y puede cambiar si se reorganizan filas; no debe usarse como identidad histórica. También serán útiles `fechaCreacion`, `fechaActualizacion`, `actualizadoPor` y `estatus`.
+
+Una base de datos como PostgreSQL/Neon o Supabase será recomendable cuando se necesite historial de cambios, permisos reales por usuario, concurrencia, auditoría o integraciones. No es necesario migrar antes de validar el flujo escolar actual; primero conviene estabilizar el modelo y automatizar respaldos.
+
+### Asistencia: módulo separado
+
+El Word de agosto de 2026 contiene una matriz mensual por grupo, con días y espacios para actividad, puntualidad, notas y asistencia. No debe convertirse en columnas dentro de la hoja maestra de alumnos. Debe existir una tabla o pestaña independiente de asistencia, relacionada por `alumnoId`, `grupo` y `fecha`, y el formato mensual debe generarse como vista de impresión/exportación.
+
+---
+
 ## Cambios que requieren actualizar el Apps Script
 
 Cada vez que se cambia la estructura de columnas en el Sheet, se deben actualizar **en conjunto**:
