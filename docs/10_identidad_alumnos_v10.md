@@ -36,7 +36,7 @@ Los alumnos activos siguen apareciendo normalmente. En V10, la acción de elimin
 4. Autoriza si Google lo solicita y abre el registro de ejecución.
 5. Debe responder `success: true`, `ready: true`, `version: "V10"` y mostrar los contadores migrados.
 6. Ejecuta `getStudentIdentityStatus`.
-7. Confirma que `ready` sea `true` y que `totalStudents` sea igual a `permanentIds`. `duplicateIds` debe ser `0`.
+7. Confirma que `ready` sea `true` y que `totalStudents` sea igual a `permanentIds`. `duplicateIds` debe ser una lista vacía: `[]`.
 8. Ve a **Implementar → Gestionar implementaciones → lápiz → Nueva versión → Implementar**. Conserva la misma URL `/exec`.
 9. Abre el `ping` de la API. Debe incluir `version: "V10"`, `studentIdentityReady: true` y conservar `attendanceHistoryReady: true`.
 10. Recarga el panel, abre una ficha, edita un dato pequeño y confirma tanto el panel como el Sheet. Después registra o corrige una asistencia de prueba.
