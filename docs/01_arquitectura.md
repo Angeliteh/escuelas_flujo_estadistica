@@ -98,7 +98,7 @@ Se retiró la descarga de Excel del panel para evitar copias desactualizadas o a
 
 ## Modelo de datos para la siguiente fase
 
-Las hojas actuales son el **catálogo maestro de alumnos**: una fila por alumno y 19 columnas. La asistencia del Word no debe agregarse a esas filas, porque un mismo alumno tendrá muchos registros, uno por fecha.
+Las hojas actuales son el **catálogo maestro de alumnos**: una fila por alumno y 20 columnas, incluyendo el folio escolar. La asistencia del Word no debe agregarse a esas filas, porque un mismo alumno tendrá muchos registros, uno por fecha.
 
 La siguiente fase debe añadir un módulo separado de asistencia, idealmente con registros como:
 

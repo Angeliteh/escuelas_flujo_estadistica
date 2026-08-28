@@ -19,11 +19,11 @@ https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgk
 
 ---
 
-## Código completo (V5 — alumnos 19 columnas + personal 17 columnas + asistencia mensual)
+## Código completo (V6 — alumnos 20 columnas + personal 17 columnas + asistencia mensual)
 
 ```javascript
 // ==============================================================================
-// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V5 (ALUMNOS 19 COL + PERSONAL 17 COL + ASISTENCIA MENSUAL)
+// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V6 (ALUMNOS 20 COL + PERSONAL 17 COL + ASISTENCIA MENSUAL)
 // ==============================================================================
 
 const HEADER_ROW = 5;
@@ -69,7 +69,7 @@ function doGet(e) {
 }
 
 // =====================================================
-// ALUMNOS (19 Columnas)
+// ALUMNOS (20 Columnas)
 // =====================================================
 function getStudents() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -79,10 +79,10 @@ function getStudents() {
     if (!sheet) return;
     const lastRow = sheet.getLastRow();
     if (lastRow <= HEADER_ROW) return;
-    const data = sheet.getRange(HEADER_ROW + 1, 1, lastRow - HEADER_ROW, 19).getValues();
+    const data = sheet.getRange(HEADER_ROW + 1, 1, lastRow - HEADER_ROW, 20).getValues();
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
-      if (!row[3]) continue; // ignorar filas sin nombre
+      if (!row[4]) continue; // ignorar filas sin nombre
       allStudents.push(rowToObject(row, i + HEADER_ROW + 1, tabName));
     }
   });
@@ -114,15 +114,16 @@ function deleteStudent(grupo, rowId) {
   const sheet = ss.getSheetByName(grupo);
   if (!sheet) return { success: false, error: 'Hoja no encontrada' };
   if (!rowId || rowId <= HEADER_ROW) return { success: false, error: 'Fila inválida' };
-  sheet.getRange(rowId, 1, 1, 19).clearContent();
+  sheet.getRange(rowId, 1, 1, 20).clearContent();
   return { success: true, message: 'Eliminado' };
 }
 
 function objectToRow(s, num) {
   return [
-    num, s.grado, s.grupo, s.nombre, s.barreraAprendizaje, s.fechaNacimiento,
-    s.curpAlumno, s.genero, s.beca, s.peso, s.estatura, s.talla, s.tutor,
-    s.telefono, s.curpTutor, s.correo, s.domicilio, s.nivelEstudio, s.ocupacion
+    num, s.grado, s.grupo, s.folio, s.nombre, s.barreraAprendizaje,
+    s.fechaNacimiento, s.curpAlumno, s.genero, s.beca, s.peso, s.estatura,
+    s.talla, s.tutor, s.telefono, s.curpTutor, s.correo, s.domicilio,
+    s.nivelEstudio, s.ocupacion
   ];
 }
 
@@ -132,22 +133,23 @@ function rowToObject(row, rowIndex, tabName) {
     id: tabName + '-' + rowIndex,
     grado: row[1],
     grupo: row[2] || tabName,
-    nombre: row[3],
-    barreraAprendizaje: row[4],
-    fechaNacimiento: formatDate(row[5]),
-    curpAlumno: row[6],
-    genero: row[7],
-    beca: row[8],
-    peso: row[9],
-    estatura: row[10],
-    talla: row[11],
-    tutor: row[12],
-    telefono: row[13],
-    curpTutor: row[14],
-    correo: row[15],
-    domicilio: row[16],
-    nivelEstudio: row[17],
-    ocupacion: row[18]
+    folio: row[3],
+    nombre: row[4],
+    barreraAprendizaje: row[5],
+    fechaNacimiento: formatDate(row[6]),
+    curpAlumno: row[7],
+    genero: row[8],
+    beca: row[9],
+    peso: row[10],
+    estatura: row[11],
+    talla: row[12],
+    tutor: row[13],
+    telefono: row[14],
+    curpTutor: row[15],
+    correo: row[16],
+    domicilio: row[17],
+    nivelEstudio: row[18],
+    ocupacion: row[19]
   };
 }
 

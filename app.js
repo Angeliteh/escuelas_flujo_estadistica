@@ -112,6 +112,7 @@ function generateSampleStudents() {
         id:            _sampleId++,
         grado:         getGrade(group),
         grupo:         group,
+        folio:         '',
         nombre,
         fechaNacimiento: birth.str,
         curpAlumno:    buildCURP(nombre, birth.yy, birth.mm, birth.dd, gender, state),
@@ -1210,7 +1211,8 @@ function renderTeacherTable(filterText = '') {
   const filtered = ft
     ? all.filter(s =>
         (s.nombre || '').toLowerCase().includes(ft) ||
-        (s.curpAlumno || '').toLowerCase().includes(ft)
+        (s.curpAlumno || '').toLowerCase().includes(ft) ||
+        String(s.folio || '').toLowerCase().includes(ft)
       )
     : all;
 
@@ -1237,6 +1239,7 @@ function renderTeacherTable(filterText = '') {
     tbody.innerHTML = filtered.map((s, i) => `
       <tr class="row-clickable" onclick='openStudentDrawer(${JSON.stringify(s.id)})'>
         <td class="td-number">${i + 1}</td>
+        <td class="td-folio">${escHtml(s.folio) || '—'}</td>
         <td class="td-name">${escHtml(s.nombre)}</td>
         <td>${genderBadge(s.genero)}</td>
         <td>${scholarshipBadge(s.beca)}</td>
@@ -1279,7 +1282,8 @@ function renderDirectorTable() {
     const ms = !search ||
       (s.nombre || '').toLowerCase().includes(search) ||
       (s.curpAlumno || '').toLowerCase().includes(search) ||
-      (s.tutor || '').toLowerCase().includes(search);
+      (s.tutor || '').toLowerCase().includes(search) ||
+      String(s.folio || '').toLowerCase().includes(search);
     const matchGrupo = !grupo || s.grupoId === grupo || s.grupo === grupo;
     return ms &&
       (!grado  || s.grado  === grado)  &&
@@ -1297,6 +1301,7 @@ function renderDirectorTable() {
         <td class="td-number">${i + 1}</td>
         <td><span class="badge badge-grade">${s.grado}</span></td>
         <td><span class="badge badge-group">${s.grupo}</span></td>
+        <td class="td-folio">${escHtml(s.folio) || '—'}</td>
         <td class="td-name">${escHtml(s.nombre)}</td>
         <td>${escHtml(s.barreraAprendizaje) || ''}</td>
         <td>${s.fechaNacimiento ? fmtDate(s.fechaNacimiento) : '—'}</td>
@@ -1788,7 +1793,7 @@ function openStudentDrawer(id = null) {
   document.getElementById('student-form').reset();
   
   const formFields = [
-    'f-nombre', 'f-barrera', 'f-fecha', 'f-curp', 'f-genero', 'f-beca', 'f-nivel',
+    'f-nombre', 'f-folio', 'f-barrera', 'f-fecha', 'f-curp', 'f-genero', 'f-beca', 'f-nivel',
     'f-peso', 'f-estatura', 'f-talla', 'f-tutor', 'f-telefono', 'f-curp-tutor',
     'f-correo', 'f-domicilio', 'f-ocupacion'
   ];
@@ -1808,6 +1813,7 @@ function openStudentDrawer(id = null) {
       `detail-avatar ${s.genero === 'Masculino' ? 'avatar-male' : 'avatar-female'}`;
 
     document.getElementById('f-nombre').value    = s.nombre       || '';
+    document.getElementById('f-folio').value     = s.folio        || '';
     document.getElementById('f-barrera').value   = s.barreraAprendizaje || '';
     document.getElementById('f-fecha').value     = s.fechaNacimiento || '';
     document.getElementById('f-curp').value      = s.curpAlumno   || '';
@@ -1891,6 +1897,7 @@ async function saveStudent(e) {
   const data = {
     grado:           gradeToSave,
     grupo:           groupToSave,
+    folio:           document.getElementById('f-folio').value.trim().toUpperCase(),
     nombre:          document.getElementById('f-nombre').value.trim().toUpperCase(),
     barreraAprendizaje: document.getElementById('f-barrera').value.trim().toUpperCase(),
     fechaNacimiento: document.getElementById('f-fecha').value,
@@ -2090,6 +2097,7 @@ function printStudentRoster(students, group = null) {
           <td style="text-align:center">${i + 1}</td>
           <td style="text-align:center">${escHtml(s.grado || (group ? getGrade(group) : ''))}</td>
           <td style="text-align:center">${escHtml(group ? group.charAt(1) : studentGroup)}</td>
+          <td style="text-align:center">${escHtml(s.folio) || ''}</td>
           <td>${escHtml(s.nombre)}</td>
           <td>${escHtml(s.barreraAprendizaje) || ''}</td>
           <td>${fmtDate(s.fechaNacimiento)}</td>
@@ -2113,7 +2121,7 @@ function printStudentRoster(students, group = null) {
       rowsHtml += `
         <tr>
           <td style="text-align:center; color:#999;">${i + 1}</td>
-          <td></td><td></td><td></td><td></td><td></td><td></td>
+          <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
           <td></td><td></td><td></td><td></td><td></td>
           <td></td><td></td><td></td><td></td><td></td>
           <td></td><td></td>
@@ -2150,6 +2158,7 @@ function printStudentRoster(students, group = null) {
           <th>NO.</th>
           <th>GRADO</th>
           <th>GRUPO</th>
+          <th>FOLIO</th>
           <th>NOMBRE DEL ALUMNO</th>
           <th>BARRERA APREND.</th>
           <th>FECHA NAC.</th>

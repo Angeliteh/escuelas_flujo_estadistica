@@ -61,7 +61,7 @@
 - Gráfica doble: peso y estatura promedio por grado
 
 **Todos los Alumnos**
-- Tabla completa con las **19 columnas** de cada alumno (equivalente a la hoja oficial)
+- Tabla completa con las **20 columnas** de cada alumno (equivalente a la hoja oficial)
 - Filtros rápidos por **Grado** (botones 1° al 6°) y **Grupo** (botones A / B)
 - Filtros por Género y Beca (dropdown)
 - Búsqueda libre: nombre, CURP o tutor

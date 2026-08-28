@@ -26,29 +26,30 @@ Fila 6+│ DATOS DE LOS ALUMNOS  (el sistema escribe aquí)
 
 ---
 
-## Las 19 columnas de alumnos (en orden exacto)
+## Las 20 columnas de alumnos (en orden exacto)
 
 | Col | Nombre en Sheet | Campo en el sistema | ¿Visible en panel? |
 |-----|-----------------|--------------------|--------------------|
 | A | NO. | posición de fila | Sistema |
 | B | GRADO | `grado` | Panel |
 | C | GRUPO | `grupo` | Panel |
-| D | NOMBRE DEL ALUMNO | `nombre` | Ambos |
-| E | BARRERA DE APRENDIZAJE | `barreraAprendizaje` | Ambos |
-| F | FECHA DE NACIMIENTO | `fechaNacimiento` | Ambos |
-| G | CURP ALUMNO | `curpAlumno` | Ambos |
-| H | GENERO | `genero` | Ambos |
-| I | BECA | `beca` | Ambos |
-| J | PESO | `peso` | Ambos |
-| K | ESTATURA | `estatura` | Ambos |
-| L | TALLA | `talla` | Ambos |
-| M | NOMBRE TUTOR | `tutor` | Ambos |
-| N | TELEFONO | `telefono` | Ambos |
-| O | CURP TUTOR | `curpTutor` | Ambos |
-| P | CORREO | `correo` | Ambos |
-| Q | DOMICILIO | `domicilio` | Ambos |
-| R | NIVEL DE ESTUDIO | `nivelEstudio` | Ambos |
-| S | OCUPACIÓN | `ocupacion` | Ambos |
+| D | FOLIO | `folio` | Ambos |
+| E | NOMBRE DEL ALUMNO | `nombre` | Ambos |
+| F | BARRERA DE APRENDIZAJE | `barreraAprendizaje` | Ambos |
+| G | FECHA DE NACIMIENTO | `fechaNacimiento` | Ambos |
+| H | CURP ALUMNO | `curpAlumno` | Ambos |
+| I | GENERO | `genero` | Ambos |
+| J | BECA | `beca` | Ambos |
+| K | PESO | `peso` | Ambos |
+| L | ESTATURA | `estatura` | Ambos |
+| M | TALLA | `talla` | Ambos |
+| N | NOMBRE TUTOR | `tutor` | Ambos |
+| O | TELEFONO | `telefono` | Ambos |
+| P | CURP TUTOR | `curpTutor` | Ambos |
+| Q | CORREO | `correo` | Ambos |
+| R | DOMICILIO | `domicilio` | Ambos |
+| S | NIVEL DE ESTUDIO | `nivelEstudio` | Ambos |
+| T | OCUPACIÓN | `ocupacion` | Ambos |
 
 ---
 
@@ -85,7 +86,7 @@ Si se agrega un grado nuevo, también hay que actualizar el Apps Script y `app.j
 
 Cada grupo debe tener una hoja mensual formateada con el nombre exacto `ASISTENCIA (1A)`, `ASISTENCIA (1B)`, hasta `ASISTENCIA (6B)`. La plantilla usa la fila 6 para las iniciales de los días, la fila 7 para los números del mes, la fila 8 en adelante para los alumnos y la columna B para sus nombres.
 
-El panel solamente escribe `✓` o `X` en la celda correspondiente al alumno y al día. El Apps Script V5 no crea una pestaña nueva: si la hoja del grupo no existe, devuelve un aviso y no escribe nada. Las fechas futuras no se pueden capturar.
+El panel solamente escribe `✓` o `X` en la celda correspondiente al alumno y al día. El Apps Script V6 no crea una pestaña nueva: si la hoja del grupo no existe, devuelve un aviso y no escribe nada. Las fechas futuras no se pueden capturar.
 
 | Acción | Cómo hacerlo | Resultado |
 |--------|-------------|-----------|
