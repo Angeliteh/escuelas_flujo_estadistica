@@ -1,6 +1,6 @@
 # 10 — Identidad permanente de alumnos (V10)
 
-> Estado al 28 de agosto de 2026: código preparado y validado localmente; **todavía no instalado ni publicado** en el Apps Script oficial.
+> Estado al 28 de agosto de 2026: **instalado, publicado y verificado** en el Apps Script oficial.
 
 ## Objetivo
 
@@ -56,6 +56,15 @@ Ejemplo orientativo de la primera ejecución:
 ```
 
 Los números pueden ser distintos: dependen de los alumnos y registros existentes. Lo importante es el estado final reportado por `getStudentIdentityStatus`.
+
+### Resultado real de instalación
+
+- `migratedStudents`: 253
+- `migratedAttendanceRecords`: 0
+- API: 272 alumnos activos y 272 IDs permanentes
+- IDs duplicados: 0
+- `studentIdentityReady`: `true`
+- `attendanceHistoryReady`: `true`
 
 ## Repetición y reversibilidad
 

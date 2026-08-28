@@ -91,7 +91,7 @@ Todas se cargan desde CDN en `index.html`. No hay `package.json` ni `node_module
 | `GROUPS_LIST` | Igual que `TABS` | `app.js` (aproximadamente línea 50) |
 | `API_URL` | La URL larga del Script | `app.js` (línea ~130) |
 
-> V9 está publicado y `setupBackups()` terminó correctamente el 28 de agosto de 2026: creó la carpeta privada, el snapshot inicial y el activador diario alrededor de las 02:00 (`America/Mexico_City`) con retención de 30 copias. V10 está preparada localmente, pero todavía no está instalada ni publicada.
+> V10 está publicada. Conserva el respaldo inicial, activador diario alrededor de las 02:00 (`America/Mexico_City`), retención de 30 copias e historial mensual V9. La identidad permanente fue migrada correctamente el 28 de agosto de 2026.
 
 ---
 

@@ -19,12 +19,11 @@ https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgk
 
 ## Versión vigente y siguiente instalación
 
-- **Producción:** V9, con respaldos e historial mensual técnico funcionando.
-- **Preparada localmente:** V10, que conserva V9 y añade identidad permanente, estado y ciclo escolar.
-- **Código que debe copiarse en la próxima instalación:** [AppsScript_V10.gs](../AppsScript_V10.gs).
+- **Producción:** V10, con respaldos, historial mensual técnico e identidad permanente funcionando.
+- **Código vigente:** [AppsScript_V10.gs](../AppsScript_V10.gs).
 - **Procedimiento exacto:** [10_identidad_alumnos_v10.md](./10_identidad_alumnos_v10.md).
 
-No se debe considerar V10 activa hasta ejecutar su migración, publicar una nueva versión de la implementación y verificar el `ping`.
+V10 fue migrada y publicada el 28 de agosto de 2026. El `ping` confirmó `studentIdentityReady: true` y `attendanceHistoryReady: true`.
 
 ---
 

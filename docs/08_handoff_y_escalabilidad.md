@@ -33,8 +33,8 @@ Control de Asistencia es un panel web para que maestros y administración gestio
 - API actual: Google Apps Script publicado como Web App.
 - URL de API:
   https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgkNLf-jc1uEdzIoIU73mSJzLYJNC3Sw/exec
-- Versión publicada por el propietario en Apps Script: V9, compatible con el contrato del panel y con historial mensual técnico.
-- Versión siguiente preparada localmente: V10, con `alumnoId` permanente, estado, ciclo y auditoría mínima. No debe marcarse como activa hasta ejecutar y verificar su migración.
+- Versión publicada por el propietario en Apps Script: V10, compatible con el contrato del panel, historial mensual técnico e identidad permanente.
+- La migración V10 se ejecutó el 28 de agosto de 2026: `migratedStudents=253`. La API pública confirmó 272 alumnos activos, todos con ID permanente y sin duplicados.
 - La API fue verificada nuevamente después de la actualización:
   - ping respondió HTTP 200.
   - getAttendanceMonth respondió success=true.

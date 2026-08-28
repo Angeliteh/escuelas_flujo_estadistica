@@ -16,7 +16,7 @@
 - [x] **Modal central unificado** — agregar, editar y ver datos de alumno con mayor espacio horizontal
 - [x] Los alumnos existentes abren primero como **ficha de lectura**; la edición se habilita con una acción explícita
 - [x] Impresión individual en formato A4 con información escolar, datos del alumno, tutor, contacto y espacio para fotografía
-- [x] Eliminación con modal de confirmación en V9; V10 preparada para convertirla en baja lógica
+- [x] Baja lógica con confirmación; conserva los datos y asistencias del alumno
 - [x] Todo lo que se escribe se convierte a MAYÚSCULAS automáticamente
 - [x] Imprimir padrón del grupo con los datos completos
 - [x] Pestaña **Asistencia** con captura diaria del grupo asignado
@@ -46,7 +46,7 @@
 - [x] Los maestros registran datos → van al Sheet vía Apps Script
 - [x] La directora lee del mismo Sheet → ve datos en tiempo real (al cargar/recargar)
 - [x] El Sheet tiene el formato oficial con logo de la escuela
-- [x] Apps Script V9 publicado; la API mantiene el contrato del panel y confirmó `historical-events-v1`
+- [x] Apps Script V10 publicado; conserva `historical-events-v1` y confirmó identidad permanente lista
 - [x] Historial mensual optimizado a una sola consulta
 - [x] El panel refleja marcas eliminadas directamente en Sheets al sincronizar en línea
 
@@ -70,7 +70,7 @@
 ### Acceso para pruebas
 - [x] Sitio publicado en Vercel: `https://asistpanel.vercel.app/`
 - [x] Frontend con fichas y modal de grupos verificado en producción desde el commit `cb86bff`.
-- [ ] Instalar y publicar V10 para activar identidad permanente, estado y ciclo escolar.
+- [x] V10 instalada y publicada con identidad permanente, estado y ciclo escolar.
 
 | Opción | Esfuerzo | Acceso |
 |--------|---------|--------|
@@ -100,7 +100,7 @@
 | Personal en blanco si la columna Nombre está vacía | La hoja oficial tiene funciones precargadas pero nombres pendientes | Capturar nombres en la columna B o ajustar la política de filas del Apps Script |
 | Restauración todavía no ensayada | Las copias existen, pero falta demostrar su recuperación | Abrir o duplicar un respaldo de forma aislada, sin reemplazar el Sheet oficial |
 | Matrices visibles regenerables | Una edición manual directa puede ser reemplazada por el historial técnico | Corregir asistencia desde el panel y mantener la matriz como reporte |
-| V10 todavía no instalada | Producción sigue identificando parcialmente por fila | Ejecutar la migración documentada y verificar sus contadores |
+| Gestión visual de alumnos inactivos pendiente | Las bajas se conservan, pero todavía no existe una pantalla para consultarlas o reactivarlas | Agregar filtro administrativo de inactivos y acción de reactivación |
 | Datos escolares todavía concentrados en un Sheet | Limita historial, concurrencia, permisos y reportes complejos | Migrar gradualmente a una base de datos real |
 
 ---
@@ -135,13 +135,14 @@
 
 ---
 
-## Próximo paso preparado: identidad V10
+## Identidad V10 instalada
 
-- [x] Código V10 local conserva respaldos e historial mensual V9.
+- [x] Código V10 publicado conserva respaldos e historial mensual V9.
 - [x] Migración no destructiva diseñada para mantener intactas las columnas visibles `A:T`.
 - [x] Frontend preparado para preferir `alumnoId` y seguir siendo compatible con V9.
-- [ ] Ejecutar `setupStudentIdentityV10` en el Sheet oficial.
-- [ ] Verificar `getStudentIdentityStatus` y publicar V10 conservando la URL.
+- [x] `setupStudentIdentityV10` ejecutado: 253 alumnos recibieron ID durante esa ejecución.
+- [x] API pública verificada: 272 alumnos activos, 272 IDs permanentes y 0 duplicados.
+- [x] V10 publicada conservando la misma URL `/exec`.
 - [x] El frontend cambia automáticamente “Eliminar” por “Dar de baja” cuando detecta V10 lista.
 - [ ] Agregar la consulta y reactivación de alumnos inactivos después de confirmar V10.
 
