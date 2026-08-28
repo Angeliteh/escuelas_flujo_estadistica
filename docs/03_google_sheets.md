@@ -86,7 +86,7 @@ Si se agrega un grado nuevo, también hay que actualizar el Apps Script y `app.j
 
 Cada grupo debe tener una hoja mensual formateada con el nombre exacto `ASISTENCIA (1A)`, `ASISTENCIA (1B)`, hasta `ASISTENCIA (6B)`. La plantilla usa la fila 6 para las iniciales de los días, la fila 7 para los números del mes, la fila 8 en adelante para los alumnos y la columna B para sus nombres.
 
-El panel solamente escribe `✓` o `X` en la celda correspondiente al alumno y al día. El Apps Script V6 no crea una pestaña nueva: si la hoja del grupo no existe, devuelve un aviso y no escribe nada. Las fechas futuras no se pueden capturar.
+El panel solamente escribe `✓` o `X` en la celda correspondiente al alumno y al día. El Apps Script V7 no crea una pestaña nueva: si la hoja del grupo no existe, devuelve un aviso y no escribe nada. Las fechas futuras no se pueden capturar. El historial mensual se consulta con una sola petición optimizada.
 
 Cuando el panel consulta una fecha con internet, la hoja mensual es la fuente de verdad: si una marca se borra directamente en Sheets, desaparecerá del panel al actualizar o volver a consultar ese día. Las capturas hechas sin internet se conservan localmente hasta sincronizarse.
 

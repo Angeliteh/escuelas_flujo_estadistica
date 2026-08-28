@@ -90,7 +90,7 @@ Los maestros y la directora accederían a esa URL desde cualquier dispositivo, s
 
 **Estado actual:** El panel incluye captura diaria por grupo con dos marcas: ✓ Asistió y X No asistió. También tiene vista mensual, impresión y almacenamiento local temporal.
 
-**Siguiente paso:** publicar el endpoint V6 de Apps Script. La asistencia se escribirá en la hoja mensual existente del grupo (`ASISTENCIA (1A)`, `ASISTENCIA (2B)`, etc.), respetando sus filas, encabezado y columnas de días. El script no crea una hoja genérica `ASISTENCIA`.
+**Siguiente paso:** publicar el endpoint V7 de Apps Script. La asistencia se escribirá en la hoja mensual existente del grupo (`ASISTENCIA (1A)`, `ASISTENCIA (2B)`, etc.), respetando sus filas, encabezado y columnas de días. El historial mensual se obtiene en una sola consulta y el script no crea una hoja genérica `ASISTENCIA`.
 
 ### Vista de impresión del maestro
 **Necesidad:** Los maestros podrían necesitar imprimir su lista con el encabezado de la escuela.

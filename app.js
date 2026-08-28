@@ -730,7 +730,72 @@ function changeAttendanceMonth() {
   fetchAttendanceMonth();
 }
 
+async function requestAttendanceMonthBatch(group, month) {
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'getAttendanceMonth', group, month }),
+  });
+  const result = await response.json();
+  if (!result.success && result.error === 'Acción no válida') return null;
+  if (!result.success) throw new Error(result.error || 'No se pudo consultar el historial');
+  if (result.mode !== 'formatted-monthly-sheet' || result.sheetName !== `ASISTENCIA (${group})`) {
+    throw new Error('La API no está conectada a la hoja mensual del grupo');
+  }
+  return result;
+}
+
+function mergeAttendanceMonthServerRecords(group, responses) {
+  const today = localDateString();
+  (responses || []).forEach(({ date, records }) => {
+    if (!date || date > today) return;
+    const serverRecords = Array.isArray(records) ? records : [];
+    reconcileAttendanceCacheDate(group, date, serverRecords);
+    serverRecords.forEach(serverRecord => {
+      const studentId = String(serverRecord.studentId || '').trim();
+      if (!studentId) return;
+      const key = getAttendanceKey(group, date, studentId);
+      if (!attendanceCache[key] || attendanceCache[key].synced !== false) {
+        attendanceCache[key] = {
+          ...serverRecord,
+          studentId,
+          group,
+          date,
+          status: normalizeAttendanceStatus(serverRecord.status),
+          synced: true,
+        };
+      }
+    });
+  });
+  saveAttendanceCache();
+}
+
 async function fetchAttendanceMonth() {
+  if (!currentUser || currentUser.role !== 'teacher') return;
+  const month = document.getElementById('attendance-month')?.value;
+  if (!month) return;
+  const group = currentUser.group;
+  attendanceLoadedMonth = `${group}|${month}`;
+  updateAttendanceMonthSyncStatus('<i class="fa-solid fa-spinner fa-spin"></i> Consultando el historial mensual...');
+
+  if (navigator.onLine === false) {
+    renderAttendanceMonthTable();
+    updateAttendanceMonthSyncStatus();
+    return;
+  }
+
+  try {
+    const result = await requestAttendanceMonthBatch(group, month);
+    if (result === null) return fetchAttendanceMonthLegacy();
+    mergeAttendanceMonthServerRecords(group, result.data);
+    renderAttendanceMonthTable();
+    updateAttendanceMonthSyncStatus('<i class="fa-solid fa-cloud-check"></i> Historial mensual sincronizado.');
+  } catch (error) {
+    renderAttendanceMonthTable();
+    updateAttendanceMonthSyncStatus('<i class="fa-solid fa-mobile-screen-button"></i> Modo local: se muestran las capturas disponibles en este dispositivo.');
+  }
+}
+
+async function fetchAttendanceMonthLegacy() {
   if (!currentUser || currentUser.role !== 'teacher') return;
   const month = document.getElementById('attendance-month')?.value;
   if (!month) return;
@@ -1488,6 +1553,31 @@ function changeDirectorAttendanceMonth() {
 }
 
 async function fetchDirectorAttendanceMonth() {
+  if (!currentUser || currentUser.role !== 'director') return;
+  const group = getDirectorAttendanceGroup();
+  const month = getDirectorAttendanceMonth();
+  directorAttendanceLoadedMonth = `${group}|${month}`;
+  updateDirectorAttendanceStatus('<i class="fa-solid fa-spinner fa-spin"></i> Consultando el historial mensual...');
+
+  if (navigator.onLine === false) {
+    renderDirectorAttendanceTable();
+    updateDirectorAttendanceStatus();
+    return;
+  }
+
+  try {
+    const result = await requestAttendanceMonthBatch(group, month);
+    if (result === null) return fetchDirectorAttendanceMonthLegacy();
+    mergeAttendanceMonthServerRecords(group, result.data);
+    renderDirectorAttendanceTable();
+    updateDirectorAttendanceStatus('<i class="fa-solid fa-cloud-check"></i> Historial mensual sincronizado.');
+  } catch (error) {
+    renderDirectorAttendanceTable();
+    updateDirectorAttendanceStatus('<i class="fa-solid fa-mobile-screen-button"></i> Modo local: se muestran las capturas disponibles en este dispositivo.');
+  }
+}
+
+async function fetchDirectorAttendanceMonthLegacy() {
   if (!currentUser || currentUser.role !== 'director') return;
   const group = getDirectorAttendanceGroup();
   const month = getDirectorAttendanceMonth();

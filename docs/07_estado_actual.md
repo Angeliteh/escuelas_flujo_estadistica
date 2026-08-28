@@ -65,7 +65,7 @@
 - [x] Verificar que al guardar desde el drawer se refresca la tabla del maestro correctamente
 - [x] Diseñar la primera vista diaria del módulo de asistencia a partir del formato Word
 - [x] Preparar cola local para captura sin internet
-- [ ] Pegar y publicar V6 del Apps Script para usar las hojas mensuales `ASISTENCIA (GRUPO)` existentes
+- [ ] Pegar y publicar V7 del Apps Script para usar las hojas mensuales `ASISTENCIA (GRUPO)` existentes y consultar el mes en una sola petición
 - [ ] Diseñar reporte mensual con la matriz imprimible del formato Word
 
 ---
@@ -79,7 +79,7 @@
 | Sin sincronización automática | La directora necesita recargar para ver cambios de maestros | Polling cada 60 segundos |
 | Personal en blanco si la columna Nombre está vacía | La hoja oficial tiene funciones precargadas pero nombres pendientes | Capturar nombres en la columna B o ajustar la política de filas del Apps Script |
 | Sin respaldo automatizado independiente | Un error humano en Sheets puede afectar la fuente operativa | Copias nocturnas con Apps Script y retención |
-| Asistencia pendiente de publicar en API | El panel ya captura localmente, pero la nube todavía requiere Apps Script V6 | Pegar/publicar V6 y verificar una hoja existente como `ASISTENCIA (2B)` |
+| Asistencia pendiente de publicar en API | El panel ya captura localmente, pero la optimización mensual requiere Apps Script V7 | Pegar/publicar V7 y verificar una hoja existente como `ASISTENCIA (2B)` |
 
 ---
 

@@ -19,11 +19,11 @@ https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgk
 
 ---
 
-## Código completo (V6 — alumnos 20 columnas + personal 17 columnas + asistencia mensual)
+## Código completo (V7 — alumnos 20 columnas + personal 17 columnas + asistencia mensual optimizada)
 
 ```javascript
 // ==============================================================================
-// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V6 (ALUMNOS 20 COL + PERSONAL 17 COL + ASISTENCIA MENSUAL)
+// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V7 (ALUMNOS 20 COL + PERSONAL 17 COL + ASISTENCIA MENSUAL OPTIMIZADA)
 // ==============================================================================
 
 const HEADER_ROW = 5;
@@ -49,6 +49,7 @@ function doPost(e) {
     // ASISTENCIA
     if (action === 'getAttendanceConfig') return respond(getAttendanceConfig(params));
     if (action === 'getAttendance') return respond(getAttendance(params));
+    if (action === 'getAttendanceMonth') return respond(getAttendanceMonth(params));
     if (action === 'saveAttendance') return respond(saveAttendance(params.records || []));
     // PERSONAL
     if (action === 'getStaff') return respond(getStaff());
@@ -87,6 +88,25 @@ function getStudents() {
     }
   });
   return { success: true, data: allStudents };
+}
+
+function getStudentsForGroup(group) {
+  const normalizedGroup = String(group || '').trim().toUpperCase();
+  if (!TABS.includes(normalizedGroup)) return [];
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(normalizedGroup);
+  if (!sheet) return [];
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= HEADER_ROW) return [];
+
+  const data = sheet.getRange(HEADER_ROW + 1, 1, lastRow - HEADER_ROW, 20).getValues();
+  const students = [];
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    if (!row[4]) continue;
+    students.push(rowToObject(row, i + HEADER_ROW + 1, normalizedGroup));
+  }
+  return students;
 }
 
 function saveStudent(student) {
@@ -299,7 +319,7 @@ function getAttendanceMonthSlots(date) {
   if (!parsed) return [];
   const daysInMonth = new Date(parsed.year, parsed.month, 0).getDate();
   const slots = [];
-  let workdayIndex = 0;
+  let column = ATTENDANCE_FIRST_DAY_COLUMN;
   for (let day = 1; day <= daysInMonth; day++) {
     const dateObject = new Date(parsed.year, parsed.month - 1, day, 12);
     const weekday = dateObject.getDay();
@@ -308,9 +328,10 @@ function getAttendanceMonthSlots(date) {
       date: `${parsed.year}-${String(parsed.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
       day,
       weekday: attendanceWeekdayCode(weekday),
-      column: ATTENDANCE_FIRST_DAY_COLUMN + workdayIndex + Math.floor(workdayIndex / 5)
+      column
     });
-    workdayIndex++;
+    column++;
+    if (weekday === 5) column++;
   }
   return slots;
 }
@@ -351,7 +372,7 @@ function writeAttendanceMonthHeader(sheet, date) {
 }
 
 function getAttendanceGroupStudents(group) {
-  const students = getStudents().data || [];
+  const students = getStudentsForGroup(group);
   const seen = {};
   return students.filter(student => {
     const id = String(student.id || '');
@@ -433,6 +454,88 @@ function getAttendance(params) {
     });
   });
   return { success: true, data, sheetName: access.sheetName };
+}
+
+function getAttendanceMonth(params) {
+  const month = String(params.month || '').trim();
+  const group = String(params.group || '').trim().toUpperCase();
+  const currentMonth = attendanceToday().slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(month) || !group) {
+    return { success: false, error: 'Mes y grupo son obligatorios' };
+  }
+  if (month > currentMonth) return { success: false, error: 'No se permiten meses futuros' };
+
+  const access = getAttendanceSheet(group);
+  if (!access.success) return access;
+
+  const slots = getAttendanceMonthSlots(`${month}-01`);
+  if (!slots.length) return { success: false, error: 'Mes no válido' };
+
+  const headerWidth = Math.max(access.sheet.getMaxColumns() - ATTENDANCE_FIRST_DAY_COLUMN + 1, 1);
+  const headers = access.sheet
+    .getRange(ATTENDANCE_WEEKDAY_ROW, ATTENDANCE_FIRST_DAY_COLUMN, 2, headerWidth)
+    .getDisplayValues();
+  const columns = slots.map(slot => {
+    for (let index = 0; index < headerWidth; index++) {
+      const weekday = normalizeAttendanceText(headers[0][index]);
+      const day = Number(String(headers[1][index] || '').trim());
+      if (day === slot.day && weekday === slot.weekday) {
+        return ATTENDANCE_FIRST_DAY_COLUMN + index;
+      }
+    }
+    return null;
+  });
+
+  const names = getAttendanceSheetNames(access.sheet);
+  const students = getAttendanceGroupStudents(group);
+  const studentsByName = {};
+  students.forEach(student => {
+    const name = normalizeAttendanceText(student.nombre);
+    if (name && !studentsByName[name]) studentsByName[name] = student;
+  });
+
+  const validColumns = columns.filter(column => column !== null);
+  const lastColumn = validColumns.length ? Math.max.apply(null, validColumns) : null;
+  const marks = lastColumn
+    ? access.sheet.getRange(
+        ATTENDANCE_FIRST_STUDENT_ROW,
+        ATTENDANCE_FIRST_DAY_COLUMN,
+        names.length,
+        lastColumn - ATTENDANCE_FIRST_DAY_COLUMN + 1
+      ).getDisplayValues()
+    : [];
+
+  const data = slots.map((slot, slotIndex) => {
+    const records = [];
+    const column = columns[slotIndex];
+    if (column !== null && slot.date <= attendanceToday()) {
+      const markIndex = column - ATTENDANCE_FIRST_DAY_COLUMN;
+      names.forEach((name, rowIndex) => {
+        const status = attendanceStatusFromValue(marks[rowIndex][markIndex]);
+        if (!name || !status) return;
+        const student = studentsByName[name];
+        records.push({
+          id: `${group}|${slot.date}|${student ? student.id : name}`,
+          date: slot.date,
+          group,
+          studentId: student ? String(student.id) : name,
+          studentName: student ? String(student.nombre || '') : name,
+          status,
+          note: '',
+          usuario: '',
+          updatedAt: ''
+        });
+      });
+    }
+    return { date: slot.date, records };
+  });
+
+  return {
+    success: true,
+    data,
+    sheetName: access.sheetName,
+    mode: 'formatted-monthly-sheet'
+  };
 }
 
 function saveAttendance(records) {
