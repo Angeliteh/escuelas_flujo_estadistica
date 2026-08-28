@@ -47,7 +47,7 @@ POST API_URL
 { "action": "ping" }
 
 POST API_URL
-{ "action": "getAttendanceMonth", "group": "2B", "year": 2026, "month": 8 }
+{ "action": "getAttendanceMonth", "group": "2B", "month": "2026-08" }
 ```
 
 La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`, `mode: "formatted-monthly-sheet"` y un arreglo de 21 fechas hábiles para agosto de 2026. Si devuelve `Acción no válida`, el despliegue de Apps Script no corresponde a V7.
