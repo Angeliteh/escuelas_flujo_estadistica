@@ -33,12 +33,12 @@ Control de Asistencia es un panel web para que maestros y administración gestio
 - API actual: Google Apps Script publicado como Web App.
 - URL de API:
   https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgkNLf-jc1uEdzIoIU73mSJzLYJNC3Sw/exec
-- Versión reportada por el propietario en Apps Script: V8, compatible con el contrato V7 de asistencia.
+- Versión publicada por el propietario en Apps Script: V9, compatible con el contrato del panel y con historial mensual técnico.
 - La API fue verificada nuevamente después de la actualización:
   - ping respondió HTTP 200.
   - getAttendanceMonth respondió success=true.
   - ASISTENCIA (2B), agosto de 2026, devolvió 21 días en una sola petición.
-  - La respuesta indicó mode=formatted-monthly-sheet.
+  - La respuesta indicó `mode=formatted-monthly-sheet`, `storage=historical-events-v1` y `historyReady=true`.
 
 Comprobación mínima de continuidad para futuras sesiones:
 
@@ -50,7 +50,7 @@ POST API_URL
 { "action": "getAttendanceMonth", "group": "2B", "month": "2026-08" }
 ```
 
-La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`, `mode: "formatted-monthly-sheet"` y un arreglo de 21 fechas hábiles para agosto de 2026. Si devuelve `Acción no válida`, el despliegue de Apps Script no corresponde a V7.
+La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`, `mode: "formatted-monthly-sheet"`, `storage: "historical-events-v1"` y un arreglo de 21 fechas hábiles para agosto de 2026. Si falta el almacenamiento histórico, el despliegue de Apps Script no corresponde a V9.
 
 ### Estructura actual del Sheet
 
@@ -85,13 +85,14 @@ La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`,
 - Si una marca se elimina directamente en Sheets, el panel la elimina de su caché al volver a sincronizar en línea.
 - Las capturas locales pendientes se conservan hasta sincronizarse.
 
-> **Bloqueo operativo:** V7 identifica la hoja sólo por grupo, no por mes. `writeAttendanceMonthHeader` cambia los encabezados de la misma matriz y las marcas anteriores permanecen en esas columnas hasta ser reemplazadas. No iniciar septiembre de 2026 como operación definitiva hasta migrar agosto a registros históricos por fecha y superar la prueba agosto → septiembre → agosto.
-
-**Actualización V9:** la migración mensual fue instalada y la API pública confirmó `historyReady=true` y `storage=historical-events-v1`. Las correcciones de asistencia pasan a realizarse desde el panel; la matriz visible es un reporte regenerable.
+**Actualización V9:** la migración mensual fue instalada y la API pública confirmó `historyReady=true` y `storage=historical-events-v1`. Las correcciones de asistencia pasan a realizarse desde el panel; la matriz visible es un reporte regenerable. Falta únicamente comprobar el cruce agosto → septiembre → agosto con operación real.
 
 ### Administración
 
 - Dashboard general.
+- Pestaña Grupos con tarjetas para 1A a 6B.
+- Cada tarjeta abre un resumen del grupo con docente, estadísticas, alumnado y acceso a la asistencia mensual ya filtrada.
+- El maestro reutiliza el mismo concepto de resumen como pantalla inicial de su grupo.
 - Consulta global de alumnos.
 - Consulta mensual de asistencia por grupo en modo solo lectura.
 - Personal en modo solo lectura.
@@ -170,7 +171,7 @@ Esto es aceptable únicamente para una prueba interna controlada. Antes de opera
 
 - No existe todavía un historial formal de quién cambió cada campo.
 - El Sheet puede ser modificado manualmente por alguien con permisos.
-- V8 fue actualizado por el propietario. `setupBackups()` creó correctamente la carpeta, el snapshot inicial y el activador nocturno el 28 de agosto de 2026. Falta una prueba controlada de restauración para cerrar la verificación completa.
+- V9 fue actualizado por el propietario. `setupBackups()` creó correctamente la carpeta, el snapshot inicial y el activador nocturno el 28 de agosto de 2026. La prueba de recuperación queda pendiente y deberá hacerse sobre una copia aislada, nunca reemplazando el Sheet oficial.
 - localStorage ayuda ante una falla temporal, pero no reemplaza una base de datos ni un sistema de sincronización con resolución de conflictos.
 
 ### Operación
@@ -188,8 +189,8 @@ Esto es aceptable únicamente para una prueba interna controlada. Antes de opera
 2. Confirmar que cada grupo tiene su pestaña maestra y su pestaña mensual.
 3. Probar alta, edición, folio, impresión, asistencia diaria e historial.
 4. Definir quién puede corregir asistencia pasada.
-5. Instalar V8, ejecutar `setupBackups()` y comprobar el snapshot inicial antes de que comiencen a capturar datos reales.
-6. Migrar agosto a almacenamiento histórico y verificar que septiembre no lo sobrescribe.
+5. Confirmar que el primer respaldo nocturno se creó después del snapshot inicial ya instalado con V9.
+6. Verificar con operación real que septiembre no sobrescribe el historial de agosto.
 7. Entregar la URL a la subdirectora y capacitarla con un flujo corto.
 
 ### Fase 1 — Estabilizar el modelo de datos
@@ -234,6 +235,13 @@ El modelo debe prepararse para:
 - dashboard de indicadores;
 - almacenamiento de archivos con permisos;
 - exportaciones oficiales controladas.
+
+La evolución de interfaz acordada parte de dos entidades principales:
+
+- **Grupo:** resumen, alumnos y acceso a asistencia/reportes.
+- **Alumno:** ficha de lectura, datos completos, asistencia y documentos imprimibles.
+
+La ficha individual imprimible es el siguiente incremento funcional recomendado. Debe reutilizar el drawer y la infraestructura actual de impresión; no requiere duplicar los datos en nuevas hojas.
 
 ## 9. Multi escuela
 
@@ -282,13 +290,13 @@ No cambiar la estructura de Sheets ni iniciar una migración de base de datos ha
 
 Este orden reemplaza cualquier lista anterior que parezca permitir iniciar un mes nuevo sólo con las matrices actuales:
 
-1. Crear una copia manual completa del Sheet oficial y no modificarla.
-2. Instalar y comprobar el respaldo automático V8.
-3. Crear almacenamiento histórico de asistencia por fecha, con migración idempotente de agosto.
+1. Conservar el snapshot inicial del Sheet oficial sin modificarlo.
+2. Confirmar el primer respaldo nocturno automático V9.
+3. Mantener activo el almacenamiento histórico de asistencia por fecha ya instalado.
 4. Mantener `ASISTENCIA (GRUPO)` como formato visible y regenerable, no como única fuente histórica.
-5. Ejecutar la prueba controlada agosto → septiembre → agosto en un grupo de prueba.
+5. Ejecutar la comprobación agosto → septiembre → agosto desde el panel en un grupo de prueba.
 6. Añadir `alumnoId` permanente antes de permitir reordenamientos, cambios de grupo o bajas históricas.
 7. Sustituir la eliminación física por estatus y eventos de alta/baja/transferencia.
 8. Añadir bitácora append-only para cambios de alumnos y correcciones de asistencia.
-9. Probar restauración desde un snapshot sin cambiar el ID del archivo oficial.
+9. Probar la recuperación abriendo o duplicando un snapshot aislado, sin cambiar ni reemplazar el archivo oficial.
 10. Sólo entonces considerar el piloto listo para operación continua del ciclo.

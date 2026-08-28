@@ -98,7 +98,10 @@
     </header>
 
     <nav class="teacher-nav" aria-label="Secciones del grupo">
-      <button class="teacher-nav-btn active" id="teacher-tab-students" onclick="switchTeacherTab('students')">
+      <button class="teacher-nav-btn active" id="teacher-tab-summary" onclick="switchTeacherTab('summary')">
+        <i class="fa-solid fa-house"></i> Resumen
+      </button>
+      <button class="teacher-nav-btn" id="teacher-tab-students" onclick="switchTeacherTab('students')">
         <i class="fa-solid fa-users"></i> Alumnos
       </button>
       <button class="teacher-nav-btn" id="teacher-tab-attendance" onclick="switchTeacherTab('attendance')">
@@ -110,7 +113,46 @@
     </nav>
 
     <main class="main-content">
-      <section id="teacher-students-panel">
+      <section id="teacher-summary-panel" class="group-home-panel">
+        <div class="group-home-hero">
+          <div class="group-home-identity">
+            <div id="teacher-home-group" class="group-home-badge">1A</div>
+            <div>
+              <p class="eyebrow"><i class="fa-solid fa-school"></i> Mi grupo</p>
+              <h2 id="teacher-home-title">Primer grado · Grupo A</h2>
+              <p id="teacher-home-teacher" class="section-subtitle"></p>
+            </div>
+          </div>
+          <span class="group-cycle-badge"><i class="fa-solid fa-calendar"></i> Ciclo 2026-2027</span>
+        </div>
+
+        <div class="group-summary-stats" aria-label="Resumen del grupo">
+          <div class="group-summary-stat"><span id="teacher-home-total">0</span><small>Alumnos</small></div>
+          <div class="group-summary-stat"><span id="teacher-home-male">0</span><small>Hombres</small></div>
+          <div class="group-summary-stat"><span id="teacher-home-female">0</span><small>Mujeres</small></div>
+          <div class="group-summary-stat"><span id="teacher-home-scholarship">0</span><small>Con beca</small></div>
+        </div>
+
+        <div class="group-home-actions">
+          <button class="group-action-card" onclick="switchTeacherTab('students')">
+            <span class="group-action-icon action-indigo"><i class="fa-solid fa-users"></i></span>
+            <span><strong>Alumnos</strong><small>Consulta y actualiza los datos del grupo</small></span>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+          <button class="group-action-card" onclick="switchTeacherTab('attendance')">
+            <span class="group-action-icon action-emerald"><i class="fa-solid fa-calendar-check"></i></span>
+            <span><strong>Tomar asistencia</strong><small>Registra la asistencia del día</small></span>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+          <button class="group-action-card" onclick="switchTeacherTab('month')">
+            <span class="group-action-icon action-amber"><i class="fa-solid fa-calendar-days"></i></span>
+            <span><strong>Historial mensual</strong><small>Consulta e imprime cualquier mes</small></span>
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </section>
+
+      <section id="teacher-students-panel" class="hidden">
       <div class="stats-bar">
         <div class="stat-card">
           <div class="stat-icon stat-blue"><i class="fa-solid fa-users"></i></div>
@@ -301,6 +343,9 @@
       <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')" role="tab" id="tab-btn-dashboard">
         <i class="fa-solid fa-chart-pie"></i> Dashboard
       </button>
+      <button class="tab-btn" data-tab="groups" onclick="switchTab('groups')" role="tab" id="tab-btn-groups">
+        <i class="fa-solid fa-people-group"></i> Grupos
+      </button>
       <button class="tab-btn" data-tab="students" onclick="switchTab('students')" role="tab" id="tab-btn-students">
         <i class="fa-solid fa-list"></i> Todos los Alumnos
       </button>
@@ -365,6 +410,95 @@
             <div class="chart-wrapper"><canvas id="chart-anthropo"></canvas></div>
           </div>
         </div>
+      </div>
+
+      <!-- GROUPS TAB -->
+      <div id="tab-groups" class="tab-content" role="tabpanel">
+        <section id="director-groups-list-view">
+          <div class="groups-header groups-page-header">
+            <div>
+              <p class="eyebrow"><i class="fa-solid fa-people-group"></i> Organización escolar</p>
+              <h2>Grupos</h2>
+              <p class="groups-description">Selecciona un grupo para consultar su resumen, alumnado y asistencia.</p>
+            </div>
+            <span class="group-cycle-badge"><i class="fa-solid fa-calendar"></i> Ciclo 2026-2027</span>
+          </div>
+          <div id="director-groups-grid" class="groups-grid" aria-live="polite"></div>
+        </section>
+
+        <section id="director-group-detail-view" class="hidden">
+          <button class="btn btn-ghost group-back-btn" onclick="closeDirectorGroup()">
+            <i class="fa-solid fa-arrow-left"></i> Todos los grupos
+          </button>
+
+          <div class="group-home-hero director-group-hero">
+            <div class="group-home-identity">
+              <div id="director-group-badge" class="group-home-badge">1A</div>
+              <div>
+                <p class="eyebrow"><i class="fa-solid fa-school"></i> Detalle del grupo</p>
+                <h2 id="director-group-title">Primer grado · Grupo A</h2>
+                <p id="director-group-teacher" class="section-subtitle"></p>
+              </div>
+            </div>
+            <span class="group-cycle-badge"><i class="fa-solid fa-calendar"></i> Ciclo 2026-2027</span>
+          </div>
+
+          <nav class="group-detail-nav" aria-label="Secciones del grupo seleccionado">
+            <button id="director-group-tab-summary" class="group-detail-nav-btn active" onclick="switchDirectorGroupSection('summary')">
+              <i class="fa-solid fa-house"></i> Resumen
+            </button>
+            <button id="director-group-tab-students" class="group-detail-nav-btn" onclick="switchDirectorGroupSection('students')">
+              <i class="fa-solid fa-users"></i> Alumnos
+            </button>
+            <button class="group-detail-nav-btn" onclick="openDirectorGroupAttendance()">
+              <i class="fa-solid fa-calendar-days"></i> Asistencia
+            </button>
+          </nav>
+
+          <div id="director-group-summary-panel">
+            <div class="group-summary-stats" aria-label="Resumen del grupo seleccionado">
+              <div class="group-summary-stat"><span id="director-group-total">0</span><small>Alumnos</small></div>
+              <div class="group-summary-stat"><span id="director-group-male">0</span><small>Hombres</small></div>
+              <div class="group-summary-stat"><span id="director-group-female">0</span><small>Mujeres</small></div>
+              <div class="group-summary-stat"><span id="director-group-scholarship">0</span><small>Con beca</small></div>
+            </div>
+
+            <div class="group-home-actions group-home-actions-compact">
+              <button class="group-action-card" onclick="switchDirectorGroupSection('students')">
+                <span class="group-action-icon action-indigo"><i class="fa-solid fa-address-book"></i></span>
+                <span><strong>Ver alumnos</strong><small>Lista rápida y ficha de cada alumno</small></span>
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+              <button class="group-action-card" onclick="openDirectorGroupAttendance()">
+                <span class="group-action-icon action-emerald"><i class="fa-solid fa-calendar-check"></i></span>
+                <span><strong>Ver asistencia mensual</strong><small>Consulta de solo lectura para dirección</small></span>
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="director-group-students-panel" class="hidden">
+            <div class="table-controls">
+              <div class="search-bar">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="director-group-search" placeholder="Buscar alumno por nombre, CURP o tutor..." oninput="renderDirectorGroupStudents()">
+              </div>
+              <button class="btn btn-secondary" onclick="printDirectorGroupRoster()">
+                <i class="fa-solid fa-print"></i> Imprimir padrón
+              </button>
+            </div>
+            <div class="table-meta"><span id="director-group-count" class="table-count"></span></div>
+            <div class="table-container">
+              <table class="data-table" id="director-group-students-table">
+                <thead><tr><th>#</th><th>Folio</th><th>Nombre del alumno</th><th>Género</th><th>Beca</th><th>Tutor</th><th>Teléfono</th><th></th></tr></thead>
+                <tbody id="director-group-students-tbody"></tbody>
+              </table>
+              <div id="director-group-empty" class="empty-state hidden">
+                <i class="fa-solid fa-user-slash"></i><p>No hay alumnos registrados en este grupo</p>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
       <!-- ALL STUDENTS TAB -->

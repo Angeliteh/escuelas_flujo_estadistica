@@ -193,6 +193,37 @@ function getStudentsByGroup(group) {
   return allStudentsCache.filter(s => s.grupoId === group || s.grupo === group);
 }
 
+function getTeacherByGroup(group) {
+  return Object.values(USERS).find(user => user.role === 'teacher' && user.group === group) || null;
+}
+
+function getGroupStats(group) {
+  const students = getStudentsByGroup(group);
+  return {
+    students,
+    total: students.length,
+    male: students.filter(student => student.genero === 'Masculino').length,
+    female: students.filter(student => student.genero === 'Femenino').length,
+    scholarship: students.filter(student => student.beca === 'Sí').length,
+  };
+}
+
+function getGroupTitle(group) {
+  return `${getGrade(group)} Grado · Grupo ${String(group).slice(-1)}`;
+}
+
+function refreshStudentViews() {
+  if (!currentUser) return;
+  if (currentUser.role === 'director') {
+    renderDirectorTable();
+    renderDirectorGroupCards();
+    if (selectedDirectorGroup) renderDirectorGroupDetail();
+    return;
+  }
+  renderTeacherTable(document.getElementById('teacher-search')?.value || '');
+  renderTeacherHome();
+}
+
 function genderBadge(gender) {
   if (gender === 'Masculino') {
     return '<span class="badge badge-male"><i class="fa-solid fa-mars"></i> Masc.</span>';
@@ -234,8 +265,7 @@ async function upsertStudent(data, id = null) {
   }
   
   // Re-render immediately
-  if (currentUser.role === 'director') renderDirectorTable();
-  else renderTeacherTable(document.getElementById('teacher-search').value);
+  refreshStudentViews();
 
   // Send to API
   try {
@@ -246,16 +276,14 @@ async function upsertStudent(data, id = null) {
     const result = await response.json();
     if (!result.success) {
       allStudentsCache = previousCache;
-      if (currentUser.role === 'director') renderDirectorTable();
-      else renderTeacherTable(document.getElementById('teacher-search').value);
+      refreshStudentViews();
       showToast('Error al guardar en la nube: ' + result.error, 'error');
       return false;
     }
     return true;
   } catch (error) {
     allStudentsCache = previousCache;
-    if (currentUser.role === 'director') renderDirectorTable();
-    else renderTeacherTable(document.getElementById('teacher-search').value);
+    refreshStudentViews();
     showToast('Error de conexión al guardar', 'error');
     return false;
   }
@@ -271,8 +299,7 @@ async function removeStudent(id) {
   // Optimistic delete
   allStudentsCache = allStudentsCache.filter(s => s.id !== id && s.rowId !== id);
   
-  if (currentUser.role === 'director') renderDirectorTable();
-  else renderTeacherTable(document.getElementById('teacher-search').value);
+  refreshStudentViews();
 
   // Send to API
   try {
@@ -283,16 +310,14 @@ async function removeStudent(id) {
     const result = await response.json();
     if (!result.success) {
       allStudentsCache = previousCache;
-      if (currentUser.role === 'director') renderDirectorTable();
-      else renderTeacherTable(document.getElementById('teacher-search').value);
+      refreshStudentViews();
       showToast('Error al eliminar en la nube: ' + result.error, 'error');
       return false;
     }
     return true;
   } catch (error) {
     allStudentsCache = previousCache;
-    if (currentUser.role === 'director') renderDirectorTable();
-    else renderTeacherTable(document.getElementById('teacher-search').value);
+    refreshStudentViews();
     showToast('Error de conexión al eliminar', 'error');
     return false;
   }
@@ -376,7 +401,8 @@ function showTeacherView() {
   document.getElementById('teacher-search').value = '';
   attendanceLoadedDate = null;
   attendanceLoadedMonth = null;
-  switchTeacherTab('students');
+  switchTeacherTab('summary');
+  renderTeacherHome();
   renderTeacherTable();
 }
 
@@ -1003,22 +1029,31 @@ function updateAttendanceSyncStatus(message = '') {
 }
 
 function switchTeacherTab(tab) {
+  const summaryPanel = document.getElementById('teacher-summary-panel');
   const studentsPanel = document.getElementById('teacher-students-panel');
   const attendancePanel = document.getElementById('teacher-attendance-panel');
   const attendanceMonthPanel = document.getElementById('teacher-attendance-month-panel');
+  const summaryTab = document.getElementById('teacher-tab-summary');
   const studentsTab = document.getElementById('teacher-tab-students');
   const attendanceTab = document.getElementById('teacher-tab-attendance');
   const monthTab = document.getElementById('teacher-tab-month');
-  if (!studentsPanel || !attendancePanel || !attendanceMonthPanel) return;
+  if (!summaryPanel || !studentsPanel || !attendancePanel || !attendanceMonthPanel) return;
 
+  const isSummary = tab === 'summary';
+  const isStudents = tab === 'students';
   const isAttendance = tab === 'attendance';
   const isMonth = tab === 'month';
-  studentsPanel.classList.toggle('hidden', isAttendance || isMonth);
+  summaryPanel.classList.toggle('hidden', !isSummary);
+  studentsPanel.classList.toggle('hidden', !isStudents);
   attendancePanel.classList.toggle('hidden', !isAttendance);
   attendanceMonthPanel.classList.toggle('hidden', !isMonth);
-  studentsTab?.classList.toggle('active', !isAttendance && !isMonth);
+  summaryTab?.classList.toggle('active', isSummary);
+  studentsTab?.classList.toggle('active', isStudents);
   attendanceTab?.classList.toggle('active', isAttendance);
   monthTab?.classList.toggle('active', isMonth);
+
+  if (isSummary) renderTeacherHome();
+  if (isStudents) renderTeacherTable(document.getElementById('teacher-search')?.value || '');
 
   if (isAttendance) {
     const dateInput = document.getElementById('attendance-date');
@@ -1041,6 +1076,19 @@ function switchTeacherTab(tab) {
       fetchAttendanceMonth();
     }
   }
+}
+
+function renderTeacherHome() {
+  if (!currentUser || currentUser.role !== 'teacher') return;
+  const group = currentUser.group;
+  const stats = getGroupStats(group);
+  document.getElementById('teacher-home-group').textContent = group;
+  document.getElementById('teacher-home-title').textContent = getGroupTitle(group);
+  document.getElementById('teacher-home-teacher').textContent = currentUser.name;
+  document.getElementById('teacher-home-total').textContent = stats.total;
+  document.getElementById('teacher-home-male').textContent = stats.male;
+  document.getElementById('teacher-home-female').textContent = stats.female;
+  document.getElementById('teacher-home-scholarship').textContent = stats.scholarship;
 }
 
 function setAttendanceToday() {
@@ -1684,6 +1732,126 @@ function printDirectorAttendanceMonth() {
 // DIRECTOR VIEW — GROUP CARDS
 // =====================================================
 
+let selectedDirectorGroup = null;
+
+function renderDirectorGroupCards() {
+  const grid = document.getElementById('director-groups-grid');
+  if (!grid) return;
+
+  grid.innerHTML = GROUPS_LIST.map(group => {
+    const stats = getGroupStats(group);
+    const teacher = getTeacherByGroup(group);
+    return `
+      <button type="button" class="group-card group-card-clickable" onclick='openDirectorGroup(${JSON.stringify(group)})'>
+        <div class="group-card-header">
+          <span class="group-badge-big">${escHtml(group)}</span>
+          <span class="group-card-heading">
+            <span class="group-grade">${escHtml(getGroupTitle(group))}</span>
+            <strong class="group-total">${stats.total} alumno${stats.total === 1 ? '' : 's'}</strong>
+          </span>
+          <i class="fa-solid fa-chevron-right group-card-arrow"></i>
+        </div>
+        <div class="group-stats">
+          <span class="group-stat"><strong class="gs-value gs-blue">${stats.male}</strong><small class="gs-label">Hombres</small></span>
+          <span class="group-stat"><strong class="gs-value gs-pink">${stats.female}</strong><small class="gs-label">Mujeres</small></span>
+          <span class="group-stat"><strong class="gs-value gs-amber">${stats.scholarship}</strong><small class="gs-label">Becas</small></span>
+        </div>
+        <span class="group-card-teacher"><i class="fa-solid fa-chalkboard-user"></i> ${escHtml(teacher?.name || 'Docente por asignar')}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function openDirectorGroup(group) {
+  if (!GROUPS_LIST.includes(group)) return;
+  selectedDirectorGroup = group;
+  document.getElementById('director-groups-list-view')?.classList.add('hidden');
+  document.getElementById('director-group-detail-view')?.classList.remove('hidden');
+  const search = document.getElementById('director-group-search');
+  if (search) search.value = '';
+  renderDirectorGroupDetail();
+  switchDirectorGroupSection('summary');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function closeDirectorGroup() {
+  selectedDirectorGroup = null;
+  document.getElementById('director-group-detail-view')?.classList.add('hidden');
+  document.getElementById('director-groups-list-view')?.classList.remove('hidden');
+  renderDirectorGroupCards();
+}
+
+function renderDirectorGroupDetail() {
+  if (!selectedDirectorGroup) return;
+  const group = selectedDirectorGroup;
+  const stats = getGroupStats(group);
+  const teacher = getTeacherByGroup(group);
+  document.getElementById('director-group-badge').textContent = group;
+  document.getElementById('director-group-title').textContent = getGroupTitle(group);
+  document.getElementById('director-group-teacher').textContent = teacher?.name || 'Docente por asignar';
+  document.getElementById('director-group-total').textContent = stats.total;
+  document.getElementById('director-group-male').textContent = stats.male;
+  document.getElementById('director-group-female').textContent = stats.female;
+  document.getElementById('director-group-scholarship').textContent = stats.scholarship;
+  renderDirectorGroupStudents();
+}
+
+function switchDirectorGroupSection(section) {
+  if (!selectedDirectorGroup) return;
+  const isSummary = section === 'summary';
+  document.getElementById('director-group-summary-panel')?.classList.toggle('hidden', !isSummary);
+  document.getElementById('director-group-students-panel')?.classList.toggle('hidden', isSummary);
+  document.getElementById('director-group-tab-summary')?.classList.toggle('active', isSummary);
+  document.getElementById('director-group-tab-students')?.classList.toggle('active', !isSummary);
+  if (!isSummary) renderDirectorGroupStudents();
+}
+
+function renderDirectorGroupStudents() {
+  if (!selectedDirectorGroup) return;
+  const all = getStudentsByGroup(selectedDirectorGroup);
+  const search = (document.getElementById('director-group-search')?.value || '').trim().toLowerCase();
+  const students = all.filter(student => !search ||
+    (student.nombre || '').toLowerCase().includes(search) ||
+    (student.curpAlumno || '').toLowerCase().includes(search) ||
+    (student.tutor || '').toLowerCase().includes(search) ||
+    String(student.folio || '').toLowerCase().includes(search)
+  );
+  const table = document.getElementById('director-group-students-table');
+  const empty = document.getElementById('director-group-empty');
+  const tbody = document.getElementById('director-group-students-tbody');
+  const count = document.getElementById('director-group-count');
+  if (!table || !empty || !tbody || !count) return;
+
+  count.textContent = `Mostrando ${students.length} de ${all.length} alumnos del grupo ${selectedDirectorGroup}`;
+  table.classList.toggle('hidden', students.length === 0);
+  empty.classList.toggle('hidden', students.length !== 0);
+  tbody.innerHTML = students.map((student, index) => `
+    <tr class="row-clickable" onclick='openStudentDrawer(${JSON.stringify(student.id)})'>
+      <td class="td-number">${index + 1}</td>
+      <td class="td-folio">${escHtml(student.folio) || '—'}</td>
+      <td class="td-name">${escHtml(student.nombre)}</td>
+      <td>${genderBadge(student.genero)}</td>
+      <td>${scholarshipBadge(student.beca)}</td>
+      <td>${escHtml(student.tutor) || '—'}</td>
+      <td>${escHtml(student.telefono) || '—'}</td>
+      <td><button class="btn-icon btn-edit" title="Abrir ficha" onclick="event.stopPropagation(); openStudentDrawer(${JSON.stringify(student.id)})"><i class="fa-solid fa-address-card"></i></button></td>
+    </tr>
+  `).join('');
+}
+
+function printDirectorGroupRoster() {
+  if (!currentUser || currentUser.role !== 'director' || !selectedDirectorGroup) return;
+  printStudentRoster(getStudentsByGroup(selectedDirectorGroup), selectedDirectorGroup);
+}
+
+function openDirectorGroupAttendance() {
+  if (!currentUser || currentUser.role !== 'director' || !selectedDirectorGroup) return;
+  const group = selectedDirectorGroup;
+  const selector = document.getElementById('director-attendance-group');
+  if (selector) selector.value = group;
+  directorAttendanceLoadedMonth = null;
+  switchTab('attendance');
+}
 
 
 // =====================================================
@@ -1871,6 +2039,12 @@ function switchTab(tab) {
     // Small delay to let canvas render
     setTimeout(initCharts, 60);
     chartsInitialized = true;
+  } else if (tab === 'groups') {
+    if (selectedDirectorGroup) {
+      renderDirectorGroupDetail();
+    } else {
+      renderDirectorGroupCards();
+    }
   } else if (tab === 'students') {
     renderDirectorTable();
   } else if (tab === 'staff') {

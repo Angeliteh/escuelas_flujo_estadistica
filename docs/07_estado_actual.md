@@ -9,6 +9,7 @@
 
 ### Panel del Maestro
 - [x] Login con usuario/contraseña por grupo
+- [x] Pantalla inicial **Resumen** con identidad del grupo, docente, ciclo, estadísticas y accesos rápidos
 - [x] Vista del grupo con estadísticas (total, H, M, becas)
 - [x] Tabla de alumnos (solo los de su grupo)
 - [x] Buscador por nombre/CURP
@@ -25,6 +26,8 @@
 ### Panel de la Directora
 - [x] Login con usuario/contraseña de directora
 - [x] Dashboard con 4 métricas clave y 4 gráficas (Chart.js)
+- [x] **Pestaña "Grupos"** con tarjetas para 1A a 6B, docente asignado y estadísticas por grupo
+- [x] Detalle de grupo con resumen, lista corta de alumnos, apertura de ficha y acceso a asistencia mensual filtrada
 - [x] **Pestaña "Todos los Alumnos"** con las 20 columnas completas (como la hoja oficial)
 - [x] **Filtros rápidos tipo píldora** para Grado (1° al 6°) y Grupo (A / B)
 - [x] Filtros adicionales por Género y Beca (dropdown)
@@ -39,7 +42,7 @@
 - [x] Los maestros registran datos → van al Sheet vía Apps Script
 - [x] La directora lee del mismo Sheet → ve datos en tiempo real (al cargar/recargar)
 - [x] El Sheet tiene el formato oficial con logo de la escuela
-- [x] Apps Script V8 reportado como actualizado por el propietario; la API mantiene el contrato de asistencia V7 y respondió correctamente
+- [x] Apps Script V9 publicado; la API mantiene el contrato del panel y confirmó `historical-events-v1`
 - [x] Historial mensual optimizado a una sola consulta
 - [x] El panel refleja marcas eliminadas directamente en Sheets al sincronizar en línea
 
@@ -48,9 +51,9 @@
 ## 🟡 Pendiente / Por verificar antes de entregar
 
 ### Funcional
-- [ ] **Resolver el cambio de agosto a septiembre** — V7 reutiliza las mismas hojas `ASISTENCIA (GRUPO)` y no conserva meses históricos de forma segura.
-- [ ] Migrar las marcas actuales de agosto a un almacenamiento histórico antes de capturar septiembre.
-- [ ] Comprobar que consultar o imprimir agosto sigue funcionando después de iniciar septiembre.
+- [x] **Resolver el cambio de agosto a septiembre** mediante el historial mensual V9.
+- [x] Ejecutar la migración inicial de agosto; no había registros pendientes por migrar (`migratedRecords: 0`).
+- [ ] Comprobar con uso real que consultar o imprimir agosto sigue funcionando después de iniciar septiembre.
 - [x] V9 preparado localmente con una hoja técnica oculta por mes para todos los grupos.
 - [x] Simulación local superada: agosto se conserva al guardar septiembre y borrar septiembre no afecta agosto.
 - [x] `setupAttendanceHistoryV9()` ejecutado en el Sheet real y V9 publicado; API verificada con `historical-events-v1`.
@@ -90,8 +93,8 @@
 | Apps Script URL pública | Alguien con la URL puede leer todos los datos | Agregar token secreto en cada petición |
 | Sin sincronización automática | La directora necesita recargar para ver cambios de maestros | Polling cada 60 segundos |
 | Personal en blanco si la columna Nombre está vacía | La hoja oficial tiene funciones precargadas pero nombres pendientes | Capturar nombres en la columna B o ajustar la política de filas del Apps Script |
-| Sin respaldo automatizado independiente | Un error humano en Sheets puede afectar la fuente operativa | Copias nocturnas con Apps Script y retención |
-| Hojas de asistencia sin identidad de mes | Al cambiar encabezados, un mes puede reemplazar o mezclar al anterior | Guardar eventos por fecha y usar la matriz como reporte |
+| Restauración todavía no ensayada | Las copias existen, pero falta demostrar su recuperación | Abrir o duplicar un respaldo de forma aislada, sin reemplazar el Sheet oficial |
+| Matrices visibles regenerables | Una edición manual directa puede ser reemplazada por el historial técnico | Corregir asistencia desde el panel y mantener la matriz como reporte |
 | Identidad basada parcialmente en fila | Reordenar filas puede romper referencias históricas | Crear un `alumnoId` permanente antes de migrar |
 | Datos escolares todavía concentrados en un Sheet | Limita historial, concurrencia, permisos y reportes complejos | Migrar gradualmente a una base de datos real |
 
@@ -119,11 +122,11 @@
 
 ## Respaldo y restauración
 
-- [x] Código V8 actualizado por el propietario con snapshot inicial, copias nocturnas y retención de 30 copias.
+- [x] Código V9 actualizado por el propietario con snapshot inicial, copias nocturnas y retención de 30 copias.
 - [x] Procedimiento de verificación y restauración documentado.
 - [x] `setupBackups()` ejecutado correctamente con la cuenta propietaria el 28 de agosto de 2026.
 - [x] Snapshot `INICIAL` creado y activador `runNightlyBackup` programado alrededor de las 02:00.
-- [ ] Hacer una prueba controlada de restauración antes de considerar el respaldo operativo.
+- [ ] Hacer después una prueba no destructiva abriendo o duplicando un respaldo; nunca reemplazar el Sheet principal durante la prueba.
 
 ---
 
@@ -132,7 +135,7 @@
 | Decisión | Por qué |
 |----------|---------|
 | Panel lateral unificado (eliminar modal flotante) | Redundancia: el modal central y el drawer hacían lo mismo |
-| Eliminar pestaña "Por Grupo" | Redundante con los filtros de Grado/Grupo en "Todos los Alumnos" |
+| Pestaña "Grupos" como navegación, no como otro filtro | Las tarjetas dan contexto y abren un mini panel del grupo; "Todos los Alumnos" conserva los filtros para búsquedas globales |
 | Filtros tipo píldora en lugar de dropdowns | Más rápido, visual y moderno — 1 clic vs. expandir menú |
 | Tabla de 20 columnas en la directora | La directora necesita ver TODOS los datos, no un resumen |
 | Modo solo lectura en el drawer de directora | Misma interfaz, sin duplicar código |
