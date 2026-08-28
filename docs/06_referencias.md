@@ -10,7 +10,7 @@ Repositorio:
 https://github.com/Angeliteh/escuelas_flujo_estadistica
 
 Último commit funcional verificado en producción:
-fdb4545
+d28d840
 
 Google Sheet:
 https://docs.google.com/spreadsheets/d/1jAPfaac3miW8izCGrq1rosCntdjAMw3TMKLCxHYtSzI/edit

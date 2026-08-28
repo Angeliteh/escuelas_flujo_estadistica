@@ -15,7 +15,7 @@ Control de Asistencia es un panel web para que maestros y administración gestio
 - Sitio: https://asistpanel.vercel.app/
 - Repositorio: https://github.com/Angeliteh/escuelas_flujo_estadistica
 - Rama activa: main
-- Último commit funcional verificado en producción: fdb4545.
+- Último commit funcional verificado en producción: d28d840 (V9 mensual, respaldos y limpieza de marca desde el panel).
 - Despliegue: Vercel conectado al repositorio; cada push a main genera una nueva implementación.
 
 ### Escuela activa

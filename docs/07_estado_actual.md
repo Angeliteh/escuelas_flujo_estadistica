@@ -62,6 +62,7 @@
 
 ### Acceso para pruebas
 - [x] Sitio publicado en Vercel: `https://asistpanel.vercel.app/`
+- [x] Frontend V9 verificado en producción desde el commit `d28d840`.
 
 | Opción | Esfuerzo | Acceso |
 |--------|---------|--------|
