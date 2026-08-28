@@ -4,7 +4,7 @@
 
 Proteger el archivo operativo ante borrados accidentales, fórmulas o formatos dañados y cambios administrativos equivocados. Google Sheets continúa siendo la fuente oficial; las copias de Drive son puntos de restauración independientes y no se sincronizan con el original.
 
-## Política introducida en V8 y conservada en V9
+## Política introducida en V8 y conservada en V9/V10
 
 | Elemento | Configuración |
 |---|---|
@@ -23,7 +23,7 @@ Las copias nuevas consumen almacenamiento de la cuenta propietaria. Las copias q
 
 > **Estado:** completada correctamente el 28 de agosto de 2026. Se confirmó la carpeta `Respaldos Control Asistencia`, un snapshot `INICIAL`, retención de 30 y ejecución diaria alrededor de las 02:00 en `America/Mexico_City`.
 
-1. Pegar el código vigente de [04_apps_script.md](./04_apps_script.md) en el Apps Script vinculado al Sheet oficial. V9 conserva las funciones de respaldo de V8.
+1. Pegar el código vigente indicado en [04_apps_script.md](./04_apps_script.md) en el Apps Script vinculado al Sheet oficial. V9 y la candidata V10 conservan las funciones de respaldo de V8.
 2. Guardar el proyecto.
 3. Seleccionar `setupBackups` y pulsar **Ejecutar**.
 4. Aceptar los permisos solicitados por Google para Sheets y Drive.

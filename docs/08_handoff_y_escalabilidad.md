@@ -15,7 +15,7 @@ Control de Asistencia es un panel web para que maestros y administración gestio
 - Sitio: https://asistpanel.vercel.app/
 - Repositorio: https://github.com/Angeliteh/escuelas_flujo_estadistica
 - Rama activa: main
-- Último commit funcional verificado en producción: d28d840 (V9 mensual, respaldos y limpieza de marca desde el panel).
+- Último commit funcional verificado en producción: cb86bff (fichas y detalle de grupos como modales, sobre backend V9).
 - Despliegue: Vercel conectado al repositorio; cada push a main genera una nueva implementación.
 
 ### Escuela activa
@@ -34,6 +34,7 @@ Control de Asistencia es un panel web para que maestros y administración gestio
 - URL de API:
   https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgkNLf-jc1uEdzIoIU73mSJzLYJNC3Sw/exec
 - Versión publicada por el propietario en Apps Script: V9, compatible con el contrato del panel y con historial mensual técnico.
+- Versión siguiente preparada localmente: V10, con `alumnoId` permanente, estado, ciclo y auditoría mínima. No debe marcarse como activa hasta ejecutar y verificar su migración.
 - La API fue verificada nuevamente después de la actualización:
   - ping respondió HTTP 200.
   - getAttendanceMonth respondió success=true.
@@ -73,6 +74,7 @@ La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`,
 - Ficha individual en un modal central amplio, inicialmente en modo lectura y con botón separado para editar.
 - Impresión individual A4 con los datos existentes y un espacio reservado para fotografía física.
 - Los cambios del panel se escriben en la hoja maestra mediante Apps Script.
+- El frontend está preparado para preferir `alumnoId` cuando V10 esté activa y mantiene compatibilidad temporal con el `rowId` de V9.
 
 ### Asistencia
 

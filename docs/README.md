@@ -15,6 +15,7 @@
 | [07_estado_actual.md](./07_estado_actual.md) | **Panorama completo de lo que está listo, en prueba y pendiente.** |
 | [08_handoff_y_escalabilidad.md](./08_handoff_y_escalabilidad.md) | **Documento principal para retomar el proyecto y planear su evolución a una plataforma multi escuela.** |
 | [09_respaldos_y_restauracion.md](./09_respaldos_y_restauracion.md) | Instalación del snapshot inicial, copias nocturnas, retención, verificación y restauración. |
+| [10_identidad_alumnos_v10.md](./10_identidad_alumnos_v10.md) | Migración no destructiva a IDs permanentes, estado y ciclo escolar. |
 
 ---
 

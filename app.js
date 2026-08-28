@@ -143,6 +143,7 @@ const STUDENTS_CACHE_KEY = 'ce_students_cache_v1';
 
 let allStudentsCache = [];
 let isDataLoaded = false;
+let studentSoftDeleteEnabled = false;
 
 function saveStudentsCache() {
   try { localStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(allStudentsCache)); }
@@ -167,6 +168,7 @@ async function fetchAllStudents() {
     const response = await fetch(API_URL);
     const result = await response.json();
     if (result.success) {
+      studentSoftDeleteEnabled = result.version === 'V10' && result.identityReady === true;
       allStudentsCache = result.data.map(s => {
         let n = String(s.grado || '').charAt(0);
         let l = String(s.grupo || '').trim();
@@ -269,14 +271,18 @@ async function upsertStudent(data, id = null) {
   data.grupoId = (l.length === 1 && n) ? (n + l) : l;
 
   // Optimistic update
+  let temporaryId = null;
   if (id) {
-    const idx = allStudentsCache.findIndex(s => s.rowId === id || s.id === id);
+    const idx = allStudentsCache.findIndex(s => s.alumnoId === id || s.rowId === id || s.id === id);
     if (idx !== -1) {
-      data.rowId = allStudentsCache[idx].rowId; // Enviar el rowId numérico real al backend
+      data.rowId = allStudentsCache[idx].rowId; // Compatibilidad temporal con V9
+      data.alumnoId = allStudentsCache[idx].alumnoId || '';
+      data.id = allStudentsCache[idx].id;
       allStudentsCache[idx] = { ...allStudentsCache[idx], ...data };
     }
   } else {
-    data.id = Date.now().toString(); // Temp ID
+    temporaryId = `TEMP-${Date.now()}`;
+    data.id = temporaryId;
     allStudentsCache.push(data);
   }
   
@@ -296,6 +302,18 @@ async function upsertStudent(data, id = null) {
       showToast('Error al guardar en la nube: ' + result.error, 'error');
       return false;
     }
+    if (result.data && result.data.id) {
+      const savedIndex = allStudentsCache.findIndex(student =>
+        student.id === (temporaryId || id) || student.rowId === id || student.alumnoId === id
+      );
+      if (savedIndex !== -1) allStudentsCache[savedIndex] = { ...allStudentsCache[savedIndex], ...result.data };
+      saveStudentsCache();
+      refreshStudentViews();
+    } else {
+      // V9 no devuelve el registro guardado; recargar evita conservar un ID temporal.
+      await fetchAllStudents();
+      refreshStudentViews();
+    }
     return true;
   } catch (error) {
     allStudentsCache = previousCache;
@@ -306,7 +324,7 @@ async function upsertStudent(data, id = null) {
 }
 
 async function removeStudent(id) {
-  const student = allStudentsCache.find(s => s.id === id || s.rowId === id);
+  const student = allStudentsCache.find(s => s.alumnoId === id || s.id === id || s.rowId === id);
   if (!student) return false;
   const previousCache = allStudentsCache.map(item => ({ ...item }));
   const realRowId = student.rowId;
@@ -321,7 +339,14 @@ async function removeStudent(id) {
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
-      body: JSON.stringify({ action: 'deleteStudent', grupo: sheetTab, id: realRowId }),
+      body: JSON.stringify({
+        action: 'deleteStudent',
+        grupo: sheetTab,
+        id: realRowId,
+        rowId: realRowId,
+        alumnoId: student.alumnoId || '',
+        usuario: currentUser?.username || ''
+      }),
     });
     const result = await response.json();
     if (!result.success) {
@@ -470,7 +495,7 @@ function formatLongDate(dateString) {
 }
 
 function getAttendanceStudentId(student) {
-  return String(student.id || `${student.grupoId || student.grupo}-${student.rowId || ''}`);
+  return String(student.alumnoId || student.id || `${student.grupoId || student.grupo}-${student.rowId || ''}`);
 }
 
 function getAttendanceKey(group, date, studentId) {
@@ -1399,8 +1424,8 @@ function renderTeacherTable(filterText = '') {
           <button class="btn-icon btn-edit" onclick='openStudentDrawer(${JSON.stringify(s.id)})' title="Editar">
             <i class="fa-solid fa-pen"></i>
           </button>
-          <button class="btn-icon-sm btn-delete" onclick='askDelete(${JSON.stringify(s.id)})' title="Eliminar alumno">
-            <i class="fa-solid fa-trash"></i>
+          <button class="btn-icon-sm btn-delete" onclick='askDelete(${JSON.stringify(s.id)})' title="${studentSoftDeleteEnabled ? 'Dar de baja' : 'Eliminar'} alumno">
+            <i class="fa-solid ${studentSoftDeleteEnabled ? 'fa-user-minus' : 'fa-trash'}"></i>
           </button>
         </td>
       </tr>
@@ -2259,6 +2284,10 @@ function setStudentDrawerMode(mode) {
   document.getElementById('detail-edit-btn').classList.toggle('hidden', !isView || !studentDrawerCanEdit);
   document.getElementById('detail-save-btn').classList.toggle('hidden', isView || !studentDrawerCanEdit);
   document.getElementById('detail-delete-btn').classList.toggle('hidden', isView || !studentDrawerCanEdit || !isExisting);
+  const deleteButton = document.getElementById('detail-delete-btn');
+  deleteButton.innerHTML = studentSoftDeleteEnabled
+    ? '<i class="fa-solid fa-user-minus"></i> Dar de baja'
+    : '<i class="fa-solid fa-trash"></i> Eliminar';
 }
 
 function enableStudentDrawerEdit() {
@@ -2276,11 +2305,15 @@ function openStudentDrawer(id = null) {
   document.getElementById('student-form').reset();
 
   if (id) {
-    const s = getAllStudents().find(s => s.id === id || s.rowId === id);
+    const s = getAllStudents().find(s => s.alumnoId === id || s.id === id || s.rowId === id);
     if (!s) return;
     
     document.getElementById('detail-name').textContent = s.nombre || '—';
     document.getElementById('detail-grupo-badge').textContent = `${s.grado || ''} — Grupo ${s.grupoId || s.grupo || ''}`;
+    const status = String(s.estatus || 'ACTIVO').toUpperCase();
+    const statusBadge = document.getElementById('detail-status-badge');
+    statusBadge.className = `badge ${status === 'ACTIVO' ? 'badge-active' : 'badge-inactive'}`;
+    statusBadge.innerHTML = `<i class="fa-solid ${status === 'ACTIVO' ? 'fa-circle-check' : 'fa-circle-minus'}"></i> ${escHtml(status)}`;
     document.getElementById('detail-avatar-icon').className =
       `detail-avatar ${getGenderCategory(s.genero) === 'male' ? 'avatar-male' : 'avatar-female'}`;
 
@@ -2305,6 +2338,7 @@ function openStudentDrawer(id = null) {
     document.getElementById('detail-name').textContent = 'Nuevo Alumno';
     document.getElementById('detail-grupo-badge').textContent = currentUser ? `${getGrade(currentUser.group)} Grado — Grupo ${currentUser.group}` : '';
     document.getElementById('detail-avatar-icon').className = 'detail-avatar avatar-male';
+    document.getElementById('detail-status-badge').classList.add('hidden');
   }
 
   setStudentDrawerMode(id ? 'view' : 'edit');
@@ -2351,7 +2385,7 @@ async function saveStudent(e) {
   let gradeToSave, groupToSave;
   
   if (savedId) {
-    const existing = getAllStudents().find(s => s.id === savedId || s.rowId === savedId);
+    const existing = getAllStudents().find(s => s.alumnoId === savedId || s.id === savedId || s.rowId === savedId);
     if (!existing) return;
     gradeToSave = existing.grado;
     groupToSave = existing.grupo;
@@ -2400,12 +2434,19 @@ let pendingDeleteId = null;
 let pendingDeleteType = null;
 
 function askDelete(id) {
-  const s = getAllStudents().find(s => s.id === id || s.rowId === id);
+  const s = getAllStudents().find(s => s.alumnoId === id || s.id === id || s.rowId === id);
   if (!s) return;
   pendingDeleteId = id;
   pendingDeleteType = 'student';
-  document.getElementById('confirm-text').innerHTML =
-    `¿Eliminar al alumno <strong>${escHtml(s.nombre)}</strong>?<br>Esta acción no se puede deshacer.`;
+  document.getElementById('confirm-title').innerHTML = studentSoftDeleteEnabled
+    ? '<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b"></i> Confirmar baja'
+    : '<i class="fa-solid fa-triangle-exclamation" style="color:#ef4444"></i> Confirmar eliminación';
+  document.getElementById('confirm-ok-btn').innerHTML = studentSoftDeleteEnabled
+    ? '<i class="fa-solid fa-user-minus"></i> Dar de baja'
+    : '<i class="fa-solid fa-trash"></i> Eliminar';
+  document.getElementById('confirm-text').innerHTML = studentSoftDeleteEnabled
+    ? `¿Dar de baja al alumno <strong>${escHtml(s.nombre)}</strong>?<br>Sus datos y asistencias se conservarán y la baja podrá revertirse.`
+    : `¿Eliminar al alumno <strong>${escHtml(s.nombre)}</strong>?<br>Esta acción no se puede deshacer.`;
   document.getElementById('confirm-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -2429,7 +2470,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (removed) showToast('Personal eliminado', 'error');
     } else {
       const removed = await removeStudent(id);
-      if (removed) showToast('Alumno eliminado', 'error');
+      if (removed) showToast(studentSoftDeleteEnabled ? 'Alumno dado de baja' : 'Alumno eliminado', studentSoftDeleteEnabled ? 'success' : 'error');
     }
   });
 });
@@ -2549,7 +2590,7 @@ function printDirectorRoster() {
 
 function printStudentProfileFromDrawer() {
   if (editingId === null) return;
-  const student = getAllStudents().find(item => item.id === editingId || item.rowId === editingId);
+  const student = getAllStudents().find(item => item.alumnoId === editingId || item.id === editingId || item.rowId === editingId);
   if (!student) {
     showToast('No se encontró la información del alumno', 'error');
     return;
@@ -2574,6 +2615,8 @@ function printProfileField(label, value, className = '') {
 function printStudentProfile(student) {
   const printContainer = document.getElementById('print-view');
   const group = student.grupoId || `${String(student.grado || '').charAt(0)}${String(student.grupo || '').slice(-1)}`;
+  const cycle = student.cicloEscolar || '2026-2027';
+  const status = String(student.estatus || 'ACTIVO').toUpperCase();
   const generatedDate = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
 
   printContainer.innerHTML = `
@@ -2584,7 +2627,7 @@ function printStudentProfile(student) {
           <p>SECRETARÍA DE EDUCACIÓN PÚBLICA</p>
           <h1>ESCUELA PRIMARIA GRAL. ELPIDIO G. VELÁZQUEZ</h1>
           <div><span>CCT 10DPR0519X</span><span>SECTOR 13 · ZONA 109</span></div>
-          <strong>CICLO ESCOLAR 2026-2027</strong>
+          <strong>CICLO ESCOLAR ${escHtml(cycle)}</strong>
         </div>
         <div class="student-profile-photo"><i class="fa-solid fa-user"></i><span>Fotografía</span></div>
       </header>
@@ -2603,7 +2646,8 @@ function printStudentProfile(student) {
           ${printProfileField('Grado', printProfileValue(student.grado || getGrade(group)))}
           ${printProfileField('Grupo', printProfileValue(String(group).slice(-1)))}
           ${printProfileField('Folio', printProfileValue(student.folio))}
-          ${printProfileField('Beca', printProfileValue(student.beca))}
+          ${printProfileField('Estado', printProfileValue(status))}
+          ${printProfileField('Beca', printProfileValue(student.beca), 'profile-span-2')}
           ${printProfileField('Barrera de aprendizaje', printProfileValue(student.barreraAprendizaje), 'profile-span-4')}
         </div>
       </section>
@@ -2952,6 +2996,9 @@ function askDeleteStaff(id) {
   if (!s) return;
   pendingDeleteId = id;
   pendingDeleteType = 'staff';
+  document.getElementById('confirm-title').innerHTML =
+    '<i class="fa-solid fa-triangle-exclamation" style="color:#ef4444"></i> Confirmar eliminación';
+  document.getElementById('confirm-ok-btn').innerHTML = '<i class="fa-solid fa-trash"></i> Eliminar';
   document.getElementById('confirm-text').textContent =
     `¿Eliminar a "${s.nombre}" del registro de personal? Esta acción no se puede deshacer.`;
   document.getElementById('confirm-modal').classList.remove('hidden');

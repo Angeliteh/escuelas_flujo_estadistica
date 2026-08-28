@@ -1390,6 +1390,8 @@ input, select, button, textarea {
 .detail-title-block { flex: 1; min-width: 0; }
 .detail-meta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .badge-view { background: rgba(16,185,129,0.13); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.28); }
+.badge-active { background: rgba(16,185,129,0.13); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.28); }
+.badge-inactive { background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.28); }
 .detail-student-name {
   font-size: 1rem; font-weight: 800;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

@@ -1,9 +1,20 @@
 // ==============================================================================
-// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V9 (RESPALDOS + HISTORIAL MENSUAL SEGURO)
+// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V10 (IDENTIDAD + CICLO + HISTORIAL SEGURO)
 // ==============================================================================
 
 const HEADER_ROW = 5;
 const TABS = ['1A','1B','2A','2B','3A','3B','4A','4B','5A','5B','6A','6B'];
+const STUDENT_VISIBLE_COLUMNS = 20;
+const STUDENT_META_START_COLUMN = 21;
+const STUDENT_META_HEADERS = [
+  'ALUMNO_ID', 'ESTATUS', 'CICLO_ESCOLAR', 'FECHA_ALTA_SISTEMA',
+  'FECHA_ESTATUS', 'ACTUALIZADO_EN', 'ACTUALIZADO_POR'
+];
+const STUDENT_TOTAL_COLUMNS = STUDENT_VISIBLE_COLUMNS + STUDENT_META_HEADERS.length;
+const STUDENT_IDENTITY_READY_PROPERTY = 'STUDENT_IDENTITY_READY_V1';
+const CURRENT_SCHOOL_CYCLE = '2026-2027';
+const STUDENT_ACTIVE_STATUS = 'ACTIVO';
+const STUDENT_ALLOWED_STATUSES = ['ACTIVO', 'BAJA', 'TRANSFERIDO', 'EGRESADO'];
 // La asistencia se escribe en las hojas mensuales que ya prepara la escuela.
 // El script nunca crea hojas de asistencia automáticamente.
 const ATTENDANCE_SHEET_PREFIX = 'ASISTENCIA (';
@@ -38,9 +49,15 @@ function doPost(e) {
     const params = JSON.parse(e.postData.contents);
     const action = params.action;
     // ALUMNOS
-    if (action === 'getStudents') return respond(getStudents());
+    if (action === 'getStudents') return respond(getStudents(params));
     if (action === 'saveStudent') return respond(saveStudent(params.data));
-    if (action === 'deleteStudent') return respond(deleteStudent(params.grupo, params.id));
+    if (action === 'deleteStudent') return respond(deleteStudent(
+      params.grupo,
+      params.alumnoId || params.id,
+      params.rowId || params.id,
+      params.usuario
+    ));
+    if (action === 'setStudentStatus') return respond(setStudentStatus(params));
     // ASISTENCIA
     if (action === 'getAttendanceConfig') return respond(getAttendanceConfig(params));
     if (action === 'getAttendance') return respond(getAttendance(params));
@@ -59,33 +76,37 @@ function doPost(e) {
 
 function doGet(e) {
   if (e.parameter && e.parameter.action === 'ping') {
-    return respond({ status: 'ok', message: 'API funcionando' });
+    return respond({
+      status: 'ok',
+      version: 'V10',
+      studentIdentityReady: studentIdentityIsReady_(),
+      attendanceHistoryReady: attendanceHistoryIsReady_(),
+      message: 'API funcionando'
+    });
   }
   return respond(getStudents());
 }
 
 // =====================================================
-// ALUMNOS (20 Columnas)
+// ALUMNOS (20 columnas visibles + metadatos ocultos V10)
 // =====================================================
-function getStudents() {
+function getStudents(options) {
+  const includeInactive = Boolean(options && options.includeInactive);
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let allStudents = [];
   TABS.forEach(tabName => {
-    const sheet = ss.getSheetByName(tabName);
-    if (!sheet) return;
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= HEADER_ROW) return;
-    const data = sheet.getRange(HEADER_ROW + 1, 1, lastRow - HEADER_ROW, 20).getValues();
-    for (let i = 0; i < data.length; i++) {
-      const row = data[i];
-      if (!row[4]) continue; // ignorar filas sin nombre
-      allStudents.push(rowToObject(row, i + HEADER_ROW + 1, tabName));
-    }
+    allStudents = allStudents.concat(getStudentsForGroup(tabName, includeInactive));
   });
-  return { success: true, data: allStudents };
+  return {
+    success: true,
+    data: allStudents,
+    version: 'V10',
+    identityReady: studentIdentityIsReady_(),
+    cycle: CURRENT_SCHOOL_CYCLE
+  };
 }
 
-function getStudentsForGroup(group) {
+function getStudentsForGroup(group, includeInactive) {
   const normalizedGroup = String(group || '').trim().toUpperCase();
   if (!TABS.includes(normalizedGroup)) return [];
 
@@ -94,60 +115,194 @@ function getStudentsForGroup(group) {
   const lastRow = sheet.getLastRow();
   if (lastRow <= HEADER_ROW) return [];
 
-  const data = sheet.getRange(HEADER_ROW + 1, 1, lastRow - HEADER_ROW, 20).getValues();
+  const availableColumns = Math.min(STUDENT_TOTAL_COLUMNS, sheet.getMaxColumns());
+  const data = sheet.getRange(HEADER_ROW + 1, 1, lastRow - HEADER_ROW, availableColumns).getValues();
   const students = [];
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
     if (!row[4]) continue;
-    students.push(rowToObject(row, i + HEADER_ROW + 1, normalizedGroup));
+    const student = rowToObject(row, i + HEADER_ROW + 1, normalizedGroup);
+    if (!includeInactive && student.estatus !== STUDENT_ACTIVE_STATUS) continue;
+    students.push(student);
   }
   return students;
 }
 
-function saveStudent(student) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const gradoNum = String(student.grado).charAt(0);
-  const hojaNombre = (student.grupo.length === 1 && gradoNum) ? (gradoNum + student.grupo) : student.grupo;
-  if (!TABS.includes(hojaNombre)) return { success: false, error: 'Grupo no válido: ' + hojaNombre };
-  let sheet = ss.getSheetByName(hojaNombre);
-  if (!sheet) return { success: false, error: 'La hoja no existe: ' + hojaNombre };
+function studentIdentityIsReady_() {
+  return PropertiesService.getScriptProperties().getProperty(STUDENT_IDENTITY_READY_PROPERTY) === 'true';
+}
 
-  if (student.rowId) {
-    const rowData = objectToRow(student, student.rowId - HEADER_ROW);
-    sheet.getRange(student.rowId, 1, 1, rowData.length).setValues([rowData]);
-  } else {
-    const lastRow = sheet.getLastRow();
-    const insertRow = Math.max(lastRow + 1, HEADER_ROW + 1);
-    const rowData = objectToRow(student, insertRow - HEADER_ROW);
-    sheet.getRange(insertRow, 1, 1, rowData.length).setValues([rowData]);
+function generateStudentId_() {
+  return 'ALU-' + Utilities.getUuid().replace(/-/g, '').toUpperCase();
+}
+
+function normalizeStudentStatus_(status) {
+  const normalized = String(status || STUDENT_ACTIVE_STATUS).trim().toUpperCase();
+  return STUDENT_ALLOWED_STATUSES.includes(normalized) ? normalized : STUDENT_ACTIVE_STATUS;
+}
+
+function ensureStudentMetadataColumns_(sheet) {
+  if (sheet.getMaxColumns() < STUDENT_TOTAL_COLUMNS) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), STUDENT_TOTAL_COLUMNS - sheet.getMaxColumns());
   }
-  return { success: true, message: 'Guardado' };
+  const existingHeaders = sheet
+    .getRange(HEADER_ROW, STUDENT_META_START_COLUMN, 1, STUDENT_META_HEADERS.length)
+    .getDisplayValues()[0];
+  const needsSetup = STUDENT_META_HEADERS.some((header, index) => existingHeaders[index] !== header);
+  if (needsSetup) {
+    sheet.getRange(HEADER_ROW, STUDENT_META_START_COLUMN, 1, STUDENT_META_HEADERS.length)
+      .setValues([STUDENT_META_HEADERS]);
+    const statusValidation = SpreadsheetApp.newDataValidation()
+      .requireValueInList(STUDENT_ALLOWED_STATUSES, true)
+      .setAllowInvalid(false)
+      .build();
+    const validationHeight = Math.max(sheet.getMaxRows() - HEADER_ROW, 1);
+    sheet.getRange(HEADER_ROW + 1, STUDENT_META_START_COLUMN + 1, validationHeight, 1)
+      .setDataValidation(statusValidation);
+  }
+  sheet.hideColumns(STUDENT_META_START_COLUMN, STUDENT_META_HEADERS.length);
 }
 
-function deleteStudent(grupo, rowId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(grupo);
-  if (!sheet) return { success: false, error: 'Hoja no encontrada' };
-  if (!rowId || rowId <= HEADER_ROW) return { success: false, error: 'Fila inválida' };
-  sheet.getRange(rowId, 1, 1, 20).clearContent();
-  return { success: true, message: 'Eliminado' };
+function findStudentRowById_(sheet, alumnoId) {
+  const normalizedId = String(alumnoId || '').trim();
+  if (!normalizedId || sheet.getLastRow() <= HEADER_ROW || sheet.getMaxColumns() < STUDENT_META_START_COLUMN) return null;
+  const values = sheet
+    .getRange(HEADER_ROW + 1, STUDENT_META_START_COLUMN, sheet.getLastRow() - HEADER_ROW, 1)
+    .getDisplayValues();
+  const index = values.findIndex(row => String(row[0] || '').trim() === normalizedId);
+  return index >= 0 ? HEADER_ROW + 1 + index : null;
 }
 
-function objectToRow(s, num) {
+function resolveStudentRow_(sheet, alumnoId, rowId) {
+  const normalizedId = String(alumnoId || '').trim();
+  const byId = findStudentRowById_(sheet, normalizedId);
+  if (byId) return byId;
+  // Si ya existe una identidad permanente, nunca caer a una fila posiblemente
+  // obsoleta: es preferible rechazar la operación que modificar a otro alumno.
+  if (normalizedId.indexOf('ALU-') === 0) return null;
+  const numericRow = Number(rowId);
+  if (numericRow > HEADER_ROW && numericRow <= sheet.getLastRow()) return numericRow;
+  return null;
+}
+
+function saveStudent(student) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const gradoNum = String(student.grado || '').charAt(0);
+    const grupo = String(student.grupo || '').trim().toUpperCase();
+    const hojaNombre = String(student.grupoId || ((grupo.length === 1 && gradoNum) ? gradoNum + grupo : grupo)).toUpperCase();
+    if (!TABS.includes(hojaNombre)) return { success: false, error: 'Grupo no válido: ' + hojaNombre };
+    const sheet = ss.getSheetByName(hojaNombre);
+    if (!sheet) return { success: false, error: 'La hoja no existe: ' + hojaNombre };
+    ensureStudentMetadataColumns_(sheet);
+
+    const candidateId = String(student.alumnoId || student.id || '').trim();
+    const requestedId = candidateId.indexOf('ALU-') === 0 ? candidateId : '';
+    let targetRow = resolveStudentRow_(sheet, requestedId, student.rowId);
+    const isNew = !targetRow;
+    if (isNew) targetRow = Math.max(sheet.getLastRow() + 1, HEADER_ROW + 1);
+
+    const existingRow = isNew
+      ? Array(STUDENT_TOTAL_COLUMNS).fill('')
+      : sheet.getRange(targetRow, 1, 1, STUDENT_TOTAL_COLUMNS).getValues()[0];
+    const now = new Date().toISOString();
+    const metadata = {
+      alumnoId: String(existingRow[20] || requestedId || generateStudentId_()),
+      estatus: normalizeStudentStatus_(existingRow[21] || student.estatus),
+      cicloEscolar: String(existingRow[22] || student.cicloEscolar || CURRENT_SCHOOL_CYCLE),
+      fechaAltaSistema: existingRow[23] || now,
+      fechaEstatus: existingRow[24] || now,
+      actualizadoEn: now,
+      actualizadoPor: String(student.actualizadoPor || student.usuario || '')
+    };
+    const rowData = objectToRow(student, targetRow - HEADER_ROW, metadata);
+    sheet.getRange(targetRow, 1, 1, rowData.length).setValues([rowData]);
+    const savedStudent = rowToObject(rowData, targetRow, hojaNombre);
+    return {
+      success: true,
+      message: isNew ? 'Alumno registrado' : 'Alumno actualizado',
+      data: savedStudent
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function deleteStudent(grupo, alumnoId, rowId, usuario) {
+  return setStudentStatus({
+    grupo,
+    alumnoId,
+    rowId,
+    estatus: 'BAJA',
+    usuario
+  });
+}
+
+function setStudentStatus(params) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const group = String(params.grupo || '').trim().toUpperCase();
+    if (!TABS.includes(group)) return { success: false, error: 'Grupo no válido' };
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(group);
+    if (!sheet) return { success: false, error: 'Hoja no encontrada' };
+    ensureStudentMetadataColumns_(sheet);
+    const row = resolveStudentRow_(sheet, params.alumnoId || params.id, params.rowId);
+    if (!row) return { success: false, error: 'Alumno no encontrado' };
+
+    const status = normalizeStudentStatus_(params.estatus);
+    const now = new Date().toISOString();
+    const existingMetadata = sheet
+      .getRange(row, STUDENT_META_START_COLUMN, 1, STUDENT_META_HEADERS.length)
+      .getValues()[0];
+    if (!existingMetadata[0]) existingMetadata[0] = generateStudentId_();
+    existingMetadata[1] = status;
+    existingMetadata[2] = existingMetadata[2] || CURRENT_SCHOOL_CYCLE;
+    existingMetadata[3] = existingMetadata[3] || now;
+    existingMetadata[4] = now;
+    existingMetadata[5] = now;
+    existingMetadata[6] = String(params.usuario || '');
+    sheet.getRange(row, STUDENT_META_START_COLUMN, 1, STUDENT_META_HEADERS.length)
+      .setValues([existingMetadata]);
+    return {
+      success: true,
+      message: status === 'BAJA' ? 'Alumno dado de baja; sus datos se conservaron' : 'Estatus actualizado',
+      alumnoId: String(existingMetadata[0]),
+      estatus: status
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function objectToRow(s, num, metadata) {
+  const meta = metadata || {};
   return [
     num, s.grado, s.grupo, s.folio, s.nombre, s.barreraAprendizaje,
     s.fechaNacimiento, s.curpAlumno, s.genero, s.beca, s.peso, s.estatura,
     s.talla, s.tutor, s.telefono, s.curpTutor, s.correo, s.domicilio,
-    s.nivelEstudio, s.ocupacion
+    s.nivelEstudio, s.ocupacion,
+    meta.alumnoId || s.alumnoId || '',
+    normalizeStudentStatus_(meta.estatus || s.estatus),
+    meta.cicloEscolar || s.cicloEscolar || CURRENT_SCHOOL_CYCLE,
+    meta.fechaAltaSistema || s.fechaAltaSistema || '',
+    meta.fechaEstatus || s.fechaEstatus || '',
+    meta.actualizadoEn || s.actualizadoEn || '',
+    meta.actualizadoPor || s.actualizadoPor || ''
   ];
 }
 
 function rowToObject(row, rowIndex, tabName) {
+  const alumnoId = String(row[20] || '').trim();
   return {
     rowId: rowIndex,
-    id: tabName + '-' + rowIndex,
+    id: alumnoId || tabName + '-' + rowIndex,
+    alumnoId,
+    grupoId: tabName,
     grado: row[1],
-    grupo: row[2] || tabName,
+    grupo: row[2] || tabName.slice(-1),
     folio: row[3],
     nombre: row[4],
     barreraAprendizaje: row[5],
@@ -164,7 +319,13 @@ function rowToObject(row, rowIndex, tabName) {
     correo: row[16],
     domicilio: row[17],
     nivelEstudio: row[18],
-    ocupacion: row[19]
+    ocupacion: row[19],
+    estatus: normalizeStudentStatus_(row[21]),
+    cicloEscolar: String(row[22] || CURRENT_SCHOOL_CYCLE),
+    fechaAltaSistema: formatDateTime_(row[23]),
+    fechaEstatus: formatDateTime_(row[24]),
+    actualizadoEn: formatDateTime_(row[25]),
+    actualizadoPor: String(row[26] || '')
   };
 }
 
@@ -376,7 +537,8 @@ function getAttendanceGroupStudents(group) {
   const seen = {};
   return students.filter(student => {
     const id = String(student.id || '');
-    const belongsToGroup = id.indexOf(`${group}-`) === 0 || normalizeAttendanceText(student.grupo) === group;
+    const belongsToGroup = String(student.grupoId || '').toUpperCase() === group ||
+      id.indexOf(`${group}-`) === 0;
     if (!belongsToGroup || !id || seen[id]) return false;
     seen[id] = true;
     return true;
@@ -988,6 +1150,167 @@ function getAttendanceHistoryStatus() {
 }
 
 // =====================================================
+// IDENTIDAD PERMANENTE DE ALUMNOS V10
+// =====================================================
+// Ejecutar UNA VEZ antes de publicar la implementación V10. Es idempotente.
+// Añade metadatos ocultos después de las 20 columnas oficiales, asigna un ID
+// permanente a cada alumno activo y actualiza los IDs históricos de asistencia.
+function setupStudentIdentityV10() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    if (studentIdentityIsReady_()) return getStudentIdentityStatus();
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const now = new Date().toISOString();
+    const legacyIdMap = {};
+    const nameIdMap = {};
+    let migratedStudents = 0;
+
+    TABS.forEach(group => {
+      const sheet = spreadsheet.getSheetByName(group);
+      if (!sheet) return;
+      ensureStudentMetadataColumns_(sheet);
+      const lastRow = sheet.getLastRow();
+      if (lastRow <= HEADER_ROW) return;
+
+      const height = lastRow - HEADER_ROW;
+      const visibleRows = sheet
+        .getRange(HEADER_ROW + 1, 1, height, STUDENT_VISIBLE_COLUMNS)
+        .getValues();
+      const metadataRows = sheet
+        .getRange(HEADER_ROW + 1, STUDENT_META_START_COLUMN, height, STUDENT_META_HEADERS.length)
+        .getValues();
+
+      visibleRows.forEach((row, index) => {
+        if (!row[4]) return;
+        const sheetRow = HEADER_ROW + 1 + index;
+        const metadata = metadataRows[index];
+        const alumnoId = String(metadata[0] || generateStudentId_());
+        if (!metadata[0]) migratedStudents++;
+        metadata[0] = alumnoId;
+        metadata[1] = normalizeStudentStatus_(metadata[1]);
+        metadata[2] = metadata[2] || CURRENT_SCHOOL_CYCLE;
+        metadata[3] = metadata[3] || now;
+        metadata[4] = metadata[4] || now;
+        metadata[5] = metadata[5] || now;
+        metadata[6] = metadata[6] || 'MIGRACION_V10';
+
+        legacyIdMap[`${group}-${sheetRow}`] = alumnoId;
+        const nameKey = `${group}|${normalizeAttendanceText(row[4])}`;
+        if (nameIdMap[nameKey] && nameIdMap[nameKey] !== alumnoId) {
+          nameIdMap[nameKey] = null;
+        } else if (nameIdMap[nameKey] !== null) {
+          nameIdMap[nameKey] = alumnoId;
+        }
+      });
+
+      sheet
+        .getRange(HEADER_ROW + 1, STUDENT_META_START_COLUMN, height, STUDENT_META_HEADERS.length)
+        .setValues(metadataRows);
+    });
+
+    const migratedAttendanceRecords = migrateAttendanceStudentIdsV10_(legacyIdMap, nameIdMap);
+    PropertiesService.getScriptProperties().setProperty(STUDENT_IDENTITY_READY_PROPERTY, 'true');
+    const result = {
+      success: true,
+      ready: true,
+      version: 'V10',
+      cycle: CURRENT_SCHOOL_CYCLE,
+      migratedStudents,
+      migratedAttendanceRecords,
+      message: 'Identidad permanente V10 instalada'
+    };
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function migrateAttendanceStudentIdsV10_(legacyIdMap, nameIdMap) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let changed = 0;
+  spreadsheet.getSheets()
+    .filter(sheet => sheet.getName().indexOf(ATTENDANCE_HISTORY_PREFIX) === 0)
+    .forEach(sheet => {
+      if (sheet.getLastRow() <= 1) return;
+      const height = sheet.getLastRow() - 1;
+      const rows = sheet
+        .getRange(2, 1, height, ATTENDANCE_HISTORY_HEADERS.length)
+        .getValues();
+      let sheetChanged = false;
+      rows.forEach(row => {
+        const group = String(row[2] || '').trim().toUpperCase();
+        const currentId = String(row[3] || '').trim();
+        if (!TABS.includes(group) || currentId.indexOf('ALU-') === 0) return;
+        const nameKey = `${group}|${normalizeAttendanceText(row[4])}`;
+        const nextId = legacyIdMap[currentId] || nameIdMap[nameKey];
+        if (!nextId) return;
+        row[3] = nextId;
+        row[0] = [group, formatDate(row[1]), nextId].join('|');
+        row[9] = String(row[9] || 'migration-v10');
+        changed++;
+        sheetChanged = true;
+      });
+      if (sheetChanged) {
+        sheet.getRange(2, 1, height, ATTENDANCE_HISTORY_HEADERS.length).setValues(rows);
+      }
+    });
+  return changed;
+}
+
+function getStudentIdentityStatus() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let totalStudents = 0;
+  let permanentIds = 0;
+  let inactiveStudents = 0;
+  const seenIds = {};
+  const duplicateIds = [];
+  const groups = {};
+  TABS.forEach(group => {
+    const sheet = spreadsheet.getSheetByName(group);
+    if (!sheet || sheet.getLastRow() <= HEADER_ROW) {
+      groups[group] = { students: 0, permanentIds: 0, inactive: 0 };
+      return;
+    }
+    const height = sheet.getLastRow() - HEADER_ROW;
+    const names = sheet.getRange(HEADER_ROW + 1, 5, height, 1).getDisplayValues();
+    const metadata = sheet.getMaxColumns() >= STUDENT_TOTAL_COLUMNS
+      ? sheet.getRange(HEADER_ROW + 1, STUDENT_META_START_COLUMN, height, 2).getDisplayValues()
+      : Array(height).fill(['', '']);
+    const summary = { students: 0, permanentIds: 0, inactive: 0 };
+    names.forEach((row, index) => {
+      if (!row[0]) return;
+      summary.students++;
+      const alumnoId = String(metadata[index][0] || '').trim();
+      if (alumnoId.indexOf('ALU-') === 0) {
+        summary.permanentIds++;
+        if (seenIds[alumnoId] && duplicateIds.indexOf(alumnoId) === -1) duplicateIds.push(alumnoId);
+        seenIds[alumnoId] = true;
+      }
+      if (normalizeStudentStatus_(metadata[index][1]) !== STUDENT_ACTIVE_STATUS) summary.inactive++;
+    });
+    groups[group] = summary;
+    totalStudents += summary.students;
+    permanentIds += summary.permanentIds;
+    inactiveStudents += summary.inactive;
+  });
+  const result = {
+    success: true,
+    ready: studentIdentityIsReady_(),
+    version: 'V10',
+    cycle: CURRENT_SCHOOL_CYCLE,
+    totalStudents,
+    permanentIds,
+    inactiveStudents,
+    duplicateIds,
+    groups
+  };
+  console.log(JSON.stringify(result, null, 2));
+  return result;
+}
+
+// =====================================================
 // RESPALDOS COMPLETOS EN DRIVE
 // =====================================================
 // Ejecutar setupBackups() UNA SOLA VEZ desde el editor de Apps Script con la
@@ -1154,6 +1477,13 @@ function formatDate(dateObj) {
     const d = new Date(dateObj);
     return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-');
   } catch (e) { return ''; }
+}
+
+function formatDateTime_(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  try { return new Date(value).toISOString(); }
+  catch (error) { return String(value || ''); }
 }
 
 function respond(data) {

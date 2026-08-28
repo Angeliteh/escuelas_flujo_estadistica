@@ -16,7 +16,7 @@
 - [x] **Modal central unificado** — agregar, editar y ver datos de alumno con mayor espacio horizontal
 - [x] Los alumnos existentes abren primero como **ficha de lectura**; la edición se habilita con una acción explícita
 - [x] Impresión individual en formato A4 con información escolar, datos del alumno, tutor, contacto y espacio para fotografía
-- [x] Eliminación con modal de confirmación
+- [x] Eliminación con modal de confirmación en V9; V10 preparada para convertirla en baja lógica
 - [x] Todo lo que se escribe se convierte a MAYÚSCULAS automáticamente
 - [x] Imprimir padrón del grupo con los datos completos
 - [x] Pestaña **Asistencia** con captura diaria del grupo asignado
@@ -69,7 +69,8 @@
 
 ### Acceso para pruebas
 - [x] Sitio publicado en Vercel: `https://asistpanel.vercel.app/`
-- [x] Frontend V9 verificado en producción desde el commit `d28d840`.
+- [x] Frontend con fichas y modal de grupos verificado en producción desde el commit `cb86bff`.
+- [ ] Instalar y publicar V10 para activar identidad permanente, estado y ciclo escolar.
 
 | Opción | Esfuerzo | Acceso |
 |--------|---------|--------|
@@ -99,7 +100,7 @@
 | Personal en blanco si la columna Nombre está vacía | La hoja oficial tiene funciones precargadas pero nombres pendientes | Capturar nombres en la columna B o ajustar la política de filas del Apps Script |
 | Restauración todavía no ensayada | Las copias existen, pero falta demostrar su recuperación | Abrir o duplicar un respaldo de forma aislada, sin reemplazar el Sheet oficial |
 | Matrices visibles regenerables | Una edición manual directa puede ser reemplazada por el historial técnico | Corregir asistencia desde el panel y mantener la matriz como reporte |
-| Identidad basada parcialmente en fila | Reordenar filas puede romper referencias históricas | Crear un `alumnoId` permanente antes de migrar |
+| V10 todavía no instalada | Producción sigue identificando parcialmente por fila | Ejecutar la migración documentada y verificar sus contadores |
 | Datos escolares todavía concentrados en un Sheet | Limita historial, concurrencia, permisos y reportes complejos | Migrar gradualmente a una base de datos real |
 
 ---
@@ -131,6 +132,18 @@
 - [x] `setupBackups()` ejecutado correctamente con la cuenta propietaria el 28 de agosto de 2026.
 - [x] Snapshot `INICIAL` creado y activador `runNightlyBackup` programado alrededor de las 02:00.
 - [ ] Hacer después una prueba no destructiva abriendo o duplicando un respaldo; nunca reemplazar el Sheet principal durante la prueba.
+
+---
+
+## Próximo paso preparado: identidad V10
+
+- [x] Código V10 local conserva respaldos e historial mensual V9.
+- [x] Migración no destructiva diseñada para mantener intactas las columnas visibles `A:T`.
+- [x] Frontend preparado para preferir `alumnoId` y seguir siendo compatible con V9.
+- [ ] Ejecutar `setupStudentIdentityV10` en el Sheet oficial.
+- [ ] Verificar `getStudentIdentityStatus` y publicar V10 conservando la URL.
+- [x] El frontend cambia automáticamente “Eliminar” por “Dar de baja” cuando detecta V10 lista.
+- [ ] Agregar la consulta y reactivación de alumnos inactivos después de confirmar V10.
 
 ---
 

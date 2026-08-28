@@ -84,7 +84,7 @@ Abrir el HTML directamente sigue siendo útil para revisar la interfaz, pero no 
 
 **Estado actual:** El panel incluye captura diaria por grupo con dos marcas: ✓ Asistió y X No asistió. También tiene vista mensual, impresión y almacenamiento local temporal.
 
-**Estado publicado:** V8 reportado por el propietario, conservando el comportamiento V7 de asistencia. La asistencia se escribe en la hoja mensual existente del grupo (`ASISTENCIA (1A)`, `ASISTENCIA (2B)`, etc.) y el historial se obtiene en una sola consulta. V9 local ya separa el historial en una hoja técnica oculta por mes, pero aún requiere instalación y prueba en el Sheet real.
+**Estado publicado:** V9 usa una hoja técnica oculta por mes, conserva las matrices visibles por grupo como reportes y ya fue instalada y verificada en el Sheet real.
 
 ### Vista de impresión del maestro
 **Estado:** Resuelto en el panel. El maestro puede imprimir padrón, lista diaria e historial mensual sin abrir Sheets ni crear copias de Excel.
@@ -93,9 +93,9 @@ Abrir el HTML directamente sigue siendo útil para revisar la interfaz, pero no 
 
 ## Respaldo y evolución de datos
 
-Google Sheets funciona como fuente operativa para el tamaño actual, pero no debe ser el único respaldo. V8 fue actualizado por el propietario y contiene una copia completa inicial, respaldo automático nocturno y retención de 30 snapshots; todavía falta verificar que `setupBackups()` se ejecutó, que existe el snapshot inicial y que una restauración funciona. V9 local conserva estas funciones. Ver [09_respaldos_y_restauracion.md](./09_respaldos_y_restauracion.md).
+Google Sheets funciona como fuente operativa para el tamaño actual, pero no debe ser el único respaldo. V9 tiene una copia completa inicial, respaldo automático nocturno y retención de 30 snapshots. La restauración no se probará sobre el archivo oficial; queda pendiente abrir o duplicar una copia de forma aislada. V10 conserva estas funciones. Ver [09_respaldos_y_restauracion.md](./09_respaldos_y_restauracion.md).
 
-Antes de construir validaciones entre filas o tablas, conviene agregar un identificador estable por alumno. El `rowId` actual representa la fila física de la hoja y puede cambiar si se reorganizan filas; no debe usarse como identidad histórica. También serán útiles `fechaCreacion`, `fechaActualizacion`, `actualizadoPor` y `estatus`.
+V10 ya está preparada localmente para agregar `alumnoId`, `estatus`, `cicloEscolar`, fechas de alta/actualización y usuario responsable sin modificar las 20 columnas visibles. Falta instalarla y verificarla en el Sheet oficial. Ver [10_identidad_alumnos_v10.md](./10_identidad_alumnos_v10.md).
 
 Una base de datos como PostgreSQL/Neon o Supabase será recomendable cuando se necesite historial de cambios, permisos reales por usuario, concurrencia, auditoría o integraciones. No es necesario migrar antes de validar el flujo escolar actual; primero conviene estabilizar el modelo y automatizar respaldos.
 

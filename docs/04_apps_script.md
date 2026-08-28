@@ -17,11 +17,20 @@ https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgk
 
 > **IMPORTANTE:** Si eliminas y recreas la implementación, esta URL cambia. Debes actualizar `API_URL` en `app.js`.
 
+## Versión vigente y siguiente instalación
+
+- **Producción:** V9, con respaldos e historial mensual técnico funcionando.
+- **Preparada localmente:** V10, que conserva V9 y añade identidad permanente, estado y ciclo escolar.
+- **Código que debe copiarse en la próxima instalación:** [AppsScript_V10.gs](../AppsScript_V10.gs).
+- **Procedimiento exacto:** [10_identidad_alumnos_v10.md](./10_identidad_alumnos_v10.md).
+
+No se debe considerar V10 activa hasta ejecutar su migración, publicar una nueva versión de la implementación y verificar el `ping`.
+
 ---
 
-## Código completo (V9 local — respaldos + historial mensual seguro)
+## Código completo archivado de V9
 
-Para copiarlo al editor sin incluir accidentalmente texto Markdown, usa directamente [AppsScript_V9.gs](../AppsScript_V9.gs). Ese archivo contiene únicamente el código y se verifica que sea idéntico al bloque siguiente.
+El bloque siguiente conserva la referencia de V9 que está publicada. Para la próxima actualización no copies este bloque: utiliza el archivo V10 indicado arriba.
 
 ```javascript
 // ==============================================================================
