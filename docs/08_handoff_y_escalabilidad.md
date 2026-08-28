@@ -70,7 +70,7 @@ La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`,
 - Los campos del alumno son opcionales para permitir captura progresiva.
 - Folio integrado en formulario, tablas, guardado e impresión.
 - Filtros, búsqueda, estadísticas e impresión de padrón.
-- Ficha individual en modo lectura al abrir un alumno, con botón separado para editar.
+- Ficha individual en un modal central amplio, inicialmente en modo lectura y con botón separado para editar.
 - Impresión individual A4 con los datos existentes y un espacio reservado para fotografía física.
 - Los cambios del panel se escriben en la hoja maestra mediante Apps Script.
 
@@ -93,7 +93,7 @@ La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`,
 
 - Dashboard general.
 - Pestaña Grupos con tarjetas para 1A a 6B.
-- Cada tarjeta abre un resumen del grupo con docente, estadísticas, alumnado y acceso a la asistencia mensual ya filtrada.
+- Cada tarjeta abre un modal con pestañas internas de resumen, alumnos y asistencia mensual, sin sacar a dirección de la vista Grupos.
 - El maestro reutiliza el mismo concepto de resumen como pantalla inicial de su grupo.
 - Consulta global de alumnos.
 - Consulta mensual de asistencia por grupo en modo solo lectura.

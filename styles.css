@@ -1066,6 +1066,19 @@ input, select, button, textarea {
 .group-detail-nav-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
 .group-detail-nav-btn.active { color: #fff; background: var(--accent); }
 
+.director-group-modal { max-width: 1180px; height: min(860px, 92vh); }
+.director-group-modal-header { padding: 16px 20px; }
+.group-modal-identity { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.group-modal-identity .group-home-badge { width: 56px; height: 56px; border-radius: 14px; font-size: 1.12rem; }
+.group-modal-header-actions { display: flex; align-items: center; gap: 12px; }
+.group-modal-nav { width: 100%; margin: 0; padding: 8px 20px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: var(--bg2); }
+.director-group-modal-body { padding: 20px; }
+.group-modal-table-container { max-height: 52vh; overflow: auto; }
+.group-modal-attendance-table-container { max-height: 56vh; }
+.group-attendance-toolbar { margin-bottom: 10px; }
+.group-month-control { display: flex; align-items: center; gap: 8px; color: var(--text2); font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.group-month-control input { color-scheme: dark; }
+
 .group-progress { }
 .progress-bar {
   height: 6px;
@@ -1341,19 +1354,22 @@ input, select, button, textarea {
   position: fixed; inset: 0; z-index: 300;
   background: rgba(7,11,20,0.7);
   backdrop-filter: blur(4px);
-  display: flex; justify-content: flex-end;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
 }
 .detail-drawer {
-  width: 460px; max-width: 96vw;
+  width: min(980px, 96vw);
   background: var(--surface);
-  border-left: 1px solid var(--border2);
-  height: 100%;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  max-height: 92vh;
   display: flex; flex-direction: column;
-  box-shadow: -8px 0 40px rgba(0,0,0,0.5);
-  transform: translateX(100%);
-  transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+  box-shadow: var(--shadow-lg);
+  transform: scale(0.96) translateY(14px);
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(.4,0,.2,1), opacity 0.2s ease;
 }
-.drawer-open { transform: translateX(0) !important; }
+.drawer-open { transform: scale(1) translateY(0) !important; opacity: 1; }
 
 .detail-header {
   display: flex; align-items: center; gap: 16px;
@@ -1391,7 +1407,7 @@ input, select, button, textarea {
 
 .detail-body {
   flex: 1; overflow-y: auto;
-  padding: 20px;
+  padding: 22px 24px;
   display: flex; flex-direction: column; gap: 0;
 }
 .detail-section {
@@ -1428,6 +1444,7 @@ input, select, button, textarea {
 }
 .readonly-mode .form-group {
   margin-bottom: 0;
+  position: relative;
 }
 .readonly-mode .form-grid {
   row-gap: 8px;
@@ -1437,6 +1454,14 @@ input, select, button, textarea {
 }
 .readonly-mode input::placeholder {
   color: transparent;
+}
+.readonly-mode .empty-readonly { visibility: hidden; }
+.readonly-mode .form-group:has(.empty-readonly)::after {
+  content: '—';
+  display: block;
+  min-height: 22px;
+  color: var(--text3);
+  font-weight: 600;
 }
 
 .detail-footer {
@@ -1493,6 +1518,16 @@ input, select, button, textarea {
   .groups-page-header, .group-home-hero { align-items: flex-start; flex-direction: column; }
   .group-summary-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .group-home-actions-compact { grid-template-columns: 1fr; }
+  .director-group-modal { height: 96vh; max-height: 96vh; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .director-group-modal-header { align-items: flex-start; }
+  .group-modal-header-actions .group-cycle-badge { display: none; }
+  .group-modal-nav { padding-left: 12px; padding-right: 12px; }
+  .director-group-modal-body { padding: 14px; }
+  .detail-overlay { padding: 0; align-items: flex-end; }
+  .detail-drawer { width: 100%; max-width: none; max-height: 96vh; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .detail-header { padding: 18px 16px; }
+  .detail-body { padding: 18px 16px; }
+  .detail-footer { flex-wrap: wrap; padding: 12px 16px; }
 }
 
 @media (max-width: 480px) {

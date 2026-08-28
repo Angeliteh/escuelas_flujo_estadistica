@@ -13,7 +13,7 @@
 - [x] Vista del grupo con estadísticas (total, H, M, becas)
 - [x] Tabla de alumnos (solo los de su grupo)
 - [x] Buscador por nombre/CURP
-- [x] **Panel lateral unificado** — agregar, editar y ver datos de alumno (mismo componente)
+- [x] **Modal central unificado** — agregar, editar y ver datos de alumno con mayor espacio horizontal
 - [x] Los alumnos existentes abren primero como **ficha de lectura**; la edición se habilita con una acción explícita
 - [x] Impresión individual en formato A4 con información escolar, datos del alumno, tutor, contacto y espacio para fotografía
 - [x] Eliminación con modal de confirmación
@@ -29,7 +29,9 @@
 - [x] Login con usuario/contraseña de directora
 - [x] Dashboard con 4 métricas clave y 4 gráficas (Chart.js)
 - [x] **Pestaña "Grupos"** con tarjetas para 1A a 6B, docente asignado y estadísticas por grupo
-- [x] Detalle de grupo con resumen, lista corta de alumnos, apertura de ficha y acceso a asistencia mensual filtrada
+- [x] Cada tarjeta abre un modal de grupo con pestañas **Resumen**, **Alumnos** y **Asistencia mensual**
+- [x] La asistencia mensual se consulta dentro del modal sin abandonar la pestaña Grupos
+- [x] Estadísticas compatibles con variantes existentes del Sheet (`H`, `M`, hombre, mujer, SI y nombres de beca)
 - [x] **Pestaña "Todos los Alumnos"** con las 20 columnas completas (como la hoja oficial)
 - [x] **Filtros rápidos tipo píldora** para Grado (1° al 6°) y Grupo (A / B)
 - [x] Filtros adicionales por Género y Beca (dropdown)
@@ -136,8 +138,9 @@
 
 | Decisión | Por qué |
 |----------|---------|
-| Panel lateral unificado (eliminar modal flotante) | Redundancia: el modal central y el drawer hacían lo mismo |
+| Modal central para la ficha del alumno | Los datos completos necesitan más ancho y una jerarquía de lectura más clara que el antiguo panel lateral |
 | Pestaña "Grupos" como navegación, no como otro filtro | Las tarjetas dan contexto y abren un mini panel del grupo; "Todos los Alumnos" conserva los filtros para búsquedas globales |
+| Modal con pestañas para cada grupo | Mantiene a dirección dentro de Grupos y reúne resumen, alumnos y asistencia sin duplicar pantallas completas |
 | Ficha individual basada en los campos actuales | Entrega lectura e impresión inmediata sin duplicar registros ni cambiar todavía la estructura del Sheet |
 | Filtros tipo píldora en lugar de dropdowns | Más rápido, visual y moderno — 1 clic vs. expandir menú |
 | Tabla de 20 columnas en la directora | La directora necesita ver TODOS los datos, no un resumen |

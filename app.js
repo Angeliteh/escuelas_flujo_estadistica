@@ -197,14 +197,30 @@ function getTeacherByGroup(group) {
   return Object.values(USERS).find(user => user.role === 'teacher' && user.group === group) || null;
 }
 
+function normalizeDataToken(value) {
+  return String(value || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function getGenderCategory(value) {
+  const token = normalizeDataToken(value);
+  if (['h', 'hombre', 'masculino'].includes(token)) return 'male';
+  if (['m', 'mujer', 'femenino'].includes(token)) return 'female';
+  return 'other';
+}
+
+function hasScholarship(value) {
+  const token = normalizeDataToken(value);
+  return Boolean(token) && !['no', 'ninguna', 'ninguno', 'sin beca', 'no aplica'].includes(token);
+}
+
 function getGroupStats(group) {
   const students = getStudentsByGroup(group);
   return {
     students,
     total: students.length,
-    male: students.filter(student => student.genero === 'Masculino').length,
-    female: students.filter(student => student.genero === 'Femenino').length,
-    scholarship: students.filter(student => student.beca === 'Sí').length,
+    male: students.filter(student => getGenderCategory(student.genero) === 'male').length,
+    female: students.filter(student => getGenderCategory(student.genero) === 'female').length,
+    scholarship: students.filter(student => hasScholarship(student.beca)).length,
   };
 }
 
@@ -225,20 +241,20 @@ function refreshStudentViews() {
 }
 
 function genderBadge(gender) {
-  if (gender === 'Masculino') {
+  if (getGenderCategory(gender) === 'male') {
     return '<span class="badge badge-male"><i class="fa-solid fa-mars"></i> Masc.</span>';
   }
-  if (gender === 'Femenino') {
+  if (getGenderCategory(gender) === 'female') {
     return '<span class="badge badge-female"><i class="fa-solid fa-venus"></i> Fem.</span>';
   }
   return '<span class="badge">—</span>';
 }
 
 function scholarshipBadge(scholarship) {
-  if (scholarship === 'Sí') {
-    return '<span class="badge badge-beca">✓ Sí</span>';
+  if (hasScholarship(scholarship)) {
+    return `<span class="badge badge-beca" title="${escHtml(scholarship)}">✓ Sí</span>`;
   }
-  if (scholarship === 'No') {
+  if (normalizeDataToken(scholarship)) {
     return '<span class="badge badge-no-beca">✗ No</span>';
   }
   return '<span class="badge">—</span>';
@@ -892,7 +908,7 @@ function closeAttendanceDayModal(event) {
   if (!overlay) return;
   if (event && event.target !== overlay) return;
   overlay.classList.add('hidden');
-  document.body.style.overflow = '';
+  document.body.style.overflow = selectedDirectorGroup ? 'hidden' : '';
 }
 
 function openAttendanceDayModal(group, date) {
@@ -1350,9 +1366,9 @@ function renderTeacherTable(filterText = '') {
     : all;
 
   // Stats (always from all, not filtered)
-  const h    = all.filter(s => s.genero === 'Masculino').length;
-  const m    = all.filter(s => s.genero === 'Femenino').length;
-  const beca = all.filter(s => s.beca === 'Sí').length;
+  const h    = all.filter(s => getGenderCategory(s.genero) === 'male').length;
+  const m    = all.filter(s => getGenderCategory(s.genero) === 'female').length;
+  const beca = all.filter(s => hasScholarship(s.beca)).length;
 
   document.getElementById('t-stat-total').textContent = all.length;
   document.getElementById('t-stat-h').textContent     = h;
@@ -1421,8 +1437,8 @@ function renderDirectorTable() {
     return ms &&
       (!grado  || s.grado  === grado)  &&
       matchGrupo &&
-      (!genero || s.genero === genero) &&
-      (!beca   || s.beca   === beca);
+      (!genero || getGenderCategory(s.genero) === getGenderCategory(genero)) &&
+      (!beca || (beca === 'Sí' ? hasScholarship(s.beca) : !hasScholarship(s.beca)));
   });
 
   document.getElementById('director-count').textContent =
@@ -1695,6 +1711,15 @@ function printDirectorAttendanceMonth() {
   if (!currentUser || currentUser.role !== 'director') return;
   const group = getDirectorAttendanceGroup();
   const month = getDirectorAttendanceMonth();
+  printDirectorAttendanceReport(group, month);
+}
+
+function printDirectorGroupAttendanceMonth() {
+  if (!currentUser || currentUser.role !== 'director' || !selectedDirectorGroup) return;
+  printDirectorAttendanceReport(selectedDirectorGroup, getDirectorGroupAttendanceMonth());
+}
+
+function printDirectorAttendanceReport(group, month) {
   const students = getStudentsByGroup(group);
   const days = getAttendanceWorkdays(month);
   const printContainer = document.getElementById('print-view');
@@ -1733,6 +1758,7 @@ function printDirectorAttendanceMonth() {
 // =====================================================
 
 let selectedDirectorGroup = null;
+let directorGroupAttendanceLoadedMonth = null;
 
 function renderDirectorGroupCards() {
   const grid = document.getElementById('director-groups-grid');
@@ -1765,19 +1791,24 @@ function renderDirectorGroupCards() {
 function openDirectorGroup(group) {
   if (!GROUPS_LIST.includes(group)) return;
   selectedDirectorGroup = group;
-  document.getElementById('director-groups-list-view')?.classList.add('hidden');
-  document.getElementById('director-group-detail-view')?.classList.remove('hidden');
   const search = document.getElementById('director-group-search');
   if (search) search.value = '';
+  const monthInput = document.getElementById('director-group-attendance-month');
+  if (monthInput) monthInput.value = localMonthString();
+  directorGroupAttendanceLoadedMonth = null;
   renderDirectorGroupDetail();
   switchDirectorGroupSection('summary');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.getElementById('director-group-overlay')?.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
 }
 
-function closeDirectorGroup() {
+function closeDirectorGroup(event) {
+  const overlay = document.getElementById('director-group-overlay');
+  if (event && event.target !== overlay) return;
+  overlay?.classList.add('hidden');
   selectedDirectorGroup = null;
-  document.getElementById('director-group-detail-view')?.classList.add('hidden');
-  document.getElementById('director-groups-list-view')?.classList.remove('hidden');
+  directorGroupAttendanceLoadedMonth = null;
+  document.body.style.overflow = '';
   renderDirectorGroupCards();
 }
 
@@ -1799,11 +1830,22 @@ function renderDirectorGroupDetail() {
 function switchDirectorGroupSection(section) {
   if (!selectedDirectorGroup) return;
   const isSummary = section === 'summary';
+  const isStudents = section === 'students';
+  const isAttendance = section === 'attendance';
   document.getElementById('director-group-summary-panel')?.classList.toggle('hidden', !isSummary);
-  document.getElementById('director-group-students-panel')?.classList.toggle('hidden', isSummary);
+  document.getElementById('director-group-students-panel')?.classList.toggle('hidden', !isStudents);
+  document.getElementById('director-group-attendance-panel')?.classList.toggle('hidden', !isAttendance);
   document.getElementById('director-group-tab-summary')?.classList.toggle('active', isSummary);
-  document.getElementById('director-group-tab-students')?.classList.toggle('active', !isSummary);
-  if (!isSummary) renderDirectorGroupStudents();
+  document.getElementById('director-group-tab-students')?.classList.toggle('active', isStudents);
+  document.getElementById('director-group-tab-attendance')?.classList.toggle('active', isAttendance);
+  if (isStudents) renderDirectorGroupStudents();
+  if (isAttendance) {
+    renderDirectorGroupAttendanceTable();
+    const month = getDirectorGroupAttendanceMonth();
+    if (directorGroupAttendanceLoadedMonth !== `${selectedDirectorGroup}|${month}`) {
+      fetchDirectorGroupAttendanceMonth();
+    }
+  }
 }
 
 function renderDirectorGroupStudents() {
@@ -1839,6 +1881,131 @@ function renderDirectorGroupStudents() {
   `).join('');
 }
 
+function getDirectorGroupAttendanceMonth() {
+  return document.getElementById('director-group-attendance-month')?.value || localMonthString();
+}
+
+function updateDirectorGroupAttendanceSummary(students, days) {
+  const group = selectedDirectorGroup;
+  const visibleDays = days.filter(day => day.date <= localDateString());
+  const records = students.flatMap(student => visibleDays.map(day =>
+    getAttendanceRecord(group, day.date, getAttendanceStudentId(student))
+  ));
+  const count = status => records.filter(record => record.status === status).length;
+  const pending = records.filter(record => !record.status).length;
+  const summary = document.getElementById('director-group-attendance-summary');
+  if (!summary) return;
+  summary.innerHTML = `
+    <span class="attendance-summary-item summary-total"><strong>${students.length}</strong> alumnos</span>
+    <span class="attendance-summary-item"><strong>${days.length}</strong> días hábiles</span>
+    <span class="attendance-summary-item summary-pending"><strong>${pending}</strong> pendientes</span>
+    <span class="attendance-summary-item summary-present"><strong>${count('present')}</strong> asistieron</span>
+    <span class="attendance-summary-item summary-absent"><strong>${count('absent')}</strong> no asistieron</span>
+  `;
+}
+
+function updateDirectorGroupAttendanceStatus(message = '') {
+  const status = document.getElementById('director-group-attendance-status');
+  if (!status || !selectedDirectorGroup) return;
+  const month = getDirectorGroupAttendanceMonth();
+  status.className = 'attendance-sync-status is-synced';
+  status.innerHTML = message || `<i class="fa-solid fa-cloud-check"></i> Historial consultado: ${escHtml(formatMonthLabel(month))}.`;
+}
+
+function renderDirectorGroupAttendanceTable() {
+  if (!currentUser || currentUser.role !== 'director' || !selectedDirectorGroup) return;
+  const group = selectedDirectorGroup;
+  const month = getDirectorGroupAttendanceMonth();
+  const students = getStudentsByGroup(group);
+  const days = getAttendanceWorkdays(month);
+  const table = document.getElementById('director-group-attendance-table');
+  const head = document.getElementById('director-group-attendance-head');
+  const tbody = document.getElementById('director-group-attendance-tbody');
+  const empty = document.getElementById('director-group-attendance-empty');
+  if (!table || !head || !tbody || !empty) return;
+
+  updateDirectorGroupAttendanceSummary(students, days);
+  if (!students.length) {
+    table.style.display = 'none';
+    empty.classList.remove('hidden');
+    updateDirectorGroupAttendanceStatus();
+    return;
+  }
+
+  table.style.display = '';
+  empty.classList.add('hidden');
+  head.innerHTML = `
+    <tr>
+      <th>#</th><th>Nombre del Alumno</th>
+      ${days.map(day => `<th class="attendance-month-day-head"><span>${day.weekday}</span><small>${day.number}</small></th>`).join('')}
+    </tr>
+  `;
+  const today = localDateString();
+  tbody.innerHTML = students.map((student, index) => {
+    const studentId = getAttendanceStudentId(student);
+    return `
+      <tr>
+        <td class="td-number">${index + 1}</td>
+        <td class="td-name attendance-month-name">${escHtml(student.nombre) || 'Alumno sin nombre'}</td>
+        ${days.map(day => {
+          const isFuture = day.date > today;
+          const record = isFuture ? null : getAttendanceRecord(group, day.date, studentId);
+          const status = record && ATTENDANCE_STATUS_META[record.status];
+          const cell = isFuture
+            ? `<span class="attendance-month-cell attendance-month-empty-cell attendance-month-future-cell" title="Aún no disponible">—</span>`
+            : `<button type="button" class="attendance-month-cell ${status ? status.className : 'attendance-month-empty-cell'}"
+                onclick='openAttendanceDayModal(${JSON.stringify(group)}, ${JSON.stringify(day.date)})'
+                title="${escHtml(`${formatLongDate(day.date)}: ${status ? status.label : 'Pendiente'}`)}">
+                ${status ? status.short : '—'}
+              </button>`;
+          return `<td class="attendance-month-cell-wrap">${cell}</td>`;
+        }).join('')}
+      </tr>
+    `;
+  }).join('');
+  updateDirectorGroupAttendanceStatus();
+}
+
+function changeDirectorGroupAttendanceMonth() {
+  const monthInput = document.getElementById('director-group-attendance-month');
+  if (!monthInput || !selectedDirectorGroup) return;
+  if (monthInput.value > localMonthString()) {
+    monthInput.value = localMonthString();
+    showToast('No se pueden consultar meses futuros', 'info');
+  }
+  directorGroupAttendanceLoadedMonth = null;
+  renderDirectorGroupAttendanceTable();
+  fetchDirectorGroupAttendanceMonth();
+}
+
+async function fetchDirectorGroupAttendanceMonth() {
+  if (!currentUser || currentUser.role !== 'director' || !selectedDirectorGroup) return;
+  const group = selectedDirectorGroup;
+  const month = getDirectorGroupAttendanceMonth();
+  const requestKey = `${group}|${month}`;
+  directorGroupAttendanceLoadedMonth = requestKey;
+  updateDirectorGroupAttendanceStatus('<i class="fa-solid fa-spinner fa-spin"></i> Consultando el historial mensual...');
+
+  if (navigator.onLine === false) {
+    renderDirectorGroupAttendanceTable();
+    updateDirectorGroupAttendanceStatus('<i class="fa-solid fa-mobile-screen-button"></i> Sin conexión: se muestran los registros disponibles en este dispositivo.');
+    return;
+  }
+
+  try {
+    const result = await requestAttendanceMonthBatch(group, month);
+    if (result === null) throw new Error('La versión publicada no permite la consulta mensual optimizada');
+    if (!selectedDirectorGroup || `${selectedDirectorGroup}|${getDirectorGroupAttendanceMonth()}` !== requestKey) return;
+    mergeAttendanceMonthServerRecords(group, result.data);
+    renderDirectorGroupAttendanceTable();
+    updateDirectorGroupAttendanceStatus('<i class="fa-solid fa-cloud-check"></i> Historial mensual sincronizado.');
+  } catch (error) {
+    if (!selectedDirectorGroup || `${selectedDirectorGroup}|${getDirectorGroupAttendanceMonth()}` !== requestKey) return;
+    renderDirectorGroupAttendanceTable();
+    updateDirectorGroupAttendanceStatus('<i class="fa-solid fa-mobile-screen-button"></i> Se muestran los registros disponibles; no fue posible actualizar ahora.');
+  }
+}
+
 function printDirectorGroupRoster() {
   if (!currentUser || currentUser.role !== 'director' || !selectedDirectorGroup) return;
   printStudentRoster(getStudentsByGroup(selectedDirectorGroup), selectedDirectorGroup);
@@ -1846,11 +2013,7 @@ function printDirectorGroupRoster() {
 
 function openDirectorGroupAttendance() {
   if (!currentUser || currentUser.role !== 'director' || !selectedDirectorGroup) return;
-  const group = selectedDirectorGroup;
-  const selector = document.getElementById('director-attendance-group');
-  if (selector) selector.value = group;
-  directorAttendanceLoadedMonth = null;
-  switchTab('attendance');
+  switchDirectorGroupSection('attendance');
 }
 
 
@@ -1877,8 +2040,8 @@ function initCharts() {
   Chart.defaults.font.size     = CHART_DEFAULTS.font.size;
 
   const all = getAllStudents();
-  const h   = all.filter(s => s.genero === 'Masculino').length;
-  const m   = all.filter(s => s.genero === 'Femenino').length;
+  const h   = all.filter(s => getGenderCategory(s.genero) === 'male').length;
+  const m   = all.filter(s => getGenderCategory(s.genero) === 'female').length;
   const o   = all.length - h - m;
 
   // --- Doughnut: Gender ---
@@ -1943,7 +2106,7 @@ function initCharts() {
 
   // --- Stacked bar: Becas por grado ---
   const grades = ['1°','2°','3°','4°','5°','6°'];
-  const becaData  = grades.map(g => all.filter(s => s.grado === g && s.beca === 'Sí').length);
+  const becaData  = grades.map(g => all.filter(s => s.grado === g && hasScholarship(s.beca)).length);
   const noBeca    = grades.map(g => all.filter(s => s.grado === g && s.beca !== 'Sí').length);
 
   charts.becas = new Chart(
@@ -2014,7 +2177,7 @@ function initCharts() {
 
 function updateDirectorStats() {
   const all  = getAllStudents();
-  const beca = all.filter(s => s.beca === 'Sí').length;
+  const beca = all.filter(s => hasScholarship(s.beca)).length;
   const pct  = all.length ? Math.round((beca / all.length) * 100) : 0;
 
   document.getElementById('d-stat-total').textContent    = all.length;
@@ -2029,6 +2192,7 @@ function updateDirectorStats() {
 let chartsInitialized = false;
 
 function switchTab(tab) {
+  if (tab !== 'groups' && selectedDirectorGroup) closeDirectorGroup();
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
@@ -2084,7 +2248,9 @@ function setStudentDrawerMode(mode) {
   const form = document.getElementById('student-form');
 
   STUDENT_FORM_FIELD_IDS.forEach(fieldId => {
-    document.getElementById(fieldId).disabled = isView || !studentDrawerCanEdit;
+    const field = document.getElementById(fieldId);
+    field.disabled = isView || !studentDrawerCanEdit;
+    field.classList.toggle('empty-readonly', isView && !String(field.value || '').trim());
   });
 
   form.classList.toggle('readonly-mode', isView);
@@ -2116,7 +2282,7 @@ function openStudentDrawer(id = null) {
     document.getElementById('detail-name').textContent = s.nombre || '—';
     document.getElementById('detail-grupo-badge').textContent = `${s.grado || ''} — Grupo ${s.grupoId || s.grupo || ''}`;
     document.getElementById('detail-avatar-icon').className =
-      `detail-avatar ${s.genero === 'Masculino' ? 'avatar-male' : 'avatar-female'}`;
+      `detail-avatar ${getGenderCategory(s.genero) === 'male' ? 'avatar-male' : 'avatar-female'}`;
 
     document.getElementById('f-nombre').value    = s.nombre       || '';
     document.getElementById('f-folio').value     = s.folio        || '';
@@ -2158,7 +2324,7 @@ function closeStudentDrawer(e) {
   drawer.classList.remove('drawer-open');
   setTimeout(() => {
     document.getElementById('detail-overlay').classList.add('hidden');
-    document.body.style.overflow = '';
+    document.body.style.overflow = selectedDirectorGroup ? 'hidden' : '';
     editingId = null;
     studentDrawerCanEdit = false;
   }, 280);
@@ -2246,7 +2412,7 @@ function askDelete(id) {
 
 function closeConfirm() {
   document.getElementById('confirm-modal').classList.add('hidden');
-  document.body.style.overflow = '';
+  document.body.style.overflow = selectedDirectorGroup ? 'hidden' : '';
   pendingDeleteId = null;
   pendingDeleteType = null;
 }
@@ -2508,7 +2674,7 @@ function printStudentRoster(students, group = null) {
           <td>${fmtDate(s.fechaNacimiento)}</td>
           <td class="td-sm">${escHtml(s.curpAlumno)}</td>
           <td>${escHtml(s.genero)}</td>
-          <td style="text-align:center">${s.beca === 'Sí' ? 'Sí' : ''}</td>
+          <td style="text-align:center">${hasScholarship(s.beca) ? 'Sí' : ''}</td>
           <td>${s.peso || ''}</td>
           <td>${s.estatura || ''}</td>
           <td>${s.talla || ''}</td>

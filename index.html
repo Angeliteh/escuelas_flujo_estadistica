@@ -426,79 +426,98 @@
           <div id="director-groups-grid" class="groups-grid" aria-live="polite"></div>
         </section>
 
-        <section id="director-group-detail-view" class="hidden">
-          <button class="btn btn-ghost group-back-btn" onclick="closeDirectorGroup()">
-            <i class="fa-solid fa-arrow-left"></i> Todos los grupos
-          </button>
+        <div id="director-group-overlay" class="modal-overlay hidden" onclick="closeDirectorGroup(event)">
+          <section id="director-group-detail-view" class="modal director-group-modal" role="dialog" aria-modal="true" aria-labelledby="director-group-title" onclick="event.stopPropagation()">
+            <header class="modal-header director-group-modal-header">
+              <div class="group-modal-identity">
+                <div id="director-group-badge" class="group-home-badge">1A</div>
+                <div>
+                  <p class="eyebrow"><i class="fa-solid fa-school"></i> Detalle del grupo</p>
+                  <h2 id="director-group-title" class="modal-title">1° Grado · Grupo A</h2>
+                  <p id="director-group-teacher" class="modal-subtitle"></p>
+                </div>
+              </div>
+              <div class="group-modal-header-actions">
+                <span class="group-cycle-badge"><i class="fa-solid fa-calendar"></i> Ciclo 2026-2027</span>
+                <button class="modal-close" onclick="closeDirectorGroup()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            </header>
 
-          <div class="group-home-hero director-group-hero">
-            <div class="group-home-identity">
-              <div id="director-group-badge" class="group-home-badge">1A</div>
-              <div>
-                <p class="eyebrow"><i class="fa-solid fa-school"></i> Detalle del grupo</p>
-                <h2 id="director-group-title">Primer grado · Grupo A</h2>
-                <p id="director-group-teacher" class="section-subtitle"></p>
+            <nav class="group-detail-nav group-modal-nav" aria-label="Secciones del grupo seleccionado">
+              <button id="director-group-tab-summary" class="group-detail-nav-btn active" onclick="switchDirectorGroupSection('summary')">
+                <i class="fa-solid fa-house"></i> Resumen
+              </button>
+              <button id="director-group-tab-students" class="group-detail-nav-btn" onclick="switchDirectorGroupSection('students')">
+                <i class="fa-solid fa-users"></i> Alumnos
+              </button>
+              <button id="director-group-tab-attendance" class="group-detail-nav-btn" onclick="switchDirectorGroupSection('attendance')">
+                <i class="fa-solid fa-calendar-days"></i> Asistencia mensual
+              </button>
+            </nav>
+
+            <div class="modal-body director-group-modal-body">
+              <div id="director-group-summary-panel">
+                <div class="group-summary-stats" aria-label="Resumen del grupo seleccionado">
+                  <div class="group-summary-stat"><span id="director-group-total">0</span><small>Alumnos</small></div>
+                  <div class="group-summary-stat"><span id="director-group-male">0</span><small>Hombres</small></div>
+                  <div class="group-summary-stat"><span id="director-group-female">0</span><small>Mujeres</small></div>
+                  <div class="group-summary-stat"><span id="director-group-scholarship">0</span><small>Con beca</small></div>
+                </div>
+
+                <div class="group-home-actions group-home-actions-compact">
+                  <button class="group-action-card" onclick="switchDirectorGroupSection('students')">
+                    <span class="group-action-icon action-indigo"><i class="fa-solid fa-address-book"></i></span>
+                    <span><strong>Ver alumnos</strong><small>Lista rápida y ficha de cada alumno</small></span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                  </button>
+                  <button class="group-action-card" onclick="switchDirectorGroupSection('attendance')">
+                    <span class="group-action-icon action-emerald"><i class="fa-solid fa-calendar-check"></i></span>
+                    <span><strong>Ver asistencia mensual</strong><small>Consulta de solo lectura para dirección</small></span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div id="director-group-students-panel" class="hidden">
+                <div class="table-controls">
+                  <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="director-group-search" placeholder="Buscar alumno por nombre, CURP o tutor..." oninput="renderDirectorGroupStudents()">
+                  </div>
+                  <button class="btn btn-secondary" onclick="printDirectorGroupRoster()"><i class="fa-solid fa-print"></i> Imprimir padrón</button>
+                </div>
+                <div class="table-meta"><span id="director-group-count" class="table-count"></span></div>
+                <div class="table-container group-modal-table-container">
+                  <table class="data-table" id="director-group-students-table">
+                    <thead><tr><th>#</th><th>Folio</th><th>Nombre del alumno</th><th>Género</th><th>Beca</th><th>Tutor</th><th>Teléfono</th><th></th></tr></thead>
+                    <tbody id="director-group-students-tbody"></tbody>
+                  </table>
+                  <div id="director-group-empty" class="empty-state hidden"><i class="fa-solid fa-user-slash"></i><p>No hay alumnos registrados en este grupo</p></div>
+                </div>
+              </div>
+
+              <div id="director-group-attendance-panel" class="hidden">
+                <div class="attendance-toolbar group-attendance-toolbar">
+                  <div class="attendance-summary" id="director-group-attendance-summary" aria-live="polite"></div>
+                  <div class="attendance-actions">
+                    <label class="group-month-control" for="director-group-attendance-month">Mes
+                      <input type="month" id="director-group-attendance-month" onchange="changeDirectorGroupAttendanceMonth()">
+                    </label>
+                    <button class="btn btn-secondary" onclick="printDirectorGroupAttendanceMonth()"><i class="fa-solid fa-print"></i> Imprimir mes</button>
+                  </div>
+                </div>
+                <div id="director-group-attendance-status" class="attendance-sync-status" role="status"></div>
+                <div class="table-container attendance-month-container group-modal-attendance-table-container">
+                  <table class="data-table attendance-month-table" id="director-group-attendance-table">
+                    <thead id="director-group-attendance-head"></thead>
+                    <tbody id="director-group-attendance-tbody"></tbody>
+                  </table>
+                  <div id="director-group-attendance-empty" class="empty-state hidden"><i class="fa-solid fa-calendar-xmark"></i><p>No hay alumnos registrados en este grupo</p></div>
+                </div>
               </div>
             </div>
-            <span class="group-cycle-badge"><i class="fa-solid fa-calendar"></i> Ciclo 2026-2027</span>
-          </div>
-
-          <nav class="group-detail-nav" aria-label="Secciones del grupo seleccionado">
-            <button id="director-group-tab-summary" class="group-detail-nav-btn active" onclick="switchDirectorGroupSection('summary')">
-              <i class="fa-solid fa-house"></i> Resumen
-            </button>
-            <button id="director-group-tab-students" class="group-detail-nav-btn" onclick="switchDirectorGroupSection('students')">
-              <i class="fa-solid fa-users"></i> Alumnos
-            </button>
-            <button class="group-detail-nav-btn" onclick="openDirectorGroupAttendance()">
-              <i class="fa-solid fa-calendar-days"></i> Asistencia
-            </button>
-          </nav>
-
-          <div id="director-group-summary-panel">
-            <div class="group-summary-stats" aria-label="Resumen del grupo seleccionado">
-              <div class="group-summary-stat"><span id="director-group-total">0</span><small>Alumnos</small></div>
-              <div class="group-summary-stat"><span id="director-group-male">0</span><small>Hombres</small></div>
-              <div class="group-summary-stat"><span id="director-group-female">0</span><small>Mujeres</small></div>
-              <div class="group-summary-stat"><span id="director-group-scholarship">0</span><small>Con beca</small></div>
-            </div>
-
-            <div class="group-home-actions group-home-actions-compact">
-              <button class="group-action-card" onclick="switchDirectorGroupSection('students')">
-                <span class="group-action-icon action-indigo"><i class="fa-solid fa-address-book"></i></span>
-                <span><strong>Ver alumnos</strong><small>Lista rápida y ficha de cada alumno</small></span>
-                <i class="fa-solid fa-chevron-right"></i>
-              </button>
-              <button class="group-action-card" onclick="openDirectorGroupAttendance()">
-                <span class="group-action-icon action-emerald"><i class="fa-solid fa-calendar-check"></i></span>
-                <span><strong>Ver asistencia mensual</strong><small>Consulta de solo lectura para dirección</small></span>
-                <i class="fa-solid fa-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-
-          <div id="director-group-students-panel" class="hidden">
-            <div class="table-controls">
-              <div class="search-bar">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="director-group-search" placeholder="Buscar alumno por nombre, CURP o tutor..." oninput="renderDirectorGroupStudents()">
-              </div>
-              <button class="btn btn-secondary" onclick="printDirectorGroupRoster()">
-                <i class="fa-solid fa-print"></i> Imprimir padrón
-              </button>
-            </div>
-            <div class="table-meta"><span id="director-group-count" class="table-count"></span></div>
-            <div class="table-container">
-              <table class="data-table" id="director-group-students-table">
-                <thead><tr><th>#</th><th>Folio</th><th>Nombre del alumno</th><th>Género</th><th>Beca</th><th>Tutor</th><th>Teléfono</th><th></th></tr></thead>
-                <tbody id="director-group-students-tbody"></tbody>
-              </table>
-              <div id="director-group-empty" class="empty-state hidden">
-                <i class="fa-solid fa-user-slash"></i><p>No hay alumnos registrados en este grupo</p>
-              </div>
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
 
       <!-- ALL STUDENTS TAB -->
@@ -742,7 +761,7 @@
 
   <!-- STUDENT DETAIL / EDIT DRAWER -->
   <div id="detail-overlay" class="detail-overlay hidden" onclick="closeStudentDrawer(event)">
-    <div id="detail-drawer" class="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="detail-name">
+    <div id="detail-drawer" class="detail-drawer student-detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-name">
       <div class="detail-header">
         <div class="detail-avatar" id="detail-avatar-icon">
           <i class="fa-solid fa-user-graduate"></i>
