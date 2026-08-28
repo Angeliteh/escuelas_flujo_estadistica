@@ -1372,6 +1372,8 @@ input, select, button, textarea {
 .avatar-female { background: rgba(236,72,153,0.18); color: #f9a8d4; border: 1px solid rgba(236,72,153,0.3); }
 
 .detail-title-block { flex: 1; min-width: 0; }
+.detail-meta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.badge-view { background: rgba(16,185,129,0.13); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.28); }
 .detail-student-name {
   font-size: 1rem; font-weight: 800;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -1641,9 +1643,106 @@ input, select, button, textarea {
   }
   
   .td-sm { font-size: 7pt; }
+
+  .student-profile-print {
+    page: studentProfile;
+    width: 100%;
+    min-height: 270mm;
+    padding: 0;
+    color: #172033;
+    background: #fff;
+    font-family: Arial, sans-serif;
+  }
+
+  .student-profile-header {
+    display: grid;
+    grid-template-columns: 86px 1fr 82px;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #263b70;
+  }
+
+  .student-profile-header img { object-fit: contain; }
+  .student-profile-school { text-align: center; }
+  .student-profile-school p { margin: 0 0 3px; font-size: 7.5pt; letter-spacing: 0.08em; }
+  .student-profile-school h1 { margin: 0 0 5px; font-size: 13pt; line-height: 1.2; }
+  .student-profile-school div { display: flex; justify-content: center; gap: 24px; margin-bottom: 4px; font-size: 8pt; }
+  .student-profile-school strong { font-size: 9pt; color: #263b70; }
+
+  .student-profile-photo {
+    height: 94px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px dashed #8390a8;
+    color: #69758b;
+    font-size: 7pt;
+  }
+  .student-profile-photo i { font-size: 22pt; color: #aab2c0; }
+
+  .student-profile-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin: 12px 0 10px;
+    padding: 11px 14px;
+    color: #fff;
+    background: #263b70;
+    border-radius: 5px;
+  }
+  .student-profile-title p { margin: 0 0 2px; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.08em; }
+  .student-profile-title h2 { margin: 0; font-size: 13pt; }
+  .student-profile-title > span { padding: 6px 10px; border: 1px solid rgba(255,255,255,0.55); border-radius: 4px; font-size: 9pt; font-weight: bold; white-space: nowrap; }
+
+  .student-profile-section { margin-top: 10px; break-inside: avoid; }
+  .student-profile-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0;
+    padding: 6px 9px;
+    color: #263b70;
+    background: #edf1f8;
+    border: 1px solid #cbd3e2;
+    border-bottom: 0;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.045em;
+  }
+
+  .student-profile-grid { display: grid; border-top: 1px solid #cbd3e2; border-left: 1px solid #cbd3e2; }
+  .profile-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .profile-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .profile-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profile-span-4 { grid-column: span 4; }
+  .profile-span-3 { grid-column: span 3; }
+  .profile-span-2 { grid-column: span 2; }
+
+  .student-profile-field {
+    min-height: 42px;
+    padding: 6px 8px;
+    border-right: 1px solid #cbd3e2;
+    border-bottom: 1px solid #cbd3e2;
+  }
+  .student-profile-field span { display: block; margin-bottom: 4px; color: #69758b; font-size: 6.5pt; text-transform: uppercase; letter-spacing: 0.04em; }
+  .student-profile-field strong { display: block; font-size: 8.5pt; line-height: 1.25; overflow-wrap: anywhere; }
+
+  .student-profile-footer { margin-top: 12px; break-inside: avoid; }
+  .student-profile-footer > p { margin: 0; color: #69758b; font-size: 6.5pt; text-align: right; }
+  .student-profile-signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; margin-top: 36px; }
+  .student-profile-signatures span { padding-top: 5px; border-top: 1px solid #263b70; font-size: 7.5pt; text-align: center; }
   
   @page {
     size: landscape;
     margin: 5mm;
+  }
+
+  @page studentProfile {
+    size: A4 portrait;
+    margin: 10mm;
   }
 }

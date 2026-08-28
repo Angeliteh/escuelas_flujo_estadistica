@@ -14,6 +14,8 @@
 - [x] Tabla de alumnos (solo los de su grupo)
 - [x] Buscador por nombre/CURP
 - [x] **Panel lateral unificado** — agregar, editar y ver datos de alumno (mismo componente)
+- [x] Los alumnos existentes abren primero como **ficha de lectura**; la edición se habilita con una acción explícita
+- [x] Impresión individual en formato A4 con información escolar, datos del alumno, tutor, contacto y espacio para fotografía
 - [x] Eliminación con modal de confirmación
 - [x] Todo lo que se escribe se convierte a MAYÚSCULAS automáticamente
 - [x] Imprimir padrón del grupo con los datos completos
@@ -136,6 +138,7 @@
 |----------|---------|
 | Panel lateral unificado (eliminar modal flotante) | Redundancia: el modal central y el drawer hacían lo mismo |
 | Pestaña "Grupos" como navegación, no como otro filtro | Las tarjetas dan contexto y abren un mini panel del grupo; "Todos los Alumnos" conserva los filtros para búsquedas globales |
+| Ficha individual basada en los campos actuales | Entrega lectura e impresión inmediata sin duplicar registros ni cambiar todavía la estructura del Sheet |
 | Filtros tipo píldora en lugar de dropdowns | Más rápido, visual y moderno — 1 clic vs. expandir menú |
 | Tabla de 20 columnas en la directora | La directora necesita ver TODOS los datos, no un resumen |
 | Modo solo lectura en el drawer de directora | Misma interfaz, sin duplicar código |

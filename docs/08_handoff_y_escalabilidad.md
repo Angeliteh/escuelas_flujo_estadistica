@@ -70,6 +70,8 @@ La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`,
 - Los campos del alumno son opcionales para permitir captura progresiva.
 - Folio integrado en formulario, tablas, guardado e impresión.
 - Filtros, búsqueda, estadísticas e impresión de padrón.
+- Ficha individual en modo lectura al abrir un alumno, con botón separado para editar.
+- Impresión individual A4 con los datos existentes y un espacio reservado para fotografía física.
 - Los cambios del panel se escriben en la hoja maestra mediante Apps Script.
 
 ### Asistencia
@@ -241,7 +243,9 @@ La evolución de interfaz acordada parte de dos entidades principales:
 - **Grupo:** resumen, alumnos y acceso a asistencia/reportes.
 - **Alumno:** ficha de lectura, datos completos, asistencia y documentos imprimibles.
 
-La ficha individual imprimible es el siguiente incremento funcional recomendado. Debe reutilizar el drawer y la infraestructura actual de impresión; no requiere duplicar los datos en nuevas hojas.
+La ficha individual imprimible ya reutiliza el drawer y la infraestructura actual de impresión, sin duplicar datos ni agregar columnas. La fotografía es únicamente un espacio reservado en papel; todavía no existe carga o almacenamiento digital de imágenes.
+
+El siguiente incremento técnico recomendado es introducir `alumnoId` permanente y estatus del alumno antes de construir constancias, credenciales o calificaciones que dependan de identidad histórica.
 
 ## 9. Multi escuela
 

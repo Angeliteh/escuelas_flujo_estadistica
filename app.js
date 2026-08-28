@@ -2070,25 +2070,44 @@ function switchTab(tab) {
 // =====================================================
 
 let editingId = null;
+let studentDrawerCanEdit = false;
+
+const STUDENT_FORM_FIELD_IDS = [
+  'f-nombre', 'f-folio', 'f-barrera', 'f-fecha', 'f-curp', 'f-genero', 'f-beca', 'f-nivel',
+  'f-peso', 'f-estatura', 'f-talla', 'f-tutor', 'f-telefono', 'f-curp-tutor',
+  'f-correo', 'f-domicilio', 'f-ocupacion'
+];
+
+function setStudentDrawerMode(mode) {
+  const isExisting = editingId !== null;
+  const isView = mode === 'view' && isExisting;
+  const form = document.getElementById('student-form');
+
+  STUDENT_FORM_FIELD_IDS.forEach(fieldId => {
+    document.getElementById(fieldId).disabled = isView || !studentDrawerCanEdit;
+  });
+
+  form.classList.toggle('readonly-mode', isView);
+  document.getElementById('detail-mode-badge').classList.toggle('hidden', !isView);
+  document.getElementById('detail-print-btn').classList.toggle('hidden', !isExisting);
+  document.getElementById('detail-edit-btn').classList.toggle('hidden', !isView || !studentDrawerCanEdit);
+  document.getElementById('detail-save-btn').classList.toggle('hidden', isView || !studentDrawerCanEdit);
+  document.getElementById('detail-delete-btn').classList.toggle('hidden', isView || !studentDrawerCanEdit || !isExisting);
+}
+
+function enableStudentDrawerEdit() {
+  if (!studentDrawerCanEdit || editingId === null) return;
+  setStudentDrawerMode('edit');
+  document.getElementById('f-nombre')?.focus();
+}
 
 function openStudentDrawer(id = null) {
   const isTeacher = currentUser && currentUser.role === 'teacher';
   const isDirector = currentUser && currentUser.role === 'director';
-  const canEdit = isTeacher || isDirector;
+  studentDrawerCanEdit = isTeacher || isDirector;
   editingId = id;
   
   document.getElementById('student-form').reset();
-  
-  const formFields = [
-    'f-nombre', 'f-folio', 'f-barrera', 'f-fecha', 'f-curp', 'f-genero', 'f-beca', 'f-nivel',
-    'f-peso', 'f-estatura', 'f-talla', 'f-tutor', 'f-telefono', 'f-curp-tutor',
-    'f-correo', 'f-domicilio', 'f-ocupacion'
-  ];
-
-  // Disable all fields if not allowed to edit
-  formFields.forEach(fId => {
-    document.getElementById(fId).disabled = !canEdit;
-  });
 
   if (id) {
     const s = getAllStudents().find(s => s.id === id || s.rowId === id);
@@ -2122,12 +2141,7 @@ function openStudentDrawer(id = null) {
     document.getElementById('detail-avatar-icon').className = 'detail-avatar avatar-male';
   }
 
-  // Show/hide edit+delete buttons based on role
-  document.getElementById('detail-save-btn').classList.toggle('hidden', !canEdit);
-  document.getElementById('detail-delete-btn').classList.toggle('hidden', !canEdit || !id);
-
-  // Set visual mode class on the wrapper
-  document.getElementById('student-form').classList.toggle('readonly-mode', !canEdit);
+  setStudentDrawerMode(id ? 'view' : 'edit');
 
   // Open drawer with animation
   const overlay = document.getElementById('detail-overlay');
@@ -2146,6 +2160,7 @@ function closeStudentDrawer(e) {
     document.getElementById('detail-overlay').classList.add('hidden');
     document.body.style.overflow = '';
     editingId = null;
+    studentDrawerCanEdit = false;
   }, 280);
 }
 
@@ -2364,6 +2379,109 @@ function printDirectorRoster() {
   if (!currentUser || currentUser.role !== 'director') return;
   const students = dirFilteredStudents.length ? dirFilteredStudents : getAllStudents();
   printStudentRoster(students, null);
+}
+
+function printStudentProfileFromDrawer() {
+  if (editingId === null) return;
+  const student = getAllStudents().find(item => item.id === editingId || item.rowId === editingId);
+  if (!student) {
+    showToast('No se encontró la información del alumno', 'error');
+    return;
+  }
+  printStudentProfile(student);
+}
+
+function printProfileValue(value, suffix = '') {
+  const text = String(value ?? '').trim();
+  return text ? `${escHtml(text)}${suffix}` : '—';
+}
+
+function printProfileField(label, value, className = '') {
+  return `
+    <div class="student-profile-field ${className}">
+      <span>${escHtml(label)}</span>
+      <strong>${value}</strong>
+    </div>
+  `;
+}
+
+function printStudentProfile(student) {
+  const printContainer = document.getElementById('print-view');
+  const group = student.grupoId || `${String(student.grado || '').charAt(0)}${String(student.grupo || '').slice(-1)}`;
+  const generatedDate = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+
+  printContainer.innerHTML = `
+    <article class="student-profile-print">
+      <header class="student-profile-header">
+        <img src="${ESCUDO_B64}" alt="Escudo de la escuela" width="82" height="82">
+        <div class="student-profile-school">
+          <p>SECRETARÍA DE EDUCACIÓN PÚBLICA</p>
+          <h1>ESCUELA PRIMARIA GRAL. ELPIDIO G. VELÁZQUEZ</h1>
+          <div><span>CCT 10DPR0519X</span><span>SECTOR 13 · ZONA 109</span></div>
+          <strong>CICLO ESCOLAR 2026-2027</strong>
+        </div>
+        <div class="student-profile-photo"><i class="fa-solid fa-user"></i><span>Fotografía</span></div>
+      </header>
+
+      <div class="student-profile-title">
+        <div>
+          <p>Ficha de identificación del alumno</p>
+          <h2>${printProfileValue(student.nombre)}</h2>
+        </div>
+        <span>Grupo ${printProfileValue(group)}</span>
+      </div>
+
+      <section class="student-profile-section">
+        <h3><i class="fa-solid fa-school"></i> Información escolar</h3>
+        <div class="student-profile-grid profile-grid-4">
+          ${printProfileField('Grado', printProfileValue(student.grado || getGrade(group)))}
+          ${printProfileField('Grupo', printProfileValue(String(group).slice(-1)))}
+          ${printProfileField('Folio', printProfileValue(student.folio))}
+          ${printProfileField('Beca', printProfileValue(student.beca))}
+          ${printProfileField('Barrera de aprendizaje', printProfileValue(student.barreraAprendizaje), 'profile-span-4')}
+        </div>
+      </section>
+
+      <section class="student-profile-section">
+        <h3><i class="fa-solid fa-user-graduate"></i> Datos del alumno</h3>
+        <div class="student-profile-grid profile-grid-3">
+          ${printProfileField('Nombre completo', printProfileValue(student.nombre), 'profile-span-3')}
+          ${printProfileField('Fecha de nacimiento', student.fechaNacimiento ? escHtml(fmtDate(student.fechaNacimiento)) : '—')}
+          ${printProfileField('Género', printProfileValue(student.genero))}
+          ${printProfileField('CURP', printProfileValue(student.curpAlumno))}
+          ${printProfileField('Peso', printProfileValue(student.peso, student.peso ? ' kg' : ''))}
+          ${printProfileField('Estatura', printProfileValue(student.estatura, student.estatura ? ' cm' : ''))}
+          ${printProfileField('Talla', printProfileValue(student.talla))}
+        </div>
+      </section>
+
+      <section class="student-profile-section">
+        <h3><i class="fa-solid fa-people-roof"></i> Tutor y contacto</h3>
+        <div class="student-profile-grid profile-grid-2">
+          ${printProfileField('Nombre del tutor', printProfileValue(student.tutor), 'profile-span-2')}
+          ${printProfileField('Teléfono', printProfileValue(student.telefono))}
+          ${printProfileField('Correo electrónico', printProfileValue(student.correo))}
+          ${printProfileField('CURP del tutor', printProfileValue(student.curpTutor))}
+          ${printProfileField('Nivel de estudio', printProfileValue(student.nivelEstudio))}
+          ${printProfileField('Ocupación', printProfileValue(student.ocupacion))}
+          ${printProfileField('Domicilio', printProfileValue(student.domicilio), 'profile-span-2')}
+        </div>
+      </section>
+
+      <footer class="student-profile-footer">
+        <p>Documento de uso escolar interno · Elaborado el ${escHtml(generatedDate)}</p>
+        <div class="student-profile-signatures">
+          <span>Firma del padre, madre o tutor</span>
+          <span>Responsable del plantel</span>
+        </div>
+      </footer>
+    </article>
+  `;
+
+  document.body.classList.add('print-student-profile');
+  const cleanup = () => document.body.classList.remove('print-student-profile');
+  window.addEventListener('afterprint', cleanup, { once: true });
+  window.print();
 }
 
 function printStudentRoster(students, group = null) {
