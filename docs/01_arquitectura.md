@@ -21,7 +21,7 @@ El sistema es una **aplicación web estática** (3 archivos: HTML + CSS + JS) qu
 │  URL: script.google.com/macros/s/AKfycbyFPx.../exec             │
 │                                                                  │
 │  doGet()  → lee todos los alumnos de las 12 pestañas            │
-│  doPost() → guarda / actualiza / elimina un alumno              │
+│  doPost() → alumnos + asistencia + personal                    │
 └──────────────────────────────────┬───────────────────────────────┘
                                    │  SpreadsheetApp
                                    ▼
@@ -56,7 +56,7 @@ El sistema es una **aplicación web estática** (3 archivos: HTML + CSS + JS) qu
 2. app.js inyecta automáticamente: grado = "1°", grupo = "A"
 3. fetch POST → Apps Script con { action: "saveStudent", data: {...} }
 4. Apps Script combina grado + grupo → determina hoja = "1A"
-5. appendRow() escribe la fila en la hoja "1A" a partir de la fila 7
+5. Apps Script escribe la fila en la hoja "1A" a partir de la fila 6
 6. El panel actualiza la tabla de forma optimista
 7. Si la API falla, el panel revierte el cambio y muestra un error
 ```
@@ -73,6 +73,10 @@ El sistema es una **aplicación web estática** (3 archivos: HTML + CSS + JS) qu
 ```
 
 ---
+
+## Asistencia y consultas mensuales
+
+La asistencia diaria se guarda en la hoja mensual formateada del grupo. La vista mensual del panel usa el endpoint V7 `getAttendanceMonth`, que lee todo el mes en una sola petición. Si V7 no está disponible, el frontend conserva temporalmente un método anterior compatible.
 
 ## Limitación conocida: sin tiempo real
 
@@ -98,9 +102,9 @@ Se retiró la descarga de Excel del panel para evitar copias desactualizadas o a
 
 ## Modelo de datos para la siguiente fase
 
-Las hojas actuales son el **catálogo maestro de alumnos**: una fila por alumno y 20 columnas, incluyendo el folio escolar. La asistencia del Word no debe agregarse a esas filas, porque un mismo alumno tendrá muchos registros, uno por fecha.
+Las hojas actuales son el **catálogo maestro de alumnos**: una fila por alumno y 20 columnas, incluyendo el folio escolar. La asistencia está activa en matrices mensuales independientes para conservar el formato institucional; no debe agregarse como columnas dentro de las filas de alumnos.
 
-La siguiente fase debe añadir un módulo separado de asistencia, idealmente con registros como:
+Para análisis histórico, la siguiente fase debe añadir un modelo separado de eventos de asistencia, idealmente con registros como:
 
 `fecha · grupo · alumnoId · estado · puntualidad · actividad · nota · usuario · fechaActualizacion`
 

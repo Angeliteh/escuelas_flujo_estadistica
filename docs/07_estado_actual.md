@@ -1,7 +1,7 @@
 # 07 — Estado Actual del Proyecto
 
-> Última actualización: 27 de agosto 2026  
-> Objetivo: Panorama completo para terminar y entregar el sistema a prueba.
+> Última actualización: 28 de agosto 2026
+> Objetivo: Panorama completo para operar la primera escuela y preparar la evolución del sistema.
 
 ---
 
@@ -39,6 +39,9 @@
 - [x] Los maestros registran datos → van al Sheet vía Apps Script
 - [x] La directora lee del mismo Sheet → ve datos en tiempo real (al cargar/recargar)
 - [x] El Sheet tiene el formato oficial con logo de la escuela
+- [x] Apps Script V7 publicado y activo
+- [x] Historial mensual optimizado a una sola consulta
+- [x] El panel refleja marcas eliminadas directamente en Sheets al sincronizar en línea
 
 ---
 
@@ -46,8 +49,9 @@
 
 ### Funcional
 - [ ] **Verificar que el drawer de edición guarda correctamente** — probar ciclo completo: editar alumno → guardar → verificar en Sheet
-- [ ] **Probar con datos reales** — limpiar datos de prueba (`localStorage.removeItem('students')`) y registrar 2-3 alumnos reales
+- [ ] **Probar con datos reales** — registrar 2-3 alumnos reales y comprobar la actualización en Sheet
 - [ ] **Probar desde dispositivo móvil** — abrir `index.html` en el teléfono para ver si el layout responde bien
+- [ ] Probar los 12 grupos y sus hojas mensuales de asistencia
 
 ### Acceso para pruebas
 - [x] Sitio publicado en Vercel: `https://asistpanel.vercel.app/`
@@ -65,8 +69,8 @@
 - [x] Verificar que al guardar desde el drawer se refresca la tabla del maestro correctamente
 - [x] Diseñar la primera vista diaria del módulo de asistencia a partir del formato Word
 - [x] Preparar cola local para captura sin internet
-- [ ] Pegar y publicar V7 del Apps Script para usar las hojas mensuales `ASISTENCIA (GRUPO)` existentes y consultar el mes en una sola petición
-- [ ] Diseñar reporte mensual con la matriz imprimible del formato Word
+- [x] Pegar y publicar V7 del Apps Script para usar las hojas mensuales `ASISTENCIA (GRUPO)` existentes y consultar el mes en una sola petición
+- [x] Diseñar reporte mensual con la matriz imprimible del formato Word
 
 ---
 
@@ -79,7 +83,8 @@
 | Sin sincronización automática | La directora necesita recargar para ver cambios de maestros | Polling cada 60 segundos |
 | Personal en blanco si la columna Nombre está vacía | La hoja oficial tiene funciones precargadas pero nombres pendientes | Capturar nombres en la columna B o ajustar la política de filas del Apps Script |
 | Sin respaldo automatizado independiente | Un error humano en Sheets puede afectar la fuente operativa | Copias nocturnas con Apps Script y retención |
-| Asistencia pendiente de publicar en API | El panel ya captura localmente, pero la optimización mensual requiere Apps Script V7 | Pegar/publicar V7 y verificar una hoja existente como `ASISTENCIA (2B)` |
+| Identidad basada parcialmente en fila | Reordenar filas puede romper referencias históricas | Crear un `alumnoId` permanente antes de migrar |
+| Datos escolares todavía concentrados en un Sheet | Limita historial, concurrencia, permisos y reportes complejos | Migrar gradualmente a una base de datos real |
 
 ---
 
@@ -110,7 +115,7 @@
 | Panel lateral unificado (eliminar modal flotante) | Redundancia: el modal central y el drawer hacían lo mismo |
 | Eliminar pestaña "Por Grupo" | Redundante con los filtros de Grado/Grupo en "Todos los Alumnos" |
 | Filtros tipo píldora en lugar de dropdowns | Más rápido, visual y moderno — 1 clic vs. expandir menú |
-| Tabla de 18 columnas en la directora | La directora necesita ver TODOS los datos, no un resumen |
+| Tabla de 20 columnas en la directora | La directora necesita ver TODOS los datos, no un resumen |
 | Modo solo lectura en el drawer de directora | Misma interfaz, sin duplicar código |
 | Todo en MAYÚSCULAS al escribir | Consistencia con el formato del Google Sheet |
 | Personal en modo solo lectura inicialmente | Evita modificar datos laborales hasta confirmar el proceso administrativo |

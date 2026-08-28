@@ -3,6 +3,15 @@
 ## URLs de Producción Actuales
 
 ```
+Panel web:
+https://asistpanel.vercel.app/
+
+Repositorio:
+https://github.com/Angeliteh/escuelas_flujo_estadistica
+
+Último commit funcional verificado:
+43a73bf
+
 Google Sheet:
 https://docs.google.com/spreadsheets/d/1jAPfaac3miW8izCGrq1rosCntdjAMw3TMKLCxHYtSzI/edit
 
@@ -29,7 +38,9 @@ TESTEOAMIGAMAMA/
     ├── 03_google_sheets.md
     ├── 04_apps_script.md  ← Código completo del Apps Script
     ├── 05_deuda_tecnica.md
-    └── 06_referencias.md  ← Estás aquí
+    ├── 06_referencias.md
+    ├── 07_estado_actual.md
+    └── 08_handoff_y_escalabilidad.md  ← Documento principal de continuidad
 ```
 
 ---
@@ -43,16 +54,16 @@ TESTEOAMIGAMAMA/
 | `directora` | `director2025` | Subdirectora / administración | Norma Patricia Ortiz Cabrera |
 | `1A` | `maestro2025` | Maestro | Mtro. Carlos Mendoza |
 | `1B` | `maestro2025` | Maestro | Mtra. Ana López |
-| `1C` | `maestro2025` | Maestro | Mtro. Roberto Sánchez |
-| `1D` | `maestro2025` | Maestro | Mtra. Patricia Ruiz |
 | `2A` | `maestro2025` | Maestro | Mtro. José García |
 | `2B` | `maestro2025` | Maestro | Mtra. Carmen Torres |
-| `2C` | `maestro2025` | Maestro | Mtro. Fernando Díaz |
-| `2D` | `maestro2025` | Maestro | Mtra. Sofía Morales |
 | `3A` | `maestro2025` | Maestro | Mtro. Alejandro Reyes |
 | `3B` | `maestro2025` | Maestro | Mtra. Gabriela Flores |
-| `3C` | `maestro2025` | Maestro | Mtro. Miguel Herrera |
-| `3D` | `maestro2025` | Maestro | Mtra. Valeria Castro |
+| `4A` | `maestro2025` | Maestro | Mtro. Roberto Sánchez |
+| `4B` | `maestro2025` | Maestro | Mtra. Patricia Ruiz |
+| `5A` | `maestro2025` | Maestro | Mtro. Fernando Díaz |
+| `5B` | `maestro2025` | Maestro | Mtra. Sofía Morales |
+| `6A` | `maestro2025` | Maestro | Mtro. Miguel Herrera |
+| `6B` | `maestro2025` | Maestro | Mtra. Valeria Castro |
 
 ---
 
@@ -73,7 +84,7 @@ Todas se cargan desde CDN en `index.html`. No hay `package.json` ni `node_module
 | Variable | Valor actual | Dónde se configura |
 |----------|-------------|-------------------|
 | `HEADER_ROW` | `5` | Apps Script (línea 5) |
-| `TABS` | `['1A','1B',...,'3D']` | Apps Script (línea 8) |
+| `TABS` | `['1A','1B','2A','2B','3A','3B','4A','4B','5A','5B','6A','6B']` | Apps Script |
 | `GROUPS_LIST` | Igual que `TABS` | `app.js` (aproximadamente línea 50) |
 | `API_URL` | La URL larga del Script | `app.js` (línea ~130) |
 

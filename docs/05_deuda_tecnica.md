@@ -53,15 +53,9 @@ setInterval(async () => {
 ```
 
 ### El panel se abre como archivo local (`file:///`)
-**Problema:** Esto causa advertencias de "Tracking Prevention" en Edge/Chrome y puede limitar algunas funciones del navegador.
+**Estado:** Resuelto para la operación actual. El sitio está publicado en Vercel y se debe compartir `https://asistpanel.vercel.app/`.
 
-**Solución:** Subir los 3 archivos a **GitHub Pages** (gratis):
-1. Crear repositorio en GitHub
-2. Subir `index.html`, `styles.css`, `app.js` y la carpeta `docs/`
-3. Activar GitHub Pages en Settings → Pages
-4. URL resultante: `https://tu-usuario.github.io/control-escolar/`
-
-Los maestros y la directora accederían a esa URL desde cualquier dispositivo, sin necesidad de instalar nada.
+Abrir el HTML directamente sigue siendo útil para revisar la interfaz, pero no es el modo recomendado para capturar datos reales porque cada dispositivo tendría su propio caché local.
 
 ---
 
@@ -90,12 +84,10 @@ Los maestros y la directora accederían a esa URL desde cualquier dispositivo, s
 
 **Estado actual:** El panel incluye captura diaria por grupo con dos marcas: ✓ Asistió y X No asistió. También tiene vista mensual, impresión y almacenamiento local temporal.
 
-**Siguiente paso:** publicar el endpoint V7 de Apps Script. La asistencia se escribirá en la hoja mensual existente del grupo (`ASISTENCIA (1A)`, `ASISTENCIA (2B)`, etc.), respetando sus filas, encabezado y columnas de días. El historial mensual se obtiene en una sola consulta y el script no crea una hoja genérica `ASISTENCIA`.
+**Estado:** V7 publicado y verificado. La asistencia se escribe en la hoja mensual existente del grupo (`ASISTENCIA (1A)`, `ASISTENCIA (2B)`, etc.), respetando sus filas, encabezado y columnas de días. El historial mensual se obtiene en una sola consulta y el script no crea una hoja genérica `ASISTENCIA`.
 
 ### Vista de impresión del maestro
-**Necesidad:** Los maestros podrían necesitar imprimir su lista con el encabezado de la escuela.
-
-**Solución más simple:** Agregar un botón "Ver en Google Sheets" que abra directamente la pestaña de su grupo (`https://docs.google.com/spreadsheets/d/{ID}/edit#gid={GID_DE_1A}`). La directora les daría acceso de solo lectura a su pestaña específica.
+**Estado:** Resuelto en el panel. El maestro puede imprimir padrón, lista diaria e historial mensual sin abrir Sheets ni crear copias de Excel.
 
 ---
 
@@ -125,3 +117,5 @@ Cada vez que se cambia la estructura de columnas en el Sheet, se deben actualiza
 | Cambiar URL del Script | Solo `API_URL` en app.js |
 
 Siempre publicar **nueva versión** después de cambiar el Apps Script.
+
+Para el plan completo de estabilización, respaldo, migración a base de datos, módulos escolares y soporte multi escuela, consultar [08_handoff_y_escalabilidad.md](./08_handoff_y_escalabilidad.md).
