@@ -88,6 +88,8 @@ Cada grupo debe tener una hoja mensual formateada con el nombre exacto `ASISTENC
 
 El panel solamente escribe `✓` o `X` en la celda correspondiente al alumno y al día. El Apps Script V6 no crea una pestaña nueva: si la hoja del grupo no existe, devuelve un aviso y no escribe nada. Las fechas futuras no se pueden capturar.
 
+Cuando el panel consulta una fecha con internet, la hoja mensual es la fuente de verdad: si una marca se borra directamente en Sheets, desaparecerá del panel al actualizar o volver a consultar ese día. Las capturas hechas sin internet se conservan localmente hasta sincronizarse.
+
 | Acción | Cómo hacerlo | Resultado |
 |--------|-------------|-----------|
 | Ver Sheet en vivo | La directora abre el link del Drive | Ve los datos en tiempo real con el diseño oficial (logo, colores) |

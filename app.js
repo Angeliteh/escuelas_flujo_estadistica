@@ -496,6 +496,18 @@ function getAttendanceRecord(group, date, studentId) {
   return { ...record, status: normalizeAttendanceStatus(record.status) };
 }
 
+function reconcileAttendanceCacheDate(group, date, serverRecords) {
+  const serverKeys = new Set((serverRecords || [])
+    .map(record => String(record.studentId || '').trim())
+    .filter(Boolean)
+    .map(studentId => getAttendanceKey(group, date, studentId)));
+
+  Object.entries(attendanceCache).forEach(([key, record]) => {
+    if (record.group !== group || record.date !== date || record.synced === false) return;
+    if (!serverKeys.has(key)) delete attendanceCache[key];
+  });
+}
+
 function setAttendanceRecord(group, date, studentId, values) {
   const key = getAttendanceKey(group, date, studentId);
   attendanceCache[key] = {
@@ -757,21 +769,24 @@ async function fetchAttendanceMonth() {
       responses.push(...batchResponses);
     }
 
-    responses.forEach(({ date, records }) => records.forEach(serverRecord => {
-      const studentId = String(serverRecord.studentId || '');
-      if (!studentId) return;
-      const key = getAttendanceKey(group, date, studentId);
-      if (!attendanceCache[key] || attendanceCache[key].synced !== false) {
-        attendanceCache[key] = {
-          ...serverRecord,
-          studentId,
-          group,
-          date,
-          status: normalizeAttendanceStatus(serverRecord.status),
-          synced: true,
-        };
-      }
-    }));
+    responses.forEach(({ date, records }) => {
+      reconcileAttendanceCacheDate(group, date, records);
+      records.forEach(serverRecord => {
+        const studentId = String(serverRecord.studentId || '');
+        if (!studentId) return;
+        const key = getAttendanceKey(group, date, studentId);
+        if (!attendanceCache[key] || attendanceCache[key].synced !== false) {
+          attendanceCache[key] = {
+            ...serverRecord,
+            studentId,
+            group,
+            date,
+            status: normalizeAttendanceStatus(serverRecord.status),
+            synced: true,
+          };
+        }
+      });
+    });
     saveAttendanceCache();
     renderAttendanceMonthTable();
     updateAttendanceMonthSyncStatus('<i class="fa-solid fa-cloud-check"></i> Historial mensual sincronizado.');
@@ -1012,7 +1027,9 @@ async function fetchAttendanceDay() {
     if (!result.success) throw new Error(result.error || 'La asistencia aún no está habilitada en la API');
     if (result.sheetName !== `ASISTENCIA (${group})`) throw new Error('La API no está conectada a la hoja mensual del grupo');
 
-    (result.data || []).forEach(serverRecord => {
+    const serverRecords = result.data || [];
+    reconcileAttendanceCacheDate(group, date, serverRecords);
+    serverRecords.forEach(serverRecord => {
       const studentId = String(serverRecord.studentId || '');
       const key = getAttendanceKey(group, date, studentId);
       if (!attendanceCache[key] || attendanceCache[key].synced !== false) {
@@ -1506,21 +1523,24 @@ async function fetchDirectorAttendanceMonth() {
       }));
       responses.push(...batchResponses);
     }
-    responses.forEach(({ date, records }) => records.forEach(serverRecord => {
-      const studentId = String(serverRecord.studentId || '');
-      if (!studentId) return;
-      const key = getAttendanceKey(group, date, studentId);
-      if (!attendanceCache[key] || attendanceCache[key].synced !== false) {
-        attendanceCache[key] = {
-          ...serverRecord,
-          studentId,
-          group,
-          date,
-          status: normalizeAttendanceStatus(serverRecord.status),
-          synced: true,
-        };
-      }
-    }));
+    responses.forEach(({ date, records }) => {
+      reconcileAttendanceCacheDate(group, date, records);
+      records.forEach(serverRecord => {
+        const studentId = String(serverRecord.studentId || '');
+        if (!studentId) return;
+        const key = getAttendanceKey(group, date, studentId);
+        if (!attendanceCache[key] || attendanceCache[key].synced !== false) {
+          attendanceCache[key] = {
+            ...serverRecord,
+            studentId,
+            group,
+            date,
+            status: normalizeAttendanceStatus(serverRecord.status),
+            synced: true,
+          };
+        }
+      });
+    });
     saveAttendanceCache();
     renderDirectorAttendanceTable();
     updateDirectorAttendanceStatus('<i class="fa-solid fa-cloud-check"></i> Historial mensual sincronizado.');
