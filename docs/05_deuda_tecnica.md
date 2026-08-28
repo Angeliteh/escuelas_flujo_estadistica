@@ -84,7 +84,7 @@ Abrir el HTML directamente sigue siendo útil para revisar la interfaz, pero no 
 
 **Estado actual:** El panel incluye captura diaria por grupo con dos marcas: ✓ Asistió y X No asistió. También tiene vista mensual, impresión y almacenamiento local temporal.
 
-**Estado:** V7 publicado y verificado. La asistencia se escribe en la hoja mensual existente del grupo (`ASISTENCIA (1A)`, `ASISTENCIA (2B)`, etc.), respetando sus filas, encabezado y columnas de días. El historial mensual se obtiene en una sola consulta y el script no crea una hoja genérica `ASISTENCIA`.
+**Estado publicado:** V8 reportado por el propietario, conservando el comportamiento V7 de asistencia. La asistencia se escribe en la hoja mensual existente del grupo (`ASISTENCIA (1A)`, `ASISTENCIA (2B)`, etc.) y el historial se obtiene en una sola consulta. V9 local ya separa el historial en una hoja técnica oculta por mes, pero aún requiere instalación y prueba en el Sheet real.
 
 ### Vista de impresión del maestro
 **Estado:** Resuelto en el panel. El maestro puede imprimir padrón, lista diaria e historial mensual sin abrir Sheets ni crear copias de Excel.
@@ -93,7 +93,7 @@ Abrir el HTML directamente sigue siendo útil para revisar la interfaz, pero no 
 
 ## Respaldo y evolución de datos
 
-Google Sheets funciona como fuente operativa para el tamaño actual, pero no debe ser el único respaldo. Se recomienda crear un respaldo automático nocturno desde Apps Script hacia otro archivo de Drive, con fecha y hora en el nombre y una retención de varias copias. El respaldo debe ser independiente del archivo que usa el personal.
+Google Sheets funciona como fuente operativa para el tamaño actual, pero no debe ser el único respaldo. V8 fue actualizado por el propietario y contiene una copia completa inicial, respaldo automático nocturno y retención de 30 snapshots; todavía falta verificar que `setupBackups()` se ejecutó, que existe el snapshot inicial y que una restauración funciona. V9 local conserva estas funciones. Ver [09_respaldos_y_restauracion.md](./09_respaldos_y_restauracion.md).
 
 Antes de construir validaciones entre filas o tablas, conviene agregar un identificador estable por alumno. El `rowId` actual representa la fila física de la hoja y puede cambiar si se reorganizan filas; no debe usarse como identidad histórica. También serán útiles `fechaCreacion`, `fechaActualizacion`, `actualizadoPor` y `estatus`.
 

@@ -10,7 +10,7 @@ El sistema es una **aplicación web estática** (3 archivos: HTML + CSS + JS) qu
 │                                                                 │
 │   ┌───────────────┐       ┌────────────────────────────────┐   │
 │   │ Vista Maestro │       │       Vista Directora           │   │
-│   │  (solo su     │       │  Dashboard + Todos + Por Grupo  │   │
+│   │  (solo su     │       │ Dashboard + Todos + Personal    │   │
 │   │   grupo)      │       │                                 │   │
 │   └──────┬────────┘       └───────────────┬────────────────┘   │
 └──────────┼─────────────────────────────────┼────────────────────┘
@@ -76,7 +76,11 @@ El sistema es una **aplicación web estática** (3 archivos: HTML + CSS + JS) qu
 
 ## Asistencia y consultas mensuales
 
-La asistencia diaria se guarda en la hoja mensual formateada del grupo. La vista mensual del panel usa el endpoint V7 `getAttendanceMonth`, que lee todo el mes en una sola petición. Si V7 no está disponible, el frontend conserva temporalmente un método anterior compatible.
+La asistencia diaria de la versión publicada V8 conserva el comportamiento V7: se guarda en la hoja formateada del grupo y `getAttendanceMonth` lee el mes en una sola petición. El frontend conserva temporalmente un método anterior compatible si ese endpoint no está disponible.
+
+### Riesgo de cambio de mes
+
+Las hojas activas se llaman `ASISTENCIA (1A)` hasta `ASISTENCIA (6B)` y no incluyen mes ni año en su identidad. V7 reescribe los encabezados de días en esas mismas hojas. Por ello, el modelo publicado sirve para el mes actualmente preparado, pero no garantiza conservar agosto al comenzar septiembre. Antes de capturar un mes nuevo se debe migrar la asistencia existente a un almacenamiento histórico por fecha y convertir la matriz institucional en una vista o reporte regenerable.
 
 ## Limitación conocida: sin tiempo real
 
@@ -86,7 +90,7 @@ El panel carga datos una sola vez al iniciar sesión. Si otro maestro agrega un 
 
 ## Panel, Sheet oficial e impresión
 
-El panel es la única herramienta de trabajo para maestros y directora durante la captura normal. Google Sheets se conserva como fuente operativa y como respaldo/auditoría, pero los maestros no tienen que abrirlo ni modificarlo.
+El panel es la única herramienta de trabajo para maestros y directora durante la captura normal. Google Sheets se conserva como fuente operativa y permite revisión administrativa e historial de versiones, pero no sustituye un respaldo independiente ni una bitácora formal. Los maestros no tienen que abrirlo ni modificarlo.
 
 | Necesidad | Lugar | Resultado |
 |---|---|---|

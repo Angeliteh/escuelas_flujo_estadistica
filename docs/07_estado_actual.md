@@ -39,7 +39,7 @@
 - [x] Los maestros registran datos → van al Sheet vía Apps Script
 - [x] La directora lee del mismo Sheet → ve datos en tiempo real (al cargar/recargar)
 - [x] El Sheet tiene el formato oficial con logo de la escuela
-- [x] Apps Script V7 publicado y activo
+- [x] Apps Script V8 reportado como actualizado por el propietario; la API mantiene el contrato de asistencia V7 y respondió correctamente
 - [x] Historial mensual optimizado a una sola consulta
 - [x] El panel refleja marcas eliminadas directamente en Sheets al sincronizar en línea
 
@@ -48,6 +48,13 @@
 ## 🟡 Pendiente / Por verificar antes de entregar
 
 ### Funcional
+- [ ] **Resolver el cambio de agosto a septiembre** — V7 reutiliza las mismas hojas `ASISTENCIA (GRUPO)` y no conserva meses históricos de forma segura.
+- [ ] Migrar las marcas actuales de agosto a un almacenamiento histórico antes de capturar septiembre.
+- [ ] Comprobar que consultar o imprimir agosto sigue funcionando después de iniciar septiembre.
+- [x] V9 preparado localmente con una hoja técnica oculta por mes para todos los grupos.
+- [x] Simulación local superada: agosto se conserva al guardar septiembre y borrar septiembre no afecta agosto.
+- [x] `setupAttendanceHistoryV9()` ejecutado en el Sheet real y V9 publicado; API verificada con `historical-events-v1`.
+- [x] Corrección desde el panel preparada: tocar de nuevo ✓ o X limpia la marca y la devuelve a pendiente.
 - [ ] **Verificar que el drawer de edición guarda correctamente** — probar ciclo completo: editar alumno → guardar → verificar en Sheet
 - [ ] **Probar con datos reales** — registrar 2-3 alumnos reales y comprobar la actualización en Sheet
 - [ ] **Probar desde dispositivo móvil** — abrir `index.html` en el teléfono para ver si el layout responde bien
@@ -83,6 +90,7 @@
 | Sin sincronización automática | La directora necesita recargar para ver cambios de maestros | Polling cada 60 segundos |
 | Personal en blanco si la columna Nombre está vacía | La hoja oficial tiene funciones precargadas pero nombres pendientes | Capturar nombres en la columna B o ajustar la política de filas del Apps Script |
 | Sin respaldo automatizado independiente | Un error humano en Sheets puede afectar la fuente operativa | Copias nocturnas con Apps Script y retención |
+| Hojas de asistencia sin identidad de mes | Al cambiar encabezados, un mes puede reemplazar o mezclar al anterior | Guardar eventos por fecha y usar la matriz como reporte |
 | Identidad basada parcialmente en fila | Reordenar filas puede romper referencias históricas | Crear un `alumnoId` permanente antes de migrar |
 | Datos escolares todavía concentrados en un Sheet | Limita historial, concurrencia, permisos y reportes complejos | Migrar gradualmente a una base de datos real |
 
@@ -105,6 +113,16 @@
 5. Abrir `https://asistpanel.vercel.app/`
 6. Compartir la URL con maestros y directora
 > ✅ Todos acceden desde su celular/computadora al mismo panel. Los datos van al mismo Google Sheet.
+
+---
+
+## Respaldo y restauración
+
+- [x] Código V8 actualizado por el propietario con snapshot inicial, copias nocturnas y retención de 30 copias.
+- [x] Procedimiento de verificación y restauración documentado.
+- [x] `setupBackups()` ejecutado correctamente con la cuenta propietaria el 28 de agosto de 2026.
+- [x] Snapshot `INICIAL` creado y activador `runNightlyBackup` programado alrededor de las 02:00.
+- [ ] Hacer una prueba controlada de restauración antes de considerar el respaldo operativo.
 
 ---
 

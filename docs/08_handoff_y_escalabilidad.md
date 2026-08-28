@@ -15,7 +15,7 @@ Control de Asistencia es un panel web para que maestros y administración gestio
 - Sitio: https://asistpanel.vercel.app/
 - Repositorio: https://github.com/Angeliteh/escuelas_flujo_estadistica
 - Rama activa: main
-- Último commit funcional verificado: 43a73bf (optimización V7 de asistencia mensual)
+- Último commit funcional verificado en producción: fdb4545.
 - Despliegue: Vercel conectado al repositorio; cada push a main genera una nueva implementación.
 
 ### Escuela activa
@@ -33,8 +33,8 @@ Control de Asistencia es un panel web para que maestros y administración gestio
 - API actual: Google Apps Script publicado como Web App.
 - URL de API:
   https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgkNLf-jc1uEdzIoIU73mSJzLYJNC3Sw/exec
-- Versión activa del Apps Script: V7.
-- V7 fue verificado el 28 de agosto de 2026:
+- Versión reportada por el propietario en Apps Script: V8, compatible con el contrato V7 de asistencia.
+- La API fue verificada nuevamente después de la actualización:
   - ping respondió HTTP 200.
   - getAttendanceMonth respondió success=true.
   - ASISTENCIA (2B), agosto de 2026, devolvió 21 días en una sola petición.
@@ -84,6 +84,10 @@ La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`,
 - La vista mensual V7 se consulta en una sola petición.
 - Si una marca se elimina directamente en Sheets, el panel la elimina de su caché al volver a sincronizar en línea.
 - Las capturas locales pendientes se conservan hasta sincronizarse.
+
+> **Bloqueo operativo:** V7 identifica la hoja sólo por grupo, no por mes. `writeAttendanceMonthHeader` cambia los encabezados de la misma matriz y las marcas anteriores permanecen en esas columnas hasta ser reemplazadas. No iniciar septiembre de 2026 como operación definitiva hasta migrar agosto a registros históricos por fecha y superar la prueba agosto → septiembre → agosto.
+
+**Actualización V9:** la migración mensual fue instalada y la API pública confirmó `historyReady=true` y `storage=historical-events-v1`. Las correcciones de asistencia pasan a realizarse desde el panel; la matriz visible es un reporte regenerable.
 
 ### Administración
 
@@ -166,7 +170,7 @@ Esto es aceptable únicamente para una prueba interna controlada. Antes de opera
 
 - No existe todavía un historial formal de quién cambió cada campo.
 - El Sheet puede ser modificado manualmente por alguien con permisos.
-- No existe un respaldo automático independiente ya configurado.
+- V8 fue actualizado por el propietario. `setupBackups()` creó correctamente la carpeta, el snapshot inicial y el activador nocturno el 28 de agosto de 2026. Falta una prueba controlada de restauración para cerrar la verificación completa.
 - localStorage ayuda ante una falla temporal, pero no reemplaza una base de datos ni un sistema de sincronización con resolución de conflictos.
 
 ### Operación
@@ -184,8 +188,9 @@ Esto es aceptable únicamente para una prueba interna controlada. Antes de opera
 2. Confirmar que cada grupo tiene su pestaña maestra y su pestaña mensual.
 3. Probar alta, edición, folio, impresión, asistencia diaria e historial.
 4. Definir quién puede corregir asistencia pasada.
-5. Configurar respaldos manuales antes de que comiencen a capturar datos reales.
-6. Entregar la URL a la subdirectora y capacitarla con un flujo corto.
+5. Instalar V8, ejecutar `setupBackups()` y comprobar el snapshot inicial antes de que comiencen a capturar datos reales.
+6. Migrar agosto a almacenamiento histórico y verificar que septiembre no lo sobrescribe.
+7. Entregar la URL a la subdirectora y capacitarla con un flujo corto.
 
 ### Fase 1 — Estabilizar el modelo de datos
 
@@ -272,3 +277,18 @@ La próxima sesión debe comenzar leyendo este documento y verificando:
 5. El objetivo de la fase en curso.
 
 No cambiar la estructura de Sheets ni iniciar una migración de base de datos hasta definir los IDs permanentes, el historial y los permisos.
+
+## 12. Camino corto para cerrar el piloto 2026-2027
+
+Este orden reemplaza cualquier lista anterior que parezca permitir iniciar un mes nuevo sólo con las matrices actuales:
+
+1. Crear una copia manual completa del Sheet oficial y no modificarla.
+2. Instalar y comprobar el respaldo automático V8.
+3. Crear almacenamiento histórico de asistencia por fecha, con migración idempotente de agosto.
+4. Mantener `ASISTENCIA (GRUPO)` como formato visible y regenerable, no como única fuente histórica.
+5. Ejecutar la prueba controlada agosto → septiembre → agosto en un grupo de prueba.
+6. Añadir `alumnoId` permanente antes de permitir reordenamientos, cambios de grupo o bajas históricas.
+7. Sustituir la eliminación física por estatus y eventos de alta/baja/transferencia.
+8. Añadir bitácora append-only para cambios de alumnos y correcciones de asistencia.
+9. Probar restauración desde un snapshot sin cambiar el ID del archivo oficial.
+10. Sólo entonces considerar el piloto listo para operación continua del ciclo.

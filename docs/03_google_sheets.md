@@ -82,13 +82,30 @@ Si se agrega un grado nuevo, también hay que actualizar el Apps Script y `app.j
 
 ## Ver el Sheet e imprimir desde el panel
 
-## Hojas mensuales de asistencia
+## Hojas formateadas de asistencia (comportamiento publicado V7/V8)
 
-Cada grupo debe tener una hoja mensual formateada con el nombre exacto `ASISTENCIA (1A)`, `ASISTENCIA (1B)`, hasta `ASISTENCIA (6B)`. La plantilla usa la fila 6 para las iniciales de los días, la fila 7 para los números del mes, la fila 8 en adelante para los alumnos y la columna B para sus nombres.
+Cada grupo debe tener una hoja formateada con el nombre exacto `ASISTENCIA (1A)`, `ASISTENCIA (1B)`, hasta `ASISTENCIA (6B)`. La plantilla usa la fila 6 para las iniciales de los días, la fila 7 para los números del mes, la fila 8 en adelante para los alumnos y la columna B para sus nombres.
 
 El panel solamente escribe `✓` o `X` en la celda correspondiente al alumno y al día. El Apps Script V7 no crea una pestaña nueva: si la hoja del grupo no existe, devuelve un aviso y no escribe nada. Las fechas futuras no se pueden capturar. El historial mensual se consulta con una sola petición optimizada.
 
-Cuando el panel consulta una fecha con internet, la hoja mensual es la fuente de verdad: si una marca se borra directamente en Sheets, desaparecerá del panel al actualizar o volver a consultar ese día. Las capturas hechas sin internet se conservan localmente hasta sincronizarse.
+En el comportamiento V7/V8, cuando el panel consulta una fecha con internet, la hoja mensual es la fuente de verdad: si una marca se borra directamente en Sheets, desaparecerá del panel al actualizar o volver a consultar ese día. Las capturas hechas sin internet se conservan localmente hasta sincronizarse. Después de activar V9, la fuente histórica pasa a las hojas técnicas mensuales y las correcciones deben hacerse desde el panel.
+
+> **Limitación crítica antes de septiembre de 2026:** el nombre de estas hojas no contiene mes ni año y V7 vuelve a escribir sus encabezados. No se debe iniciar la captura de un mes nuevo hasta migrar agosto a un almacenamiento histórico por fecha y verificar que ambos meses se consultan por separado. Un respaldo completo protege ante accidentes, pero no convierte por sí solo estas matrices en historial consultable.
+
+### Estructura local preparada para V9
+
+V9 evita crear 120 matrices visibles por ciclo. Mantiene las 12 hojas institucionales anteriores y crea una partición técnica oculta por mes para todos los grupos:
+
+```text
+_ASISTENCIA_DATOS_2026_08
+_ASISTENCIA_DATOS_2026_09
+_ASISTENCIA_DATOS_2026_10
+...
+```
+
+Cada registro técnico contiene fecha, grupo, alumno, estado, nota, usuario y actualización. El panel consulta estas particiones; la matriz visible se limpia y regenera para el mes que se está capturando. La versión local ya superó una simulación agosto → septiembre → agosto, pero no debe considerarse producción hasta ejecutar la migración y la prueba controlada en el Sheet real.
+
+Para corregir una marca en V9 se usa el panel: seleccionar la otra opción cambia ✓ por X o viceversa; pulsar nuevamente la opción que ya está seleccionada la limpia y devuelve al alumno a estado pendiente. No se debe borrar directamente la celda de la matriz visible.
 
 | Acción | Cómo hacerlo | Resultado |
 |--------|-------------|-----------|

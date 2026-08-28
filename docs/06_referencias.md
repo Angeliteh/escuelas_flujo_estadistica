@@ -9,8 +9,8 @@ https://asistpanel.vercel.app/
 Repositorio:
 https://github.com/Angeliteh/escuelas_flujo_estadistica
 
-Último commit funcional verificado:
-43a73bf
+Último commit funcional verificado en producción:
+fdb4545
 
 Google Sheet:
 https://docs.google.com/spreadsheets/d/1jAPfaac3miW8izCGrq1rosCntdjAMw3TMKLCxHYtSzI/edit
@@ -31,6 +31,7 @@ TESTEOAMIGAMAMA/
 ├── index.html          ← Estructura HTML (login, vistas, modales)
 ├── styles.css          ← Estilos (glassmorphism, responsive, animaciones)
 ├── app.js              ← Toda la lógica JS (auth, API, render e impresión)
+├── AppsScript_V9.gs    ← Código limpio de Apps Script listo para copiar
 └── docs/
     ├── README.md       ← Índice de documentación (este archivo)
     ├── 01_arquitectura.md
@@ -40,7 +41,8 @@ TESTEOAMIGAMAMA/
     ├── 05_deuda_tecnica.md
     ├── 06_referencias.md
     ├── 07_estado_actual.md
-    └── 08_handoff_y_escalabilidad.md  ← Documento principal de continuidad
+    ├── 08_handoff_y_escalabilidad.md  ← Documento principal de continuidad
+    └── 09_respaldos_y_restauracion.md ← Instalación y recuperación de copias
 ```
 
 ---
@@ -87,6 +89,8 @@ Todas se cargan desde CDN en `index.html`. No hay `package.json` ni `node_module
 | `TABS` | `['1A','1B','2A','2B','3A','3B','4A','4B','5A','5B','6A','6B']` | Apps Script |
 | `GROUPS_LIST` | Igual que `TABS` | `app.js` (aproximadamente línea 50) |
 | `API_URL` | La URL larga del Script | `app.js` (línea ~130) |
+
+> V8 está actualizado y `setupBackups()` terminó correctamente el 28 de agosto de 2026: creó la carpeta privada, el snapshot inicial y el activador diario alrededor de las 02:00 (`America/Mexico_City`) con retención de 30 copias. V9 con historial mensual está preparado localmente en `04_apps_script.md` y todavía no está publicado.
 
 ---
 

@@ -1122,7 +1122,10 @@ function setAttendanceStatus(studentId, status) {
   if (!currentUser || !isAttendanceDateAllowed(date)) return;
   const student = getStudentsByGroup(currentUser.group).find(item => getAttendanceStudentId(item) === String(studentId));
   if (!student) return;
-  setAttendanceRecord(currentUser.group, date, String(studentId), { status });
+  const current = getAttendanceRecord(currentUser.group, date, String(studentId));
+  const normalizedStatus = normalizeAttendanceStatus(status);
+  const nextStatus = current.status === normalizedStatus ? '' : normalizedStatus;
+  setAttendanceRecord(currentUser.group, date, String(studentId), { status: nextStatus });
   renderAttendanceTable();
 }
 
