@@ -2289,6 +2289,10 @@ function setStudentDrawerMode(mode) {
   document.getElementById('detail-save-btn').classList.toggle('hidden', isView || !studentDrawerCanEdit);
   document.getElementById('detail-delete-btn').classList.toggle('hidden', isView || !studentDrawerCanEdit || !isExisting);
   const deleteButton = document.getElementById('detail-delete-btn');
+  const saveButton = document.getElementById('detail-save-btn');
+  saveButton.innerHTML = isExisting
+    ? '<i class="fa-solid fa-floppy-disk"></i> Guardar cambios'
+    : '<i class="fa-solid fa-user-plus"></i> Inscribir alumno';
   deleteButton.innerHTML = studentSoftDeleteEnabled
     ? '<i class="fa-solid fa-user-minus"></i> Dar de baja'
     : '<i class="fa-solid fa-trash"></i> Eliminar';
@@ -2303,6 +2307,11 @@ function enableStudentDrawerEdit() {
 function openStudentDrawer(id = null) {
   const isTeacher = currentUser && currentUser.role === 'teacher';
   const isDirector = currentUser && currentUser.role === 'director';
+  const admissionGroup = isTeacher ? currentUser.group : selectedDirectorGroup;
+  if (!id && !GROUPS_LIST.includes(admissionGroup)) {
+    showToast('Selecciona primero el grupo donde se inscribirá el alumno', 'error');
+    return;
+  }
   studentDrawerCanEdit = isTeacher || isDirector;
   editingId = id;
   
@@ -2318,6 +2327,7 @@ function openStudentDrawer(id = null) {
     const statusBadge = document.getElementById('detail-status-badge');
     statusBadge.className = `badge ${status === 'ACTIVO' ? 'badge-active' : 'badge-inactive'}`;
     statusBadge.innerHTML = `<i class="fa-solid ${status === 'ACTIVO' ? 'fa-circle-check' : 'fa-circle-minus'}"></i> ${escHtml(status)}`;
+    statusBadge.title = 'Situación escolar vigente';
     document.getElementById('detail-avatar-icon').className =
       `detail-avatar ${getGenderCategory(s.genero) === 'male' ? 'avatar-male' : 'avatar-female'}`;
 
@@ -2340,9 +2350,12 @@ function openStudentDrawer(id = null) {
     document.getElementById('f-ocupacion').value = s.ocupacion    || '';
   } else {
     document.getElementById('detail-name').textContent = 'Nuevo Alumno';
-    document.getElementById('detail-grupo-badge').textContent = currentUser ? `${getGrade(currentUser.group)} Grado — Grupo ${currentUser.group}` : '';
+    document.getElementById('detail-grupo-badge').textContent = `${getGrade(admissionGroup)} Grado — Grupo ${admissionGroup}`;
     document.getElementById('detail-avatar-icon').className = 'detail-avatar avatar-male';
-    document.getElementById('detail-status-badge').classList.add('hidden');
+    const statusBadge = document.getElementById('detail-status-badge');
+    statusBadge.className = 'badge badge-active';
+    statusBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> NUEVA ALTA · ACTIVO';
+    statusBadge.title = 'Al guardar se creará automáticamente la inscripción del ciclo vigente';
   }
 
   setStudentDrawerMode(id ? 'view' : 'edit');
@@ -2394,8 +2407,11 @@ async function saveStudent(e) {
     gradeToSave = existing.grado;
     groupToSave = existing.grupo;
   } else {
-    // Solo maestros pueden agregar nuevos (por ahora)
-    const group = currentUser.group;
+    const group = currentUser.role === 'teacher' ? currentUser.group : selectedDirectorGroup;
+    if (!GROUPS_LIST.includes(group)) {
+      showToast('Selecciona primero el grupo donde se inscribirá el alumno', 'error');
+      return;
+    }
     gradeToSave = getGrade(group);
     groupToSave = group.length > 1 ? group.charAt(1) : group;
   }
@@ -2420,13 +2436,14 @@ async function saveStudent(e) {
     correo:          document.getElementById('f-correo').value.trim().toUpperCase(),
     domicilio:       document.getElementById('f-domicilio').value.trim().toUpperCase(),
     ocupacion:       document.getElementById('f-ocupacion').value.trim().toUpperCase(),
+    usuario:         currentUser?.username || '',
   };
 
   const saved = await upsertStudent(data, savedId);
 
   closeStudentDrawer();
   if (saved) {
-    showToast(savedId ? 'Alumno actualizado correctamente' : 'Alumno agregado correctamente', 'success');
+    showToast(savedId ? 'Alumno actualizado correctamente' : 'Alumno inscrito correctamente', 'success');
   }
 }
 

@@ -107,11 +107,11 @@ Cada registro técnico contiene fecha, grupo, alumno, estado, nota, usuario y ac
 
 Para corregir una marca en V9 se usa el panel: seleccionar la otra opción cambia ✓ por X o viceversa; pulsar nuevamente la opción que ya está seleccionada la limpia y devuelve al alumno a estado pendiente. No se debe borrar directamente la celda de la matriz visible.
 
-### Extensión técnica activa en V10
+### Extensión técnica activa en V11
 
-V10 conserva exactamente las 20 columnas oficiales visibles `A:T` y agrega metadatos ocultos en `U:AA`: `ALUMNO_ID`, `ESTATUS`, `CICLO_ESCOLAR`, `FECHA_ALTA_SISTEMA`, `FECHA_ESTATUS`, `ACTUALIZADO_EN` y `ACTUALIZADO_POR`.
+V11 conserva exactamente las 20 columnas oficiales visibles `A:T` y utiliza metadatos ocultos en `U:AA`: `ALUMNO_ID`, `ESTATUS`, `CICLO_ESCOLAR`, `FECHA_ALTA_SISTEMA`, `FECHA_ESTATUS`, `ACTUALIZADO_EN` y `ACTUALIZADO_POR`. Además relaciona cada alumno con `_INSCRIPCIONES` y `_MOVIMIENTOS_ALUMNO`.
 
-Estas columnas no deben borrarse ni usarse para captura manual. Su función es separar la identidad del alumno de la fila física y conservar su historia cuando cambie de grupo, estado o ciclo. La instalación está descrita en [10_identidad_alumnos_v10.md](./10_identidad_alumnos_v10.md).
+Estas columnas no deben borrarse ni usarse para captura manual. `ESTATUS` sí existe en `V`, pero se cambia desde el panel mediante Alta, Baja, Reingreso, Transferencia o Egreso para que la inscripción y el movimiento correspondiente se actualicen juntos. La instalación está descrita en [12_inscripciones_y_movimientos_v11.md](./12_inscripciones_y_movimientos_v11.md).
 
 | Acción | Cómo hacerlo | Resultado |
 |--------|-------------|-----------|

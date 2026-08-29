@@ -63,6 +63,8 @@ fechaInicio · fechaFin · motivoFin · actualizadoEn · actualizadoPor
 
 No debe existir más de una inscripción activa para el mismo alumno dentro del mismo ciclo, salvo una excepción administrativa explícita.
 
+En la operación normal, **Agregar alumno** equivale a darlo de alta en el ciclo y grupo seleccionados: crea la identidad permanente, una inscripción `ACTIVO` y un movimiento `ALTA`. El estado se muestra en el panel, pero no se captura como un campo libre; las transiciones se realizan mediante acciones controladas para conservar fecha, motivo e historial.
+
 ### `MOVIMIENTOS_ALUMNO`
 
 Bitácora de eventos que no se sobrescribe:

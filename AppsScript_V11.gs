@@ -239,10 +239,23 @@ function saveStudent(student) {
     };
     const rowData = objectToRow(student, targetRow - HEADER_ROW, metadata);
     sheet.getRange(targetRow, 1, 1, rowData.length).setValues([rowData]);
+    let admission = { created: false };
+    if (enrollmentHistoryIsReady_()) {
+      admission = ensureStudentAdmissionV11_({
+        alumnoId: metadata.alumnoId,
+        cycle: metadata.cicloEscolar,
+        group: hojaNombre,
+        effectiveDate: student.fechaIngreso,
+        user: student.usuario || student.actualizadoPor
+      });
+    }
     const savedStudent = rowToObject(rowData, targetRow, hojaNombre);
     return {
       success: true,
-      message: isNew ? 'Alumno registrado' : 'Alumno actualizado',
+      message: isNew
+        ? (admission.created ? 'Alumno registrado e inscrito' : 'Alumno registrado')
+        : 'Alumno actualizado',
+      enrollmentCreated: admission.created,
       data: savedStudent
     };
   } finally {
@@ -1775,6 +1788,33 @@ function reactivateStudent(params) {
   });
 }
 
+function ensureStudentAdmissionV11_(event) {
+  const enrollmentsSheet = ensureTechnicalDataSheetV11_(ENROLLMENTS_SHEET_NAME, ENROLLMENT_HEADERS);
+  const rows = enrollmentsSheet.getLastRow() > 1
+    ? enrollmentsSheet.getRange(2, 1, enrollmentsSheet.getLastRow() - 1, ENROLLMENT_HEADERS.length).getValues()
+    : [];
+  const existing = rows.find(row =>
+    String(row[1]) === String(event.alumnoId) && String(row[2]) === String(event.cycle)
+  );
+  if (existing) return { created: false, enrollmentId: String(existing[0]) };
+  recordStudentStatusMovementV11_({
+    alumnoId: String(event.alumnoId),
+    cycle: String(event.cycle || CURRENT_SCHOOL_CYCLE),
+    group: String(event.group),
+    previousStatus: '',
+    status: STUDENT_ACTIVE_STATUS,
+    effectiveDate: event.effectiveDate,
+    reason: 'ALTA DESDE PANEL',
+    observation: '',
+    user: event.user,
+    movementType: 'ALTA'
+  });
+  return {
+    created: true,
+    enrollmentId: deterministicEnrollmentIdV11_(event.alumnoId, event.cycle || CURRENT_SCHOOL_CYCLE)
+  };
+}
+
 function recordStudentStatusMovementV11_(event) {
   const enrollmentsSheet = ensureTechnicalDataSheetV11_(ENROLLMENTS_SHEET_NAME, ENROLLMENT_HEADERS);
   const movementsSheet = ensureTechnicalDataSheetV11_(STUDENT_MOVEMENTS_SHEET_NAME, STUDENT_MOVEMENT_HEADERS);
@@ -1807,13 +1847,15 @@ function recordStudentStatusMovementV11_(event) {
     row[11] = String(event.user || '');
     enrollmentsSheet.getRange(index + 2, 1, 1, ENROLLMENT_HEADERS.length).setValues([row]);
   }
-  const movementType = event.status === STUDENT_ACTIVE_STATUS
+  const movementType = String(event.movementType || '') || (event.status === STUDENT_ACTIVE_STATUS
     ? 'REINGRESO'
-    : ({ TRANSFERIDO: 'TRANSFERENCIA', EGRESADO: 'EGRESO' }[event.status] || event.status);
+    : ({ TRANSFERIDO: 'TRANSFERENCIA', EGRESADO: 'EGRESO' }[event.status] || event.status));
+  const isAdmission = movementType === 'ALTA';
   const movementRow = [[
     'MOV-' + Utilities.getUuid().replace(/-/g, '').toUpperCase(),
     event.alumnoId, enrollmentId, movementType, effectiveDate,
-    event.cycle, event.group, event.cycle, event.group, event.status,
+    isAdmission ? '' : event.cycle, isAdmission ? '' : event.group,
+    event.cycle, event.group, event.status,
     String(event.reason || ''), String(event.observation || ''), String(event.user || ''),
     now, 'panel-v11', SCHOOL_ID
   ]];

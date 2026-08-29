@@ -12,6 +12,7 @@ V11 conserva identidad V10, asistencia histórica y respaldos. Añade:
 - registro automático de bajas y reingresos;
 - API para consultar inactivos, reactivarlos y consultar el ciclo de vida;
 - pantalla administrativa **Bajas e inactivos**, oculta mientras V11 no esté lista.
+- alta automática: un alumno nuevo creado desde el panel recibe inscripción activa y movimiento `ALTA` en la misma operación.
 
 Todavía no implementa cambio de grupo ni promoción masiva; esos procesos se construirán sobre estas tablas después de validar la primera etapa.
 
