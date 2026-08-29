@@ -56,9 +56,10 @@ El sistema es una **aplicación web estática** (3 archivos: HTML + CSS + JS) qu
 2. app.js inyecta automáticamente: grado = "1°", grupo = "A"
 3. fetch POST → Apps Script con { action: "saveStudent", data: {...} }
 4. Apps Script combina grado + grupo → determina hoja = "1A"
-5. Apps Script escribe la fila en la hoja "1A" a partir de la fila 6
-6. El panel actualiza la tabla de forma optimista
-7. Si la API falla, el panel revierte el cambio y muestra un error
+5. Apps Script escribe la fila, asigna `ALUMNO_ID` y estado `ACTIVO`
+6. Apps Script crea la inscripción del ciclo vigente y agrega el movimiento `ALTA`
+7. El panel actualiza la tabla de forma optimista
+8. Si la API falla, el panel revierte el cambio y muestra un error
 ```
 
 ## Flujo: cargar datos al abrir sesión
@@ -102,8 +103,8 @@ Se retiró la descarga de Excel del panel para evitar copias desactualizadas o a
 
 ---
 
-## Modelo de datos vigente y siguiente fase
+## Modelo de datos vigente
 
-V10 añadió identidad permanente, estado, ciclo y metadatos ocultos `U:AA` a las 20 columnas oficiales. La asistencia ya está separada como eventos históricos por fecha.
+V11 utiliza identidad permanente, estado, ciclo y metadatos ocultos `U:AA` junto con `_INSCRIPCIONES`, `_MOVIMIENTOS_ALUMNO` y asistencia histórica por fecha.
 
-La siguiente fase no debe agregar más significado a la fila física: debe crear inscripciones por ciclo y movimientos append-only. El modelo rector, sus entidades y el camino de migración están en [11_modelo_control_escolar_y_movimientos.md](./11_modelo_control_escolar_y_movimientos.md).
+Las reglas obligatorias están en [13_contrato_operativo.md](./13_contrato_operativo.md); el modelo rector y el camino de migración están en [11_modelo_control_escolar_y_movimientos.md](./11_modelo_control_escolar_y_movimientos.md).

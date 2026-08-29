@@ -31,7 +31,7 @@ TESTEOAMIGAMAMA/
 ├── index.html          ← Estructura HTML (login, vistas, modales)
 ├── styles.css          ← Estilos (glassmorphism, responsive, animaciones)
 ├── app.js              ← Toda la lógica JS (auth, API, render e impresión)
-├── AppsScript_V11.gs   ← Candidata local; V10 continúa publicada
+├── AppsScript_V11.gs   ← Backend V11 publicado
 └── docs/
     ├── README.md       ← Índice de documentación (este archivo)
     ├── 01_arquitectura.md
@@ -45,7 +45,8 @@ TESTEOAMIGAMAMA/
     ├── 09_respaldos_y_restauracion.md ← Instalación y recuperación de copias
     ├── 10_identidad_alumnos_v10.md    ← Migración a identidad permanente
     ├── 11_modelo_control_escolar_y_movimientos.md
-    └── 12_inscripciones_y_movimientos_v11.md
+    ├── 12_inscripciones_y_movimientos_v11.md
+    └── 13_contrato_operativo.md          ← Reglas obligatorias
 ```
 
 ---

@@ -1428,9 +1428,6 @@ function renderTeacherTable(filterText = '') {
           <button class="btn-icon btn-edit" onclick='openStudentDrawer(${JSON.stringify(s.id)})' title="Editar">
             <i class="fa-solid fa-pen"></i>
           </button>
-          <button class="btn-icon-sm btn-delete" onclick='askDelete(${JSON.stringify(s.id)})' title="${studentSoftDeleteEnabled ? 'Dar de baja' : 'Eliminar'} alumno">
-            <i class="fa-solid ${studentSoftDeleteEnabled ? 'fa-user-minus' : 'fa-trash'}"></i>
-          </button>
         </td>
       </tr>
     `).join('');
@@ -2287,7 +2284,10 @@ function setStudentDrawerMode(mode) {
   document.getElementById('detail-print-btn').classList.toggle('hidden', !isExisting);
   document.getElementById('detail-edit-btn').classList.toggle('hidden', !isView || !studentDrawerCanEdit);
   document.getElementById('detail-save-btn').classList.toggle('hidden', isView || !studentDrawerCanEdit);
-  document.getElementById('detail-delete-btn').classList.toggle('hidden', isView || !studentDrawerCanEdit || !isExisting);
+  document.getElementById('detail-delete-btn').classList.toggle(
+    'hidden',
+    isView || !studentDrawerCanEdit || !isExisting || currentUser?.role !== 'director'
+  );
   const deleteButton = document.getElementById('detail-delete-btn');
   const saveButton = document.getElementById('detail-save-btn');
   saveButton.innerHTML = isExisting

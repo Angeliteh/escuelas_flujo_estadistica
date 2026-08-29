@@ -1,130 +1,93 @@
-# 02 — Roles, Permisos y Credenciales
+# 02 — Roles, permisos y responsabilidades
 
-## Resumen
+> Contrato funcional vigente desde V11. Las reglas inmutables del sistema están en [13_contrato_operativo.md](./13_contrato_operativo.md).
 
-| Rol | Accede al Panel | Accede al Sheet | Ve otros grupos |
-|-----|----------------|-----------------|-----------------|
-| Maestro | ✅ Solo su grupo | ❌ No | ❌ No |
-| Directora | ✅ Todos los grupos | ✅ Sí | ✅ Sí |
+## Matriz vigente
 
----
+| Capacidad | Maestro | Dirección / subdirección | Responsable técnico |
+|---|---:|---:|---:|
+| Entrar al panel | Sí | Sí | Sólo para soporte controlado |
+| Ver alumnos | Sólo su grupo | Toda la escuela | Sólo cuando el soporte lo requiera |
+| Inscribir alumno | Sí, únicamente en su grupo | Sí, eligiendo primero un grupo | No como operación cotidiana |
+| Editar ficha | Sí, únicamente en su grupo | Sí, cualquier grupo | Sólo corrección técnica autorizada |
+| Capturar/corregir asistencia | Sí, su grupo | Consulta; la captura ordinaria corresponde al maestro | Sólo soporte autorizado |
+| Dar de baja o reactivar | No | Sí | Sólo reparación técnica autorizada |
+| Transferir, cambiar grupo o egresar | No | Sí, cuando exista el flujo controlado | Sólo reparación técnica autorizada |
+| Cerrar/promover ciclo | No | Sí, cuando exista el flujo controlado | Acompaña y valida la primera ejecución |
+| Ver personal | No | Sí | Sólo soporte autorizado |
+| Editar el Google Sheet | No | Evitar durante la operación normal | Sí, con respaldo y procedimiento |
+| Publicar Apps Script / frontend | No | No | Sí |
 
-## 👨‍🏫 Maestro
+## Maestro
 
-### Lo que VE
-- Barra de estadísticas de su grupo: total alumnos, hombres, mujeres, con beca
-- Tabla completa de **sus alumnos únicamente**
-- Barra de búsqueda por nombre o CURP
+El maestro trabaja exclusivamente con el grupo asignado a su usuario.
 
-### Lo que PUEDE hacer
-- **Agregar alumno** — panel lateral con todos los campos (grado y grupo se asignan automáticamente)
-- **Editar alumno** — clic en la fila → panel lateral con datos precargados → editar → Guardar
-- **Eliminar alumno** — botón rojo en el panel lateral, con confirmación
-- **Imprimir padrón** — desde la pestaña Alumnos, con los datos completos del grupo
-- **Registrar e imprimir asistencia** — desde las pestañas Asistencia e Historial mensual
+Puede:
 
-### Lo que NO puede hacer
-- Ver alumnos de otros grupos
-- Acceder al Google Sheet directamente
-- Ver el Dashboard ni la tabla global de la directora
+- consultar resumen, padrón y fichas de su grupo;
+- inscribir un alumno en su grupo;
+- completar o corregir los datos de esos alumnos;
+- registrar, corregir, consultar e imprimir asistencia;
+- imprimir el padrón y las fichas disponibles.
 
-### Credenciales para pruebas
+Cuando pulsa **Inscribir alumno**, el sistema asigna grado y grupo desde su sesión y crea conjuntamente:
 
-| Usuario | Contraseña | Grupo |
-|---------|-----------|-------|
-| `1A` | `maestro2025` | 1° Grado – Grupo A |
-| `1B` | `maestro2025` | 1° Grado – Grupo B |
-| `2A` | `maestro2025` | 2° Grado – Grupo A |
-| `2B` | `maestro2025` | 2° Grado – Grupo B |
-| `3A` | `maestro2025` | 3° Grado – Grupo A |
-| `3B` | `maestro2025` | 3° Grado – Grupo B |
-| `4A` | `maestro2025` | 4° Grado – Grupo A |
-| `4B` | `maestro2025` | 4° Grado – Grupo B |
-| `5A` | `maestro2025` | 5° Grado – Grupo A |
-| `5B` | `maestro2025` | 5° Grado – Grupo B |
-| `6A` | `maestro2025` | 6° Grado – Grupo A |
-| `6B` | `maestro2025` | 6° Grado – Grupo B |
+1. la fila oficial del alumno;
+2. su `ALUMNO_ID` permanente;
+3. la inscripción `ACTIVO` del ciclo vigente;
+4. el movimiento `ALTA`.
 
-> **Contraseña real:** Para cambiar `maestro2025` a una real, editar en `app.js` el campo `password` de cada grupo en el objeto `USERS`.
+El maestro no elige libremente el estado ni debe editar las columnas técnicas. Una baja, transferencia, reingreso, egreso o cambio de ciclo es una decisión administrativa de dirección.
 
----
+## Dirección / subdirección
 
-## 🛡️ Subdirectora / administración
+La cuenta interna `directora` representa actualmente a la subdirectora responsable. Puede:
 
-### Lo que VE (4 pestañas)
+- consultar dashboard, grupos, todos los alumnos, personal y asistencia mensual;
+- abrir, editar e imprimir cualquier ficha;
+- inscribir desde **Grupos → grupo seleccionado → Alumnos → Inscribir alumno**;
+- dar de baja y consultar **Bajas e inactivos**;
+- reactivar conservando identidad, inscripción y asistencia;
+- auditar el Sheet y solicitar correcciones técnicas;
+- operar en el futuro transferencia, cambio de grupo, promoción y egreso.
 
-**Dashboard**
-- 4 tarjetas: Total alumnos, Grupos activos, Con beca, % de becas
-- Gráfica de dona: distribución por género (toda la escuela)
-- Gráfica de barras: alumnos por grupo (12 grupos)
-- Gráfica de barras apiladas: becas por grado
-- Gráfica doble: peso y estatura promedio por grado
+El estado escolar no es un campo de captura común. Dirección ejecuta acciones con fecha y motivo; Apps Script actualiza el estado vigente, la inscripción y la bitácora en conjunto.
 
-**Todos los Alumnos**
-- Tabla completa con las **20 columnas** de cada alumno (equivalente a la hoja oficial)
-- Filtros rápidos por **Grado** (botones 1° al 6°) y **Grupo** (botones A / B)
-- Filtros por Género y Beca (dropdown)
-- Búsqueda libre: nombre, CURP o tutor
-- Clic en cualquier fila → Panel lateral de detalle (solo lectura)
-- Botón **"Ver en Sheets"** → abre el Google Sheet en nueva pestaña para auditoría
-- **Imprimir padrón** desde la pestaña Todos los Alumnos, con los datos completos
-- **Asistencia mensual** en modo consulta; puede abrir el detalle de cada día sin editarlo
+## Responsable técnico
 
-**Personal**
-- Consulta de los 17 campos del registro de personal
-- Búsqueda por nombre, función o RFC
-- Modo **solo lectura**; por ahora no se agregan, editan ni eliminan registros desde la aplicación
+Administra código, despliegues, respaldos, analizadores y migraciones. No debe usar acceso técnico para sustituir la operación escolar ordinaria. Toda corrección directa requiere:
 
-### Lo que PUEDE hacer además
-- Abrir el Google Sheet para imprimir con membrete
-- Ver todos los datos exactamente como los ingresaron los maestros
+1. objetivo y registros exactos;
+2. respaldo reciente;
+3. preanálisis cuando exista;
+4. verificación de totales y relaciones;
+5. documentación del resultado.
 
-La directora conserva la posibilidad de abrir el Sheet oficial porque es la fuente operativa, pero se recomienda no editarlo durante la captura normal para proteger el formato y la trazabilidad.
+## Acceso al Sheet
 
-### Credenciales
+- Los maestros no reciben permiso directo al archivo.
+- Dirección puede conservar acceso para consulta, impresión y auditoría, pero debe operar normalmente desde el panel.
+- Las columnas `U:AA` y las hojas que comienzan con `_` son técnicas; ocultarlas evita accidentes, pero no constituye seguridad.
+- Nadie debe cambiar manualmente `ALUMNO_ID`, `ESTATUS`, inscripciones, movimientos o asistencia histórica.
 
-```
-Usuario:    directora
-Contraseña: director2025
-```
+## Credenciales actuales de prueba
 
-La cuenta administrativa corresponde a la subdirectora **Norma Patricia Ortiz Cabrera**. Se conserva la llave interna `directora` para no romper el acceso existente.
+| Usuario | Contraseña | Alcance |
+|---|---|---|
+| `directora` | `director2025` | Toda la escuela |
+| `1A` … `6B` | `maestro2025` | Grupo igual al usuario |
 
----
+Estas credenciales están en `app.js` y son visibles desde el navegador. Sirven únicamente para operación interna controlada. Antes de una entrega con seguridad real se necesita autenticación y autorización en el backend; ocultar botones no sustituye ese control.
 
-## Cómo cambiar nombres y contraseñas
+## Alta de un grupo nuevo
 
-Todas las credenciales están en `app.js`, objeto `USERS` (~línea 26):
+Agregar, por ejemplo, `1C` exige una sola modificación coordinada:
 
-```javascript
-const USERS = {
-  directora: {
-    password: 'director2025',
-    role: 'director',
-    name: 'Norma Patricia Ortiz Cabrera'  // ← Nombre que aparece en pantalla
-  },
-  '1A': {
-    password: 'maestro2025',            // ← Cambiar aquí
-    role: 'teacher',
-    group: '1A',
-    name: 'Mtro. Carlos Mendoza (1A)'  // ← Nombre del maestro
-  },
-  // ... etc para cada grupo
-};
-```
+1. crear la pestaña oficial con la misma estructura;
+2. agregar `1C` a `GROUPS_LIST` y al catálogo `USERS` del frontend;
+3. agregar `1C` a `TABS` en Apps Script;
+4. definir docente y permisos;
+5. validar lectura, alta, asistencia e impresión;
+6. desplegar conservando las URLs existentes.
 
-Cambiar `password` y `name` según corresponda. **No cambiar** `role`, `group` ni las llaves (`'1A'`, `'directora'`).
-
-> ⚠️ **Seguridad:** Las contraseñas son visibles en el código fuente del navegador (DevTools → app.js). Aceptable para prototipo interno; para producción real se necesita backend. Ver [05_deuda_tecnica.md](./05_deuda_tecnica.md).
-
----
-
-## Cómo agregar un grupo nuevo (ej: 1C)
-
-1. Crear pestaña `1C` en el Google Sheet con los mismos encabezados
-2. En `app.js`, agregar `'1C'` al array `GROUPS_LIST`
-3. En `app.js`, agregar en `USERS`:
-   ```javascript
-   '1C': { password: 'maestro2025', role: 'teacher', group: '1C', name: 'Mtra. Nombre Apellido (1C)' }
-   ```
-4. En el Apps Script, agregar `'1C'` al array `TABS` y republicar
+No basta con crear una pestaña manualmente: grupo, usuario, API y documentación deben mantenerse alineados.

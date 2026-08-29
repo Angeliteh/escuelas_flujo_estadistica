@@ -138,7 +138,7 @@ La matriz mensual debe ser una vista o reporte generado desde esos eventos, no l
 
 ### Identidad y cambios
 
-V10 ya asignó `alumnoId` permanente y metadatos de estado/ciclo. La siguiente fase debe separar la inscripción vigente y el historial de movimientos, incluyendo:
+V11 ya asigna `alumnoId` permanente y separa la inscripción vigente y el historial de movimientos, incluyendo:
 
 - escuelaId
 - cicloEscolarId
@@ -292,7 +292,7 @@ La próxima sesión debe comenzar leyendo este documento y verificando:
 4. El estado de producción en Vercel.
 5. El objetivo de la fase en curso.
 
-No iniciar una migración de base de datos antes de estabilizar inscripciones, movimientos y permisos. El modelo rector está en [11_modelo_control_escolar_y_movimientos.md](./11_modelo_control_escolar_y_movimientos.md).
+No iniciar una migración de base de datos antes de estabilizar transferencias, cierre de ciclo y permisos reales. El contrato obligatorio está en [13_contrato_operativo.md](./13_contrato_operativo.md) y el modelo rector en [11_modelo_control_escolar_y_movimientos.md](./11_modelo_control_escolar_y_movimientos.md).
 
 ## 12. Camino corto para cerrar el piloto 2026-2027
 
@@ -304,8 +304,8 @@ Este orden reemplaza cualquier lista anterior que parezca permitir iniciar un me
 4. Mantener `ASISTENCIA (GRUPO)` como formato visible y regenerable, no como única fuente histórica.
 5. Ejecutar la comprobación agosto → septiembre → agosto desde el panel en un grupo de prueba.
 6. Mantener `alumnoId` permanente como relación de todos los módulos.
-7. Completar consulta/reactivación de inactivos e inscripciones por ciclo.
-8. Registrar alta/baja/transferencia/cambio de grupo como eventos.
+7. Mantener la consulta/reactivación de inactivos e inscripciones por ciclo ya instaladas.
+8. Conservar alta/baja/reingreso como eventos y completar transferencia/cambio de grupo.
 9. Añadir bitácora append-only para cambios de alumnos y correcciones de asistencia.
 10. Probar la recuperación abriendo o duplicando un snapshot aislado, sin cambiar ni reemplazar el archivo oficial.
 11. Sólo entonces considerar el piloto listo para operación continua del ciclo.

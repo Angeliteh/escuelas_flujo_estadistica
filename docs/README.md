@@ -18,6 +18,7 @@
 | [10_identidad_alumnos_v10.md](./10_identidad_alumnos_v10.md) | Migración no destructiva a IDs permanentes, estado y ciclo escolar. |
 | [11_modelo_control_escolar_y_movimientos.md](./11_modelo_control_escolar_y_movimientos.md) | Modelo rector de inscripciones, movimientos, expedientes, Sheets y migración futura. |
 | [12_inscripciones_y_movimientos_v11.md](./12_inscripciones_y_movimientos_v11.md) | Preanálisis, instalación y pruebas de inscripciones/movimientos V11. |
+| [13_contrato_operativo.md](./13_contrato_operativo.md) | **Reglas obligatorias, roles y criterio para aceptar cambios futuros.** |
 
 ---
 
@@ -31,4 +32,4 @@ Google Sheet:      https://docs.google.com/spreadsheets/d/1jAPfaac3miW8izCGrq1ro
 Apps Script URL:   https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgkNLf-jc1uEdzIoIU73mSJzLYJNC3Sw/exec
 ```
 
-> Para retomar el proyecto, leer primero [08_handoff_y_escalabilidad.md](./08_handoff_y_escalabilidad.md) y después [07_estado_actual.md](./07_estado_actual.md).
+> Para retomar o modificar el proyecto, leer primero [13_contrato_operativo.md](./13_contrato_operativo.md), después [08_handoff_y_escalabilidad.md](./08_handoff_y_escalabilidad.md) y [07_estado_actual.md](./07_estado_actual.md).
