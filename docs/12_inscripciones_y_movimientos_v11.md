@@ -1,6 +1,6 @@
 # 12 — Instalación de inscripciones y movimientos V11
 
-> Estado: identidad, inscripciones y movimientos instalados y verificados; **V10 continúa publicada** hasta desplegar la nueva versión de la Web App.
+> Estado: identidad, inscripciones y movimientos instalados; **V11 publicada y verificada** en la Web App.
 
 ## Alcance de esta primera etapa
 
@@ -74,7 +74,9 @@ El 28 de agosto de 2026 se completó la fase de datos:
 - `activeEnrollments: 272`;
 - `duplicateActiveEnrollments: []`.
 
-Las hojas técnicas ya existen y la propiedad de preparación está activa. No debe repetirse la migración por rutina; la función es idempotente, pero el siguiente paso correcto es publicar V11 conservando la URL existente y verificar el `ping`.
+Las hojas técnicas ya existen y la propiedad de preparación está activa. No debe repetirse la migración por rutina; la función es idempotente y queda reservada para recuperación o verificación técnica controlada.
+
+La publicación se completó conservando la URL. La API confirmó las tres banderas de preparación y una consulta real devolvió una inscripción y un movimiento unidos al `ALUMNO_ID` del alumno seleccionado.
 
 ## Pruebas posteriores
 

@@ -157,7 +157,7 @@
 - [ ] Implementar cierre de ciclo, promoción, repetición y egreso con vista previa.
 - [ ] Añadir auditoría y exportación administrativa controlada.
 
-### V11 instalada en datos, todavía no publicada como Web App
+### V11 instalada, publicada y verificada
 
 - [x] Preanálisis bloquea inconsistencias antes de escribir.
 - [x] Simulación idempotente de `_INSCRIPCIONES` y `_MOVIMIENTOS_ALUMNO` superada.
@@ -167,7 +167,7 @@
 - [x] Ejecutar el preanálisis de inscripciones en Apps Script real: 272 alumnos y cero problemas.
 - [x] Crear 272 inscripciones y 272 movimientos iniciales; 272 activas y cero duplicados.
 - [x] Crear respaldo manual previo `Control asistencia — RESPALDO — MANUAL — 2026-08-28_192232`.
-- [ ] Publicar V11 conservando la misma URL `/exec` y verificar el panel.
+- [x] Publicar V11 conservando la misma URL `/exec`; `ping` y relación alumno → inscripción → movimiento verificados.
 
 ---
 
