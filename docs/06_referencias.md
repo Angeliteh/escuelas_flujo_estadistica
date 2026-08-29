@@ -93,7 +93,7 @@ Todas se cargan desde CDN en `index.html`. No hay `package.json` ni `node_module
 | `GROUPS_LIST` | Igual que `TABS` | `app.js` (aproximadamente línea 50) |
 | `API_URL` | La URL larga del Script | `app.js` (línea ~130) |
 
-> V10 está publicada. Conserva el respaldo inicial, activador diario alrededor de las 02:00 (`America/Mexico_City`), retención de 30 copias e historial mensual V9. La auditoría posterior encontró 21 IDs heredados inválidos en `2A`; V11 debe repararlos antes de instalar inscripciones.
+> V10 está publicada. Conserva el respaldo inicial, activador diario alrededor de las 02:00 (`America/Mexico_City`), retención de 30 copias e historial mensual V9. Los 21 IDs heredados inválidos encontrados en `2A` ya fueron reparados; la auditoría final confirmó 272 de 272 IDs válidos.
 
 ---
 

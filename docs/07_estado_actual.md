@@ -142,7 +142,7 @@
 - [x] Frontend preparado para preferir `alumnoId` y seguir siendo compatible con V9.
 - [x] `setupStudentIdentityV10` ejecutado: 253 alumnos recibieron ID durante esa ejecución.
 - [x] API pública verificada: 272 alumnos activos y 0 inconsistencias de grado/grupo.
-- [!] Auditoría estricta posterior: 251 IDs permanentes válidos y 21 valores numéricos heredados en `2A`; la reparación segura está incluida en V11 y debe ejecutarse antes de inscripciones.
+- [x] Auditoría estricta posterior detectó 21 valores heredados inválidos en `2A`; fueron reparados y la comprobación final confirmó 272 IDs permanentes válidos de 272 alumnos.
 - [x] V10 publicada conservando la misma URL `/exec`.
 - [x] El frontend cambia automáticamente “Eliminar” por “Dar de baja” cuando detecta V10 lista.
 - [ ] Agregar la consulta y reactivación de alumnos inactivos después de confirmar V10.
@@ -163,7 +163,7 @@
 - [x] Simulación idempotente de `_INSCRIPCIONES` y `_MOVIMIENTOS_ALUMNO` superada.
 - [x] Simulación de baja y reingreso superada.
 - [x] Panel administrativo de inactivos preparado y oculto mientras V11 no esté activa.
-- [ ] Ejecutar la auditoría y reparación de 21 IDs heredados en Apps Script real.
+- [x] Ejecutar la auditoría y reparación de 21 IDs heredados en Apps Script real.
 - [ ] Ejecutar el preanálisis de inscripciones en Apps Script real.
 - [ ] Instalar y publicar V11 solamente si el análisis devuelve cero problemas.
 

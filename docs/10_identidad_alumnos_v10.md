@@ -63,9 +63,9 @@ Los números pueden ser distintos: dependen de los alumnos y registros existente
 
 - `migratedStudents`: 253
 - `migratedAttendanceRecords`: 0
-- API: 272 alumnos activos; una auditoría estricta posterior encontró 251 IDs permanentes válidos y 21 valores numéricos heredados en `2A`
+- API: 272 alumnos activos y, después de la reparación V11, 272 IDs permanentes válidos
 
-El indicador `ready` de V10 sólo comprobaba que la celda técnica tuviera contenido. Por eso esos 21 números pasaron la primera verificación. V11 endurece la regla al formato `ALU-` + 32 caracteres hexadecimales y proporciona una reparación que también actualiza referencias de asistencia cuando existan.
+El indicador `ready` de V10 sólo comprobaba que la celda técnica tuviera contenido. Por eso 21 valores heredados pasaron la primera verificación. V11 endureció la regla al formato `ALU-` + 32 caracteres hexadecimales y los reparó sin cambiar las columnas visibles; no se encontraron referencias históricas de asistencia que necesitaran migración.
 - IDs duplicados: 0
 - `studentIdentityReady`: `true`
 - `attendanceHistoryReady`: `true`

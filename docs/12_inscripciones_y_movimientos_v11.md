@@ -1,6 +1,6 @@
 # 12 — Instalación de inscripciones y movimientos V11
 
-> Estado: candidata local validada; **V10 continúa en producción** hasta completar estas instrucciones.
+> Estado: candidata local validada; identidad reparada y verificada; **V10 continúa en producción** hasta instalar inscripciones y desplegar V11.
 
 ## Alcance de esta primera etapa
 
@@ -61,7 +61,7 @@ Si encuentra una diferencia, devuelve `readyToMigrate: false` y **no crea ni mod
 
 No es necesario volver a ejecutar `setupStudentIdentityV10` ni `setupAttendanceHistoryV9`.
 
-> La primera revisión de la reparación intentaba reescribir `U:AA` completo y Google la bloqueó por un valor heredado inválido en `V24`. La revisión vigente escribe exclusivamente `U` y `Z:AA`; no toca `V` ni vuelve a someter esos datos heredados a validación.
+> Incidencia real: la primera revisión intentó reescribir `U:AA` completo. Google alcanzó a aplicar 17 IDs y se detuvo al encontrar un valor heredado inválido en `V24`, dejando cuatro pendientes. La revisión selectiva escribió exclusivamente `U` y `Z:AA`, reparó los cuatro restantes y no tocó `V`. Resultado final: 272 alumnos, 272 IDs válidos, cero incidencias y cero referencias históricas que migrar.
 
 ## Pruebas posteriores
 
@@ -86,5 +86,6 @@ No es necesario volver a ejecutar `setupStudentIdentityV10` ni `setupAttendanceH
 - instalación idempotente en simulación;
 - alta inicial de inscripción y movimiento en simulación;
 - transición `ACTIVO → BAJA → ACTIVO` conserva inscripción y genera `BAJA`/`REINGRESO`;
-- estado público V10 previo a instalar: 272 alumnos, 251 IDs válidos, 21 IDs heredados inválidos en `2A`, 0 duplicados y 0 inconsistencias de grupo;
-- reparación de identidad diseñada para ser selectiva, conservar `A:T` y migrar referencias históricas cuando existan.
+- estado público V10 previo a reparar: 272 alumnos, 251 IDs válidos, 21 IDs heredados inválidos en `2A`, 0 duplicados y 0 inconsistencias de grupo;
+- reparación real: 17 IDs aplicados antes del bloqueo de `V24` y cuatro completados con la revisión selectiva;
+- estado final: 272 alumnos, 272 IDs válidos, cero incidencias y `migratedAttendanceRecords: 0`.

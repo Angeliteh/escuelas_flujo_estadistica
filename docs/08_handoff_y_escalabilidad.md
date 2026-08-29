@@ -34,7 +34,7 @@ Control de Asistencia es un panel web para que maestros y administración gestio
 - URL de API:
   https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgkNLf-jc1uEdzIoIU73mSJzLYJNC3Sw/exec
 - Versión publicada por el propietario en Apps Script: V10, compatible con el contrato del panel, historial mensual técnico e identidad permanente.
-- La migración V10 se ejecutó el 28 de agosto de 2026: `migratedStudents=253`. Una auditoría estricta posterior confirmó 272 alumnos activos, pero encontró 21 valores numéricos heredados en la columna técnica `ALUMNO_ID` de `2A`; V11 debe repararlos antes de instalar inscripciones.
+- La migración V10 se ejecutó el 28 de agosto de 2026: `migratedStudents=253`. Una auditoría estricta posterior encontró 21 valores heredados inválidos en `ALUMNO_ID` de `2A`; ya fueron reparados y la verificación final confirmó 272 alumnos con 272 IDs permanentes válidos.
 - V11 está preparada localmente con preanálisis, inscripciones, movimientos, bajas/reactivaciones y una vista administrativa de inactivos. No está publicada; ver [12_inscripciones_y_movimientos_v11.md](./12_inscripciones_y_movimientos_v11.md).
 - La API fue verificada nuevamente después de la actualización:
   - ping respondió HTTP 200.

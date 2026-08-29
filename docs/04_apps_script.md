@@ -19,7 +19,7 @@ https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgk
 
 ## Versión vigente y siguiente instalación
 
-- **Producción vigente:** V10, con respaldos e historial mensual técnico funcionando. La auditoría previa a V11 detectó 21 IDs heredados inválidos en `2A`; V11 incluye una reparación controlada antes de crear inscripciones.
+- **Producción vigente:** V10, con respaldos e historial mensual técnico funcionando. La auditoría previa a V11 detectó y permitió reparar 21 IDs heredados inválidos en `2A`; la verificación final confirmó 272 de 272 IDs válidos.
 - **Siguiente candidata:** [AppsScript_V11.gs](../AppsScript_V11.gs), con inscripciones y movimientos.
 - **Procedimiento exacto de V11:** [12_inscripciones_y_movimientos_v11.md](./12_inscripciones_y_movimientos_v11.md).
 
