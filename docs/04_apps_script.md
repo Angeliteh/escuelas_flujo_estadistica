@@ -20,7 +20,7 @@ https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgk
 ## Versión vigente y siguiente instalación
 
 - **Producción vigente:** V10, con respaldos e historial mensual técnico funcionando. La auditoría previa a V11 detectó y permitió reparar 21 IDs heredados inválidos en `2A`; la verificación final confirmó 272 de 272 IDs válidos.
-- **Siguiente candidata:** [AppsScript_V11.gs](../AppsScript_V11.gs), con inscripciones y movimientos.
+- **Siguiente candidata:** [AppsScript_V11.gs](../AppsScript_V11.gs), ya instalada en los datos reales con 272 inscripciones y 272 movimientos; pendiente únicamente de publicar la Web App.
 - **Procedimiento exacto de V11:** [12_inscripciones_y_movimientos_v11.md](./12_inscripciones_y_movimientos_v11.md).
 
 V10 fue migrada y publicada el 28 de agosto de 2026. El `ping` confirmó `studentIdentityReady: true` y `attendanceHistoryReady: true`.

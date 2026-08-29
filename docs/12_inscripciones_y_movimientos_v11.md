@@ -1,6 +1,6 @@
 # 12 — Instalación de inscripciones y movimientos V11
 
-> Estado: candidata local validada; identidad reparada y verificada; **V10 continúa en producción** hasta instalar inscripciones y desplegar V11.
+> Estado: identidad, inscripciones y movimientos instalados y verificados; **V10 continúa publicada** hasta desplegar la nueva versión de la Web App.
 
 ## Alcance de esta primera etapa
 
@@ -62,6 +62,19 @@ Si encuentra una diferencia, devuelve `readyToMigrate: false` y **no crea ni mod
 No es necesario volver a ejecutar `setupStudentIdentityV10` ni `setupAttendanceHistoryV9`.
 
 > Incidencia real: la primera revisión intentó reescribir `U:AA` completo. Google alcanzó a aplicar 17 IDs y se detuvo al encontrar un valor heredado inválido en `V24`, dejando cuatro pendientes. La revisión selectiva escribió exclusivamente `U` y `Z:AA`, reparó los cuatro restantes y no tocó `V`. Resultado final: 272 alumnos, 272 IDs válidos, cero incidencias y cero referencias históricas que migrar.
+
+## Resultado de la instalación real
+
+El 28 de agosto de 2026 se completó la fase de datos:
+
+- respaldo manual previo creado a las 19:22;
+- preanálisis: 272 alumnos y cero incidencias;
+- `createdEnrollments: 272`;
+- `createdMovements: 272`;
+- `activeEnrollments: 272`;
+- `duplicateActiveEnrollments: []`.
+
+Las hojas técnicas ya existen y la propiedad de preparación está activa. No debe repetirse la migración por rutina; la función es idempotente, pero el siguiente paso correcto es publicar V11 conservando la URL existente y verificar el `ping`.
 
 ## Pruebas posteriores
 
