@@ -76,11 +76,9 @@ El sistema es una **aplicación web estática** (3 archivos: HTML + CSS + JS) qu
 
 ## Asistencia y consultas mensuales
 
-La asistencia diaria de la versión publicada V8 conserva el comportamiento V7: se guarda en la hoja formateada del grupo y `getAttendanceMonth` lee el mes en una sola petición. El frontend conserva temporalmente un método anterior compatible si ese endpoint no está disponible.
+V10 conserva el almacenamiento histórico instalado en V9. Cada mes tiene una hoja técnica oculta `_ASISTENCIA_DATOS_AAAA_MM`; `getAttendanceMonth` consulta el mes completo en una petición y regenera la matriz institucional visible del grupo.
 
-### Riesgo de cambio de mes
-
-Las hojas activas se llaman `ASISTENCIA (1A)` hasta `ASISTENCIA (6B)` y no incluyen mes ni año en su identidad. V7 reescribe los encabezados de días en esas mismas hojas. Por ello, el modelo publicado sirve para el mes actualmente preparado, pero no garantiza conservar agosto al comenzar septiembre. Antes de capturar un mes nuevo se debe migrar la asistencia existente a un almacenamiento histórico por fecha y convertir la matriz institucional en una vista o reporte regenerable.
+Las hojas `ASISTENCIA (1A)` hasta `ASISTENCIA (6B)` son formatos de consulta e impresión, no la única fuente histórica. Cambiar de mes no sobrescribe el anterior.
 
 ## Limitación conocida: sin tiempo real
 
@@ -104,12 +102,8 @@ Se retiró la descarga de Excel del panel para evitar copias desactualizadas o a
 
 ---
 
-## Modelo de datos para la siguiente fase
+## Modelo de datos vigente y siguiente fase
 
-Las hojas actuales son el **catálogo maestro de alumnos**: una fila por alumno y 20 columnas, incluyendo el folio escolar. La asistencia está activa en matrices mensuales independientes para conservar el formato institucional; no debe agregarse como columnas dentro de las filas de alumnos.
+V10 añadió identidad permanente, estado, ciclo y metadatos ocultos `U:AA` a las 20 columnas oficiales. La asistencia ya está separada como eventos históricos por fecha.
 
-Para análisis histórico, la siguiente fase debe añadir un modelo separado de eventos de asistencia, idealmente con registros como:
-
-`fecha · grupo · alumnoId · estado · puntualidad · actividad · nota · usuario · fechaActualizacion`
-
-Así se podrán generar después listas mensuales, estadísticas y validaciones sin duplicar los datos personales del alumno.
+La siguiente fase no debe agregar más significado a la fila física: debe crear inscripciones por ciclo y movimientos append-only. El modelo rector, sus entidades y el camino de migración están en [11_modelo_control_escolar_y_movimientos.md](./11_modelo_control_escolar_y_movimientos.md).

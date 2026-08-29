@@ -19,9 +19,9 @@ https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgk
 
 ## Versión vigente y siguiente instalación
 
-- **Producción:** V10, con respaldos, historial mensual técnico e identidad permanente funcionando.
-- **Código vigente:** [AppsScript_V10.gs](../AppsScript_V10.gs).
-- **Procedimiento exacto:** [10_identidad_alumnos_v10.md](./10_identidad_alumnos_v10.md).
+- **Producción vigente:** V10, con respaldos e historial mensual técnico funcionando. La auditoría previa a V11 detectó 21 IDs heredados inválidos en `2A`; V11 incluye una reparación controlada antes de crear inscripciones.
+- **Siguiente candidata:** [AppsScript_V11.gs](../AppsScript_V11.gs), con inscripciones y movimientos.
+- **Procedimiento exacto de V11:** [12_inscripciones_y_movimientos_v11.md](./12_inscripciones_y_movimientos_v11.md).
 
 V10 fue migrada y publicada el 28 de agosto de 2026. El `ping` confirmó `studentIdentityReady: true` y `attendanceHistoryReady: true`.
 
@@ -29,7 +29,7 @@ V10 fue migrada y publicada el 28 de agosto de 2026. El `ping` confirmó `studen
 
 ## Código completo archivado de V9
 
-El bloque siguiente conserva la referencia de V9 que está publicada. Para la próxima actualización no copies este bloque: utiliza el archivo V10 indicado arriba.
+El bloque siguiente conserva la referencia histórica de V9. Para la próxima actualización no copies este bloque: utiliza el archivo V11 indicado arriba y sigue su procedimiento exacto.
 
 ```javascript
 // ==============================================================================

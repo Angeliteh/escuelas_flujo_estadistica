@@ -95,9 +95,9 @@ Abrir el HTML directamente sigue siendo útil para revisar la interfaz, pero no 
 
 Google Sheets funciona como fuente operativa para el tamaño actual, pero no debe ser el único respaldo. V9 tiene una copia completa inicial, respaldo automático nocturno y retención de 30 snapshots. La restauración no se probará sobre el archivo oficial; queda pendiente abrir o duplicar una copia de forma aislada. V10 conserva estas funciones. Ver [09_respaldos_y_restauracion.md](./09_respaldos_y_restauracion.md).
 
-V10 ya está preparada localmente para agregar `alumnoId`, `estatus`, `cicloEscolar`, fechas de alta/actualización y usuario responsable sin modificar las 20 columnas visibles. Falta instalarla y verificarla en el Sheet oficial. Ver [10_identidad_alumnos_v10.md](./10_identidad_alumnos_v10.md).
+V10 ya agregó `alumnoId`, `estatus`, `cicloEscolar`, fechas de alta/actualización y usuario responsable sin modificar las 20 columnas visibles. La auditoría de V11 descubrió 21 valores numéricos heredados en `2A` que V10 aceptó como ID; deben repararse con el procedimiento controlado de [12_inscripciones_y_movimientos_v11.md](./12_inscripciones_y_movimientos_v11.md) antes de crear inscripciones.
 
-Una base de datos como PostgreSQL/Neon o Supabase será recomendable cuando se necesite historial de cambios, permisos reales por usuario, concurrencia, auditoría o integraciones. No es necesario migrar antes de validar el flujo escolar actual; primero conviene estabilizar el modelo y automatizar respaldos.
+Una base de datos como PostgreSQL/Neon o Supabase será recomendable cuando se necesiten varias escuelas, permisos reales, alta concurrencia, auditoría formal o integraciones. No es necesario migrar ahora: primero se implementarán inscripciones y movimientos con IDs permanentes. Sheets continuará después como reporte/exportación aunque cambie la fuente primaria. Ver [11_modelo_control_escolar_y_movimientos.md](./11_modelo_control_escolar_y_movimientos.md).
 
 ### Asistencia: módulo separado
 

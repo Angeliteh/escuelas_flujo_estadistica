@@ -30,8 +30,10 @@ Los alumnos activos siguen apareciendo normalmente. En V10, la acción de elimin
 
 ## Instalación segura
 
+> Este procedimiento documenta la instalación que ya se realizó. El código exacto de V10 permanece recuperable en el historial de Git (commit `ca493db`). No repitas esta instalación para avanzar a V11; utiliza [12_inscripciones_y_movimientos_v11.md](./12_inscripciones_y_movimientos_v11.md).
+
 1. Confirma que existe el snapshot inicial o una copia automática reciente. No es necesario restaurarla.
-2. Copia **todo** [AppsScript_V10.gs](../AppsScript_V10.gs) al proyecto de Apps Script y guarda. Todavía no publiques una nueva versión.
+2. Copia el código V10 archivado al proyecto de Apps Script y guarda. Todavía no publiques una nueva versión.
 3. En el selector de funciones ejecuta `setupStudentIdentityV10` con la cuenta propietaria.
 4. Autoriza si Google lo solicita y abre el registro de ejecución.
 5. Debe responder `success: true`, `ready: true`, `version: "V10"` y mostrar los contadores migrados.
@@ -61,7 +63,9 @@ Los números pueden ser distintos: dependen de los alumnos y registros existente
 
 - `migratedStudents`: 253
 - `migratedAttendanceRecords`: 0
-- API: 272 alumnos activos y 272 IDs permanentes
+- API: 272 alumnos activos; una auditoría estricta posterior encontró 251 IDs permanentes válidos y 21 valores numéricos heredados en `2A`
+
+El indicador `ready` de V10 sólo comprobaba que la celda técnica tuviera contenido. Por eso esos 21 números pasaron la primera verificación. V11 endurece la regla al formato `ALU-` + 32 caracteres hexadecimales y proporciona una reparación que también actualiza referencias de asistencia cuando existan.
 - IDs duplicados: 0
 - `studentIdentityReady`: `true`
 - `attendanceHistoryReady`: `true`

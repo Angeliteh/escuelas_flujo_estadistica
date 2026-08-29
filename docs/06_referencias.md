@@ -31,7 +31,7 @@ TESTEOAMIGAMAMA/
 ├── index.html          ← Estructura HTML (login, vistas, modales)
 ├── styles.css          ← Estilos (glassmorphism, responsive, animaciones)
 ├── app.js              ← Toda la lógica JS (auth, API, render e impresión)
-├── AppsScript_V10.gs   ← Próxima versión de Apps Script lista para instalar
+├── AppsScript_V11.gs   ← Candidata local; V10 continúa publicada
 └── docs/
     ├── README.md       ← Índice de documentación (este archivo)
     ├── 01_arquitectura.md
@@ -43,7 +43,9 @@ TESTEOAMIGAMAMA/
     ├── 07_estado_actual.md
     ├── 08_handoff_y_escalabilidad.md  ← Documento principal de continuidad
     ├── 09_respaldos_y_restauracion.md ← Instalación y recuperación de copias
-    └── 10_identidad_alumnos_v10.md    ← Migración a identidad permanente
+    ├── 10_identidad_alumnos_v10.md    ← Migración a identidad permanente
+    ├── 11_modelo_control_escolar_y_movimientos.md
+    └── 12_inscripciones_y_movimientos_v11.md
 ```
 
 ---
@@ -91,7 +93,7 @@ Todas se cargan desde CDN en `index.html`. No hay `package.json` ni `node_module
 | `GROUPS_LIST` | Igual que `TABS` | `app.js` (aproximadamente línea 50) |
 | `API_URL` | La URL larga del Script | `app.js` (línea ~130) |
 
-> V10 está publicada. Conserva el respaldo inicial, activador diario alrededor de las 02:00 (`America/Mexico_City`), retención de 30 copias e historial mensual V9. La identidad permanente fue migrada correctamente el 28 de agosto de 2026.
+> V10 está publicada. Conserva el respaldo inicial, activador diario alrededor de las 02:00 (`America/Mexico_City`), retención de 30 copias e historial mensual V9. La auditoría posterior encontró 21 IDs heredados inválidos en `2A`; V11 debe repararlos antes de instalar inscripciones.
 
 ---
 

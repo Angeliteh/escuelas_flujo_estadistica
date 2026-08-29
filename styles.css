@@ -1392,6 +1392,8 @@ input, select, button, textarea {
 .badge-view { background: rgba(16,185,129,0.13); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.28); }
 .badge-active { background: rgba(16,185,129,0.13); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.28); }
 .badge-inactive { background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.28); }
+.inactive-students-modal { width: min(900px, calc(100vw - 32px)); max-height: min(760px, calc(100vh - 32px)); }
+.inactive-students-table-container { max-height: 460px; }
 .detail-student-name {
   font-size: 1rem; font-weight: 800;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

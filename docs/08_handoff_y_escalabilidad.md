@@ -15,7 +15,7 @@ Control de Asistencia es un panel web para que maestros y administración gestio
 - Sitio: https://asistpanel.vercel.app/
 - Repositorio: https://github.com/Angeliteh/escuelas_flujo_estadistica
 - Rama activa: main
-- Último commit funcional verificado en producción: cb86bff (fichas y detalle de grupos como modales, sobre backend V9).
+- Último commit funcional verificado en producción antes de esta documentación: ca493db (panel compatible y backend V10 activo).
 - Despliegue: Vercel conectado al repositorio; cada push a main genera una nueva implementación.
 
 ### Escuela activa
@@ -34,7 +34,8 @@ Control de Asistencia es un panel web para que maestros y administración gestio
 - URL de API:
   https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgkNLf-jc1uEdzIoIU73mSJzLYJNC3Sw/exec
 - Versión publicada por el propietario en Apps Script: V10, compatible con el contrato del panel, historial mensual técnico e identidad permanente.
-- La migración V10 se ejecutó el 28 de agosto de 2026: `migratedStudents=253`. La API pública confirmó 272 alumnos activos, todos con ID permanente y sin duplicados.
+- La migración V10 se ejecutó el 28 de agosto de 2026: `migratedStudents=253`. Una auditoría estricta posterior confirmó 272 alumnos activos, pero encontró 21 valores numéricos heredados en la columna técnica `ALUMNO_ID` de `2A`; V11 debe repararlos antes de instalar inscripciones.
+- V11 está preparada localmente con preanálisis, inscripciones, movimientos, bajas/reactivaciones y una vista administrativa de inactivos. No está publicada; ver [12_inscripciones_y_movimientos_v11.md](./12_inscripciones_y_movimientos_v11.md).
 - La API fue verificada nuevamente después de la actualización:
   - ping respondió HTTP 200.
   - getAttendanceMonth respondió success=true.
@@ -51,7 +52,7 @@ POST API_URL
 { "action": "getAttendanceMonth", "group": "2B", "month": "2026-08" }
 ```
 
-La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`, `mode: "formatted-monthly-sheet"`, `storage: "historical-events-v1"` y un arreglo de 21 fechas hábiles para agosto de 2026. Si falta el almacenamiento histórico, el despliegue de Apps Script no corresponde a V9.
+La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`, `mode: "formatted-monthly-sheet"`, `storage: "historical-events-v1"` y un arreglo de 21 fechas hábiles para agosto de 2026. El `ping` debe indicar V10 e identidad lista.
 
 ### Estructura actual del Sheet
 
@@ -123,7 +124,7 @@ La hoja maestra tiene 20 columnas:
 
 NO., GRADO, GRUPO, FOLIO, NOMBRE, BARRERA DE APRENDIZAJE, FECHA DE NACIMIENTO, CURP, GÉNERO, BECA, PESO, ESTATURA, TALLA, TUTOR, TELÉFONO, CURP DEL TUTOR, CORREO, DOMICILIO, NIVEL DE ESTUDIO y OCUPACIÓN.
 
-El rowId actual identifica la fila física de Sheets. Sirve para editar la fila actual, pero no es una identidad histórica estable. No debe usarse como clave definitiva si se reordenan filas o se migra la información.
+`rowId` continúa disponible como ubicación física temporal, pero V10 usa `alumnoId` como identidad permanente. Ningún historial, documento o movimiento nuevo debe relacionarse por fila.
 
 ### Asistencia
 
@@ -137,7 +138,7 @@ La matriz mensual debe ser una vista o reporte generado desde esos eventos, no l
 
 ### Identidad y cambios
 
-Actualmente el grupo se deriva de la pestaña y parte del ID contiene la fila. En la siguiente fase cada alumno debe tener un alumnoId permanente, además de:
+V10 ya asignó `alumnoId` permanente y metadatos de estado/ciclo. La siguiente fase debe separar la inscripción vigente y el historial de movimientos, incluyendo:
 
 - escuelaId
 - cicloEscolarId
@@ -199,12 +200,13 @@ Esto es aceptable únicamente para una prueba interna controlada. Antes de opera
 
 ### Fase 1 — Estabilizar el modelo de datos
 
-1. Crear IDs permanentes de escuela, ciclo, grupo y alumno.
-2. Separar catálogo actual de historial de inscripciones.
-3. Modelar altas, bajas, transferencias y cambios de grupo como eventos.
-4. Definir catálogos controlados para género, beca, estatus y tipos de documento.
-5. Crear una hoja o tabla de auditoría con usuario, acción, fecha, entidad y valores anteriores/nuevos.
-6. Crear respaldos automáticos versionados y probar restauración.
+1. Conservar los IDs permanentes de alumno ya instalados.
+2. Crear inscripciones por ciclo.
+3. Modelar altas, bajas, transferencias, reingresos y cambios de grupo como eventos.
+4. Implementar cierre de ciclo, promoción, repetición y egreso.
+5. Definir catálogos controlados para género, beca, estatus y tipos de documento.
+6. Crear una hoja append-only de auditoría con usuario, acción, fecha, entidad y valores anteriores/nuevos.
+7. Probar restauración sobre una copia aislada.
 
 ### Fase 2 — Backend real
 
@@ -290,7 +292,7 @@ La próxima sesión debe comenzar leyendo este documento y verificando:
 4. El estado de producción en Vercel.
 5. El objetivo de la fase en curso.
 
-No cambiar la estructura de Sheets ni iniciar una migración de base de datos hasta definir los IDs permanentes, el historial y los permisos.
+No iniciar una migración de base de datos antes de estabilizar inscripciones, movimientos y permisos. El modelo rector está en [11_modelo_control_escolar_y_movimientos.md](./11_modelo_control_escolar_y_movimientos.md).
 
 ## 12. Camino corto para cerrar el piloto 2026-2027
 
@@ -301,8 +303,9 @@ Este orden reemplaza cualquier lista anterior que parezca permitir iniciar un me
 3. Mantener activo el almacenamiento histórico de asistencia por fecha ya instalado.
 4. Mantener `ASISTENCIA (GRUPO)` como formato visible y regenerable, no como única fuente histórica.
 5. Ejecutar la comprobación agosto → septiembre → agosto desde el panel en un grupo de prueba.
-6. Añadir `alumnoId` permanente antes de permitir reordenamientos, cambios de grupo o bajas históricas.
-7. Sustituir la eliminación física por estatus y eventos de alta/baja/transferencia.
-8. Añadir bitácora append-only para cambios de alumnos y correcciones de asistencia.
-9. Probar la recuperación abriendo o duplicando un snapshot aislado, sin cambiar ni reemplazar el archivo oficial.
-10. Sólo entonces considerar el piloto listo para operación continua del ciclo.
+6. Mantener `alumnoId` permanente como relación de todos los módulos.
+7. Completar consulta/reactivación de inactivos e inscripciones por ciclo.
+8. Registrar alta/baja/transferencia/cambio de grupo como eventos.
+9. Añadir bitácora append-only para cambios de alumnos y correcciones de asistencia.
+10. Probar la recuperación abriendo o duplicando un snapshot aislado, sin cambiar ni reemplazar el archivo oficial.
+11. Sólo entonces considerar el piloto listo para operación continua del ciclo.

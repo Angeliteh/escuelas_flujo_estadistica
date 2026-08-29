@@ -1,5 +1,5 @@
 // ==============================================================================
-// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V10 (IDENTIDAD + CICLO + HISTORIAL SEGURO)
+// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V11 (INSCRIPCIONES + MOVIMIENTOS)
 // ==============================================================================
 
 const HEADER_ROW = 5;
@@ -15,6 +15,21 @@ const STUDENT_IDENTITY_READY_PROPERTY = 'STUDENT_IDENTITY_READY_V1';
 const CURRENT_SCHOOL_CYCLE = '2026-2027';
 const STUDENT_ACTIVE_STATUS = 'ACTIVO';
 const STUDENT_ALLOWED_STATUSES = ['ACTIVO', 'BAJA', 'TRANSFERIDO', 'EGRESADO'];
+const SCHOOL_ID = '10DPR0519X';
+const ENROLLMENTS_SHEET_NAME = '_INSCRIPCIONES';
+const ENROLLMENT_HEADERS = [
+  'INSCRIPCION_ID', 'ALUMNO_ID', 'CICLO_ESCOLAR', 'GRADO', 'GRUPO',
+  'GRUPO_ID', 'ESTATUS', 'FECHA_INICIO', 'FECHA_FIN', 'MOTIVO_FIN',
+  'ACTUALIZADO_EN', 'ACTUALIZADO_POR', 'ORIGEN', 'ESCUELA_ID'
+];
+const STUDENT_MOVEMENTS_SHEET_NAME = '_MOVIMIENTOS_ALUMNO';
+const STUDENT_MOVEMENT_HEADERS = [
+  'MOVIMIENTO_ID', 'ALUMNO_ID', 'INSCRIPCION_ID', 'TIPO', 'FECHA_EFECTIVA',
+  'CICLO_ORIGEN', 'GRUPO_ORIGEN', 'CICLO_DESTINO', 'GRUPO_DESTINO',
+  'ESTATUS_RESULTANTE', 'MOTIVO', 'OBSERVACION', 'USUARIO', 'CREADO_EN',
+  'ORIGEN', 'ESCUELA_ID'
+];
+const ENROLLMENT_HISTORY_READY_PROPERTY = 'ENROLLMENT_HISTORY_READY_V1';
 // La asistencia se escribe en las hojas mensuales que ya prepara la escuela.
 // El script nunca crea hojas de asistencia automáticamente.
 const ATTENDANCE_SHEET_PREFIX = 'ASISTENCIA (';
@@ -58,6 +73,9 @@ function doPost(e) {
       params.usuario
     ));
     if (action === 'setStudentStatus') return respond(setStudentStatus(params));
+    if (action === 'getInactiveStudents') return respond(getInactiveStudents());
+    if (action === 'reactivateStudent') return respond(reactivateStudent(params));
+    if (action === 'getStudentLifecycle') return respond(getStudentLifecycle(params));
     // ASISTENCIA
     if (action === 'getAttendanceConfig') return respond(getAttendanceConfig(params));
     if (action === 'getAttendance') return respond(getAttendance(params));
@@ -78,8 +96,9 @@ function doGet(e) {
   if (e.parameter && e.parameter.action === 'ping') {
     return respond({
       status: 'ok',
-      version: 'V10',
+      version: 'V11',
       studentIdentityReady: studentIdentityIsReady_(),
+      enrollmentHistoryReady: enrollmentHistoryIsReady_(),
       attendanceHistoryReady: attendanceHistoryIsReady_(),
       message: 'API funcionando'
     });
@@ -100,8 +119,9 @@ function getStudents(options) {
   return {
     success: true,
     data: allStudents,
-    version: 'V10',
+    version: 'V11',
     identityReady: studentIdentityIsReady_(),
+    enrollmentHistoryReady: enrollmentHistoryIsReady_(),
     cycle: CURRENT_SCHOOL_CYCLE
   };
 }
@@ -257,6 +277,7 @@ function setStudentStatus(params) {
     const existingMetadata = sheet
       .getRange(row, STUDENT_META_START_COLUMN, 1, STUDENT_META_HEADERS.length)
       .getValues()[0];
+    const previousStatus = normalizeStudentStatus_(existingMetadata[1]);
     if (!existingMetadata[0]) existingMetadata[0] = generateStudentId_();
     existingMetadata[1] = status;
     existingMetadata[2] = existingMetadata[2] || CURRENT_SCHOOL_CYCLE;
@@ -266,6 +287,19 @@ function setStudentStatus(params) {
     existingMetadata[6] = String(params.usuario || '');
     sheet.getRange(row, STUDENT_META_START_COLUMN, 1, STUDENT_META_HEADERS.length)
       .setValues([existingMetadata]);
+    if (enrollmentHistoryIsReady_() && previousStatus !== status) {
+      recordStudentStatusMovementV11_({
+        alumnoId: String(existingMetadata[0]),
+        cycle: String(existingMetadata[2] || CURRENT_SCHOOL_CYCLE),
+        group,
+        previousStatus,
+        status,
+        effectiveDate: params.fechaEfectiva,
+        reason: params.motivo,
+        observation: params.observacion,
+        user: params.usuario
+      });
+    }
     return {
       success: true,
       message: status === 'BAJA' ? 'Alumno dado de baja; sus datos se conservaron' : 'Estatus actualizado',
@@ -1214,7 +1248,7 @@ function setupStudentIdentityV10() {
     const result = {
       success: true,
       ready: true,
-      version: 'V10',
+      version: 'V11',
       cycle: CURRENT_SCHOOL_CYCLE,
       migratedStudents,
       migratedAttendanceRecords,
@@ -1244,7 +1278,7 @@ function migrateAttendanceStudentIdsV10_(legacyIdMap, nameIdMap) {
         const currentId = String(row[3] || '').trim();
         if (!TABS.includes(group) || currentId.indexOf('ALU-') === 0) return;
         const nameKey = `${group}|${normalizeAttendanceText(row[4])}`;
-        const nextId = legacyIdMap[currentId] || nameIdMap[nameKey];
+        const nextId = legacyIdMap[`${group}|${currentId}`] || legacyIdMap[currentId] || nameIdMap[nameKey];
         if (!nextId) return;
         row[3] = nextId;
         row[0] = [group, formatDate(row[1]), nextId].join('|');
@@ -1298,7 +1332,7 @@ function getStudentIdentityStatus() {
   const result = {
     success: true,
     ready: studentIdentityIsReady_(),
-    version: 'V10',
+    version: 'V11',
     cycle: CURRENT_SCHOOL_CYCLE,
     totalStudents,
     permanentIds,
@@ -1308,6 +1342,481 @@ function getStudentIdentityStatus() {
   };
   console.log(JSON.stringify(result, null, 2));
   return result;
+}
+
+// =====================================================
+// INSCRIPCIONES Y MOVIMIENTOS V11
+// =====================================================
+function enrollmentHistoryIsReady_() {
+  return PropertiesService.getScriptProperties().getProperty(ENROLLMENT_HISTORY_READY_PROPERTY) === 'true';
+}
+
+function isPermanentStudentIdV11_(value) {
+  return /^ALU-[A-F0-9]{32}$/.test(String(value || '').trim().toUpperCase());
+}
+
+function analyzeStudentIdentityV11() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const seenIds = {};
+  const issues = [];
+  let students = 0;
+  TABS.forEach(group => {
+    const sheet = spreadsheet.getSheetByName(group);
+    if (!sheet || sheet.getLastRow() <= HEADER_ROW) return;
+    const height = sheet.getLastRow() - HEADER_ROW;
+    const rows = sheet.getRange(HEADER_ROW + 1, 1, height, STUDENT_TOTAL_COLUMNS).getDisplayValues();
+    rows.forEach((row, index) => {
+      if (!row[4]) return;
+      students++;
+      const alumnoId = String(row[20] || '').trim();
+      const issue = { tab: group, row: HEADER_ROW + 1 + index, name: String(row[4]), alumnoId };
+      if (!isPermanentStudentIdV11_(alumnoId)) {
+        issue.reason = 'ALUMNO_ID faltante o inválido';
+        issues.push(issue);
+      } else if (seenIds[alumnoId]) {
+        issue.reason = 'ALUMNO_ID duplicado';
+        issues.push(issue);
+      } else {
+        seenIds[alumnoId] = true;
+      }
+    });
+  });
+  const result = {
+    success: issues.length === 0,
+    ready: issues.length === 0,
+    version: 'V11',
+    students,
+    validPermanentIds: students - issues.length,
+    issueCount: issues.length,
+    issues: issues.slice(0, 100)
+  };
+  console.log(JSON.stringify(result, null, 2));
+  return result;
+}
+
+function repairInvalidStudentIdsV11() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    if (enrollmentHistoryIsReady_()) {
+      return {
+        success: false,
+        version: 'V11',
+        error: 'La reparación se detuvo porque el historial de inscripciones ya está instalado'
+      };
+    }
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const seenIds = {};
+    const legacyIdMap = {};
+    const nameIdMap = {};
+    let repairedStudents = 0;
+    TABS.forEach(group => {
+      const sheet = spreadsheet.getSheetByName(group);
+      if (!sheet || sheet.getLastRow() <= HEADER_ROW) return;
+      ensureStudentMetadataColumns_(sheet);
+      const height = sheet.getLastRow() - HEADER_ROW;
+      const visibleRows = sheet.getRange(HEADER_ROW + 1, 1, height, STUDENT_VISIBLE_COLUMNS).getValues();
+      const metadataRows = sheet
+        .getRange(HEADER_ROW + 1, STUDENT_META_START_COLUMN, height, STUDENT_META_HEADERS.length).getValues();
+      let sheetChanged = false;
+      visibleRows.forEach((row, index) => {
+        if (!row[4]) return;
+        const sheetRow = HEADER_ROW + 1 + index;
+        const metadata = metadataRows[index];
+        const previousId = String(metadata[0] || '').trim();
+        let alumnoId = previousId;
+        if (!isPermanentStudentIdV11_(alumnoId) || seenIds[alumnoId]) {
+          alumnoId = generateStudentId_();
+          metadata[0] = alumnoId;
+          metadata[5] = new Date().toISOString();
+          metadata[6] = 'REPARACION_IDENTIDAD_V11';
+          repairedStudents++;
+          sheetChanged = true;
+        }
+        seenIds[alumnoId] = true;
+        legacyIdMap[`${group}-${sheetRow}`] = alumnoId;
+        if (previousId) legacyIdMap[`${group}|${previousId}`] = alumnoId;
+        const nameKey = `${group}|${normalizeAttendanceText(row[4])}`;
+        if (nameIdMap[nameKey] && nameIdMap[nameKey] !== alumnoId) nameIdMap[nameKey] = null;
+        else if (nameIdMap[nameKey] !== null) nameIdMap[nameKey] = alumnoId;
+      });
+      if (sheetChanged) {
+        sheet.getRange(HEADER_ROW + 1, STUDENT_META_START_COLUMN, height, STUDENT_META_HEADERS.length)
+          .setValues(metadataRows);
+      }
+    });
+    const migratedAttendanceRecords = migrateAttendanceStudentIdsV10_(legacyIdMap, nameIdMap);
+    const analysis = analyzeStudentIdentityV11();
+    const result = {
+      success: analysis.ready,
+      ready: analysis.ready,
+      version: 'V11',
+      repairedStudents,
+      migratedAttendanceRecords,
+      totalStudents: analysis.students,
+      permanentIds: analysis.validPermanentIds,
+      remainingIssues: analysis.issueCount,
+      message: analysis.ready ? 'Identidad permanente reparada y verificada' : 'La reparación terminó con incidencias pendientes'
+    };
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function ensureTechnicalDataSheetV11_(sheetName, headers) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = spreadsheet.getSheetByName(sheetName);
+  if (!sheet) sheet = spreadsheet.insertSheet(sheetName);
+  if (sheet.getMaxColumns() < headers.length) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), headers.length - sheet.getMaxColumns());
+  }
+  const existing = sheet.getRange(1, 1, 1, headers.length).getDisplayValues()[0];
+  const hasHeader = existing.some(value => String(value || '').trim());
+  if (hasHeader && headers.some((header, index) => existing[index] !== header)) {
+    throw new Error('La hoja técnica ' + sheetName + ' existe con encabezados incompatibles');
+  }
+  if (!hasHeader) sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.setFrozenRows(1);
+  if (!sheet.isSheetHidden()) sheet.hideSheet();
+  return sheet;
+}
+
+function normalizeGradeV11_(value) {
+  const match = String(value || '').trim().match(/[1-6]/);
+  return match ? match[0] : '';
+}
+
+function normalizeGroupLetterV11_(value) {
+  const match = String(value || '').trim().toUpperCase().match(/[AB]/);
+  return match ? match[0] : '';
+}
+
+function schoolDateV11_(value) {
+  if (!value) return attendanceToday();
+  if (typeof value === 'string') {
+    const match = /^\d{4}-\d{2}-\d{2}/.exec(value.trim());
+    if (match) return match[0];
+  }
+  try { return Utilities.formatDate(new Date(value), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
+  catch (error) { return attendanceToday(); }
+}
+
+function deterministicEnrollmentIdV11_(alumnoId, cycle) {
+  return 'INS-' + String(cycle || '').replace(/[^0-9]/g, '') + '-' + String(alumnoId || '').replace(/^ALU-/, '');
+}
+
+function analyzeEnrollmentMigrationV11() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const issues = [];
+  const seenIds = {};
+  let students = 0;
+
+  TABS.forEach(tabName => {
+    const sheet = spreadsheet.getSheetByName(tabName);
+    if (!sheet || sheet.getLastRow() <= HEADER_ROW) return;
+    const height = sheet.getLastRow() - HEADER_ROW;
+    const rows = sheet.getRange(HEADER_ROW + 1, 1, height, STUDENT_TOTAL_COLUMNS).getValues();
+    rows.forEach((row, index) => {
+      if (!row[4]) return;
+      students++;
+      const sheetRow = HEADER_ROW + 1 + index;
+      const alumnoId = String(row[20] || '').trim();
+      const grade = normalizeGradeV11_(row[1]);
+      const letter = normalizeGroupLetterV11_(row[2]);
+      const visibleGroup = grade && letter ? grade + letter : '';
+      if (!isPermanentStudentIdV11_(alumnoId)) {
+        issues.push({ tab: tabName, row: sheetRow, name: String(row[4]), reason: 'ALUMNO_ID faltante o inválido' });
+      } else if (seenIds[alumnoId]) {
+        issues.push({ tab: tabName, row: sheetRow, name: String(row[4]), reason: 'ALUMNO_ID duplicado', alumnoId });
+      } else {
+        seenIds[alumnoId] = true;
+      }
+      if (!visibleGroup) {
+        issues.push({ tab: tabName, row: sheetRow, name: String(row[4]), reason: 'GRADO/GRUPO incompleto' });
+      } else if (visibleGroup !== tabName) {
+        issues.push({
+          tab: tabName,
+          row: sheetRow,
+          name: String(row[4]),
+          reason: 'GRADO/GRUPO no coincide con la pestaña',
+          visibleGroup
+        });
+      }
+    });
+  });
+
+  const result = {
+    success: issues.length === 0,
+    readyToMigrate: issues.length === 0,
+    version: 'V11',
+    students,
+    issueCount: issues.length,
+    issues: issues.slice(0, 100)
+  };
+  console.log(JSON.stringify(result, null, 2));
+  return result;
+}
+
+function setupEnrollmentHistoryV11() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    if (enrollmentHistoryIsReady_()) return getEnrollmentHistoryStatusV11();
+    const analysis = analyzeEnrollmentMigrationV11();
+    if (!analysis.readyToMigrate) {
+      return {
+        success: false,
+        ready: false,
+        version: 'V11',
+        error: 'La migración se detuvo sin escribir datos porque hay inconsistencias de grado, grupo o identidad',
+        issueCount: analysis.issueCount,
+        issues: analysis.issues
+      };
+    }
+
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const enrollmentsSheet = ensureTechnicalDataSheetV11_(ENROLLMENTS_SHEET_NAME, ENROLLMENT_HEADERS);
+    const movementsSheet = ensureTechnicalDataSheetV11_(STUDENT_MOVEMENTS_SHEET_NAME, STUDENT_MOVEMENT_HEADERS);
+    const existingEnrollmentRows = enrollmentsSheet.getLastRow() > 1
+      ? enrollmentsSheet.getRange(2, 1, enrollmentsSheet.getLastRow() - 1, ENROLLMENT_HEADERS.length).getValues()
+      : [];
+    const existingMovementRows = movementsSheet.getLastRow() > 1
+      ? movementsSheet.getRange(2, 1, movementsSheet.getLastRow() - 1, STUDENT_MOVEMENT_HEADERS.length).getValues()
+      : [];
+    const enrollmentKeys = {};
+    existingEnrollmentRows.forEach(row => {
+      enrollmentKeys[String(row[1]) + '|' + String(row[2])] = String(row[0]);
+    });
+    const initialMovementKeys = {};
+    existingMovementRows.forEach(row => {
+      if (String(row[3]) === 'MIGRACION_INICIAL') {
+        initialMovementKeys[String(row[1]) + '|' + String(row[7] || row[5])] = true;
+      }
+    });
+
+    const now = new Date().toISOString();
+    const enrollmentRows = [];
+    const movementRows = [];
+    TABS.forEach(tabName => {
+      const sheet = spreadsheet.getSheetByName(tabName);
+      if (!sheet || sheet.getLastRow() <= HEADER_ROW) return;
+      const height = sheet.getLastRow() - HEADER_ROW;
+      const rows = sheet.getRange(HEADER_ROW + 1, 1, height, STUDENT_TOTAL_COLUMNS).getValues();
+      rows.forEach(row => {
+        if (!row[4]) return;
+        const alumnoId = String(row[20]);
+        const cycle = String(row[22] || CURRENT_SCHOOL_CYCLE);
+        const key = alumnoId + '|' + cycle;
+        const enrollmentId = enrollmentKeys[key] || deterministicEnrollmentIdV11_(alumnoId, cycle);
+        const grade = normalizeGradeV11_(row[1]);
+        const letter = normalizeGroupLetterV11_(row[2]);
+        const groupId = grade + letter;
+        const status = normalizeStudentStatus_(row[21]);
+        const startDate = schoolDateV11_(row[23]);
+        if (!enrollmentKeys[key]) {
+          enrollmentRows.push([
+            enrollmentId, alumnoId, cycle, grade, letter, groupId, status,
+            startDate, status === STUDENT_ACTIVE_STATUS ? '' : schoolDateV11_(row[24]),
+            status === STUDENT_ACTIVE_STATUS ? '' : 'MIGRACION V10', now,
+            'MIGRACION_V11', 'migration-v11', SCHOOL_ID
+          ]);
+          enrollmentKeys[key] = enrollmentId;
+        }
+        if (!initialMovementKeys[key]) {
+          movementRows.push([
+            'MOV-' + Utilities.getUuid().replace(/-/g, '').toUpperCase(),
+            alumnoId, enrollmentId, 'MIGRACION_INICIAL', startDate,
+            '', '', cycle, groupId, status, 'Migración del estado vigente V10', '',
+            'MIGRACION_V11', now, 'migration-v11', SCHOOL_ID
+          ]);
+          initialMovementKeys[key] = true;
+        }
+      });
+    });
+
+    if (enrollmentRows.length) {
+      enrollmentsSheet.getRange(enrollmentsSheet.getLastRow() + 1, 1, enrollmentRows.length, ENROLLMENT_HEADERS.length)
+        .setValues(enrollmentRows);
+    }
+    if (movementRows.length) {
+      movementsSheet.getRange(movementsSheet.getLastRow() + 1, 1, movementRows.length, STUDENT_MOVEMENT_HEADERS.length)
+        .setValues(movementRows);
+    }
+    PropertiesService.getScriptProperties().setProperty(ENROLLMENT_HISTORY_READY_PROPERTY, 'true');
+    const result = {
+      success: true,
+      ready: true,
+      version: 'V11',
+      cycle: CURRENT_SCHOOL_CYCLE,
+      createdEnrollments: enrollmentRows.length,
+      createdMovements: movementRows.length,
+      message: 'Inscripciones y movimientos V11 instalados'
+    };
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function getEnrollmentHistoryStatusV11() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const enrollmentsSheet = spreadsheet.getSheetByName(ENROLLMENTS_SHEET_NAME);
+  const movementsSheet = spreadsheet.getSheetByName(STUDENT_MOVEMENTS_SHEET_NAME);
+  const enrollmentRows = enrollmentsSheet && enrollmentsSheet.getLastRow() > 1
+    ? enrollmentsSheet.getRange(2, 1, enrollmentsSheet.getLastRow() - 1, ENROLLMENT_HEADERS.length).getDisplayValues()
+    : [];
+  const movementRows = movementsSheet && movementsSheet.getLastRow() > 1
+    ? movementsSheet.getRange(2, 1, movementsSheet.getLastRow() - 1, STUDENT_MOVEMENT_HEADERS.length).getDisplayValues()
+    : [];
+  const activeKeys = {};
+  const duplicateActiveEnrollments = [];
+  let activeEnrollments = 0;
+  enrollmentRows.forEach(row => {
+    if (normalizeStudentStatus_(row[6]) !== STUDENT_ACTIVE_STATUS) return;
+    activeEnrollments++;
+    const key = String(row[1]) + '|' + String(row[2]);
+    if (activeKeys[key] && duplicateActiveEnrollments.indexOf(key) === -1) duplicateActiveEnrollments.push(key);
+    activeKeys[key] = true;
+  });
+  const result = {
+    success: true,
+    ready: enrollmentHistoryIsReady_(),
+    version: 'V11',
+    cycle: CURRENT_SCHOOL_CYCLE,
+    enrollments: enrollmentRows.length,
+    activeEnrollments,
+    movements: movementRows.length,
+    duplicateActiveEnrollments
+  };
+  console.log(JSON.stringify(result, null, 2));
+  return result;
+}
+
+function enrollmentRowToObjectV11_(row) {
+  return {
+    enrollmentId: String(row[0]),
+    alumnoId: String(row[1]),
+    cicloEscolar: String(row[2]),
+    grado: String(row[3]),
+    grupo: String(row[4]),
+    grupoId: String(row[5]),
+    estatus: normalizeStudentStatus_(row[6]),
+    fechaInicio: row[7] ? schoolDateV11_(row[7]) : '',
+    fechaFin: row[8] ? schoolDateV11_(row[8]) : '',
+    motivoFin: String(row[9] || ''),
+    actualizadoEn: formatDateTime_(row[10]),
+    actualizadoPor: String(row[11] || '')
+  };
+}
+
+function movementRowToObjectV11_(row) {
+  return {
+    movementId: String(row[0]),
+    alumnoId: String(row[1]),
+    enrollmentId: String(row[2]),
+    tipo: String(row[3]),
+    fechaEfectiva: row[4] ? schoolDateV11_(row[4]) : '',
+    cicloOrigen: String(row[5] || ''),
+    grupoOrigen: String(row[6] || ''),
+    cicloDestino: String(row[7] || ''),
+    grupoDestino: String(row[8] || ''),
+    estatusResultante: normalizeStudentStatus_(row[9]),
+    motivo: String(row[10] || ''),
+    observacion: String(row[11] || ''),
+    usuario: String(row[12] || ''),
+    creadoEn: formatDateTime_(row[13])
+  };
+}
+
+function getStudentLifecycle(params) {
+  const alumnoId = String(params.alumnoId || params.id || '').trim();
+  if (alumnoId.indexOf('ALU-') !== 0) return { success: false, error: 'ALUMNO_ID inválido' };
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const enrollmentsSheet = spreadsheet.getSheetByName(ENROLLMENTS_SHEET_NAME);
+  const movementsSheet = spreadsheet.getSheetByName(STUDENT_MOVEMENTS_SHEET_NAME);
+  const enrollments = enrollmentsSheet && enrollmentsSheet.getLastRow() > 1
+    ? enrollmentsSheet.getRange(2, 1, enrollmentsSheet.getLastRow() - 1, ENROLLMENT_HEADERS.length)
+      .getValues().filter(row => String(row[1]) === alumnoId).map(enrollmentRowToObjectV11_)
+    : [];
+  const movements = movementsSheet && movementsSheet.getLastRow() > 1
+    ? movementsSheet.getRange(2, 1, movementsSheet.getLastRow() - 1, STUDENT_MOVEMENT_HEADERS.length)
+      .getValues().filter(row => String(row[1]) === alumnoId).map(movementRowToObjectV11_)
+    : [];
+  movements.sort((a, b) => String(b.fechaEfectiva).localeCompare(String(a.fechaEfectiva)) ||
+    String(b.creadoEn).localeCompare(String(a.creadoEn)));
+  return { success: true, alumnoId, enrollments, movements, version: 'V11' };
+}
+
+function getInactiveStudents() {
+  const all = getStudents({ includeInactive: true }).data;
+  return {
+    success: true,
+    data: all.filter(student => student.estatus !== STUDENT_ACTIVE_STATUS),
+    version: 'V11',
+    enrollmentHistoryReady: enrollmentHistoryIsReady_()
+  };
+}
+
+function reactivateStudent(params) {
+  return setStudentStatus({
+    grupo: params.grupo,
+    alumnoId: params.alumnoId || params.id,
+    rowId: params.rowId,
+    estatus: STUDENT_ACTIVE_STATUS,
+    fechaEfectiva: params.fechaEfectiva,
+    motivo: params.motivo || 'REACTIVACION',
+    observacion: params.observacion,
+    usuario: params.usuario
+  });
+}
+
+function recordStudentStatusMovementV11_(event) {
+  const enrollmentsSheet = ensureTechnicalDataSheetV11_(ENROLLMENTS_SHEET_NAME, ENROLLMENT_HEADERS);
+  const movementsSheet = ensureTechnicalDataSheetV11_(STUDENT_MOVEMENTS_SHEET_NAME, STUDENT_MOVEMENT_HEADERS);
+  const rows = enrollmentsSheet.getLastRow() > 1
+    ? enrollmentsSheet.getRange(2, 1, enrollmentsSheet.getLastRow() - 1, ENROLLMENT_HEADERS.length).getValues()
+    : [];
+  let index = rows.findIndex(row => String(row[1]) === event.alumnoId && String(row[2]) === event.cycle);
+  const effectiveDate = schoolDateV11_(event.effectiveDate);
+  const now = new Date().toISOString();
+  let enrollmentId;
+  if (index === -1) {
+    enrollmentId = deterministicEnrollmentIdV11_(event.alumnoId, event.cycle);
+    const grade = normalizeGradeV11_(event.group);
+    const letter = normalizeGroupLetterV11_(event.group);
+    const row = [
+      enrollmentId, event.alumnoId, event.cycle, grade, letter, event.group,
+      event.status, event.status === STUDENT_ACTIVE_STATUS ? effectiveDate : '',
+      event.status === STUDENT_ACTIVE_STATUS ? '' : effectiveDate,
+      event.status === STUDENT_ACTIVE_STATUS ? '' : String(event.reason || ''),
+      now, String(event.user || ''), 'panel-v11', SCHOOL_ID
+    ];
+    enrollmentsSheet.getRange(enrollmentsSheet.getLastRow() + 1, 1, 1, ENROLLMENT_HEADERS.length).setValues([row]);
+  } else {
+    const row = rows[index];
+    enrollmentId = String(row[0]);
+    row[6] = event.status;
+    row[8] = event.status === STUDENT_ACTIVE_STATUS ? '' : effectiveDate;
+    row[9] = event.status === STUDENT_ACTIVE_STATUS ? '' : String(event.reason || '');
+    row[10] = now;
+    row[11] = String(event.user || '');
+    enrollmentsSheet.getRange(index + 2, 1, 1, ENROLLMENT_HEADERS.length).setValues([row]);
+  }
+  const movementType = event.status === STUDENT_ACTIVE_STATUS
+    ? 'REINGRESO'
+    : ({ TRANSFERIDO: 'TRANSFERENCIA', EGRESADO: 'EGRESO' }[event.status] || event.status);
+  const movementRow = [[
+    'MOV-' + Utilities.getUuid().replace(/-/g, '').toUpperCase(),
+    event.alumnoId, enrollmentId, movementType, effectiveDate,
+    event.cycle, event.group, event.cycle, event.group, event.status,
+    String(event.reason || ''), String(event.observation || ''), String(event.user || ''),
+    now, 'panel-v11', SCHOOL_ID
+  ]];
+  movementsSheet.getRange(movementsSheet.getLastRow() + 1, 1, 1, STUDENT_MOVEMENT_HEADERS.length)
+    .setValues(movementRow);
 }
 
 // =====================================================

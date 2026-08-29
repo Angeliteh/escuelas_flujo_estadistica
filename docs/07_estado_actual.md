@@ -141,10 +141,31 @@
 - [x] Migración no destructiva diseñada para mantener intactas las columnas visibles `A:T`.
 - [x] Frontend preparado para preferir `alumnoId` y seguir siendo compatible con V9.
 - [x] `setupStudentIdentityV10` ejecutado: 253 alumnos recibieron ID durante esa ejecución.
-- [x] API pública verificada: 272 alumnos activos, 272 IDs permanentes y 0 duplicados.
+- [x] API pública verificada: 272 alumnos activos y 0 inconsistencias de grado/grupo.
+- [!] Auditoría estricta posterior: 251 IDs permanentes válidos y 21 valores numéricos heredados en `2A`; la reparación segura está incluida en V11 y debe ejecutarse antes de inscripciones.
 - [x] V10 publicada conservando la misma URL `/exec`.
 - [x] El frontend cambia automáticamente “Eliminar” por “Dar de baja” cuando detecta V10 lista.
 - [ ] Agregar la consulta y reactivación de alumnos inactivos después de confirmar V10.
+
+### Fase siguiente acordada
+
+- [x] Modelo de control escolar y criterios de migración definidos en [11_modelo_control_escolar_y_movimientos.md](./11_modelo_control_escolar_y_movimientos.md).
+- [ ] Crear `_INSCRIPCIONES` para separar alumno, ciclo y grupo.
+- [ ] Crear `_MOVIMIENTOS_ALUMNO` como historial append-only.
+- [ ] Implementar consulta/reactivación de bajas.
+- [ ] Implementar cambio de grupo y transferencia sin cambiar `ALUMNO_ID`.
+- [ ] Implementar cierre de ciclo, promoción, repetición y egreso con vista previa.
+- [ ] Añadir auditoría y exportación administrativa controlada.
+
+### V11 preparada localmente, todavía no publicada
+
+- [x] Preanálisis bloquea inconsistencias antes de escribir.
+- [x] Simulación idempotente de `_INSCRIPCIONES` y `_MOVIMIENTOS_ALUMNO` superada.
+- [x] Simulación de baja y reingreso superada.
+- [x] Panel administrativo de inactivos preparado y oculto mientras V11 no esté activa.
+- [ ] Ejecutar la auditoría y reparación de 21 IDs heredados en Apps Script real.
+- [ ] Ejecutar el preanálisis de inscripciones en Apps Script real.
+- [ ] Instalar y publicar V11 solamente si el análisis devuelve cero problemas.
 
 ---
 

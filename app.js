@@ -144,6 +144,7 @@ const STUDENTS_CACHE_KEY = 'ce_students_cache_v1';
 let allStudentsCache = [];
 let isDataLoaded = false;
 let studentSoftDeleteEnabled = false;
+let studentLifecycleEnabled = false;
 
 function saveStudentsCache() {
   try { localStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(allStudentsCache)); }
@@ -169,6 +170,9 @@ async function fetchAllStudents() {
     const result = await response.json();
     if (result.success) {
       studentSoftDeleteEnabled = result.version === 'V10' && result.identityReady === true;
+      studentLifecycleEnabled = result.version === 'V11' && result.enrollmentHistoryReady === true;
+      if (studentLifecycleEnabled) studentSoftDeleteEnabled = true;
+      document.getElementById('director-inactive-btn')?.classList.toggle('hidden', !studentLifecycleEnabled);
       allStudentsCache = result.data.map(s => {
         let n = String(s.grado || '').charAt(0);
         let l = String(s.grupo || '').trim();
@@ -2432,6 +2436,82 @@ async function saveStudent(e) {
 
 let pendingDeleteId = null;
 let pendingDeleteType = null;
+let inactiveStudentsCache = [];
+
+async function openInactiveStudents() {
+  if (!currentUser || currentUser.role !== 'director' || !studentLifecycleEnabled) return;
+  const overlay = document.getElementById('inactive-students-overlay');
+  overlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('inactive-students-status').textContent = 'Consultando historial...';
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'getInactiveStudents' }),
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'No fue posible consultar los inactivos');
+    inactiveStudentsCache = Array.isArray(result.data) ? result.data : [];
+    document.getElementById('inactive-students-status').textContent = '';
+    renderInactiveStudents();
+  } catch (error) {
+    document.getElementById('inactive-students-status').textContent = error.message || 'Error de conexión';
+  }
+}
+
+function renderInactiveStudents() {
+  const tbody = document.getElementById('inactive-students-tbody');
+  const empty = document.getElementById('inactive-students-empty');
+  document.getElementById('inactive-students-count').textContent =
+    `${inactiveStudentsCache.length} alumno${inactiveStudentsCache.length === 1 ? '' : 's'} inactivo${inactiveStudentsCache.length === 1 ? '' : 's'}`;
+  empty.classList.toggle('hidden', inactiveStudentsCache.length !== 0);
+  tbody.innerHTML = inactiveStudentsCache.map((student, index) => `
+    <tr>
+      <td class="td-number">${index + 1}</td>
+      <td class="td-name">${escHtml(student.nombre)}</td>
+      <td>${escHtml(student.grupoId || `${String(student.grado || '').charAt(0)}${student.grupo || ''}`)}</td>
+      <td><span class="badge badge-inactive">${escHtml(student.estatus || 'INACTIVO')}</span></td>
+      <td>${student.fechaEstatus ? escHtml(String(student.fechaEstatus).slice(0, 10)) : '—'}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick='reactivateStudentFromAdmin(${JSON.stringify(student.alumnoId || student.id)})'>
+        <i class="fa-solid fa-user-check"></i> Reactivar
+      </button></td>
+    </tr>
+  `).join('');
+}
+
+function closeInactiveStudents(event) {
+  if (event && event.target !== document.getElementById('inactive-students-overlay')) return;
+  document.getElementById('inactive-students-overlay')?.classList.add('hidden');
+  document.body.style.overflow = selectedDirectorGroup ? 'hidden' : '';
+}
+
+async function reactivateStudentFromAdmin(id) {
+  const student = inactiveStudentsCache.find(item => item.alumnoId === id || item.id === id);
+  if (!student) return;
+  if (!window.confirm(`¿Reactivar a ${student.nombre}? El alumno volverá a aparecer en su grupo actual.`)) return;
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'reactivateStudent',
+        alumnoId: student.alumnoId || student.id,
+        rowId: student.rowId,
+        grupo: student.grupoId,
+        motivo: 'REACTIVACION ADMINISTRATIVA',
+        usuario: currentUser?.username || ''
+      }),
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'No fue posible reactivar al alumno');
+    inactiveStudentsCache = inactiveStudentsCache.filter(item => item.alumnoId !== id && item.id !== id);
+    renderInactiveStudents();
+    await fetchAllStudents();
+    refreshStudentViews();
+    showToast('Alumno reactivado correctamente', 'success');
+  } catch (error) {
+    showToast(error.message || 'Error al reactivar', 'error');
+  }
+}
 
 function askDelete(id) {
   const s = getAllStudents().find(s => s.alumnoId === id || s.id === id || s.rowId === id);
@@ -2561,6 +2641,7 @@ document.addEventListener('keydown', e => {
     closeStudentDrawer();
     closeStaffDrawer();
     closeConfirm();
+    closeInactiveStudents();
   }
 });
 
