@@ -15,7 +15,7 @@ Control de Asistencia es un panel web para que maestros y administración gestio
 - Sitio: https://asistpanel.vercel.app/
 - Repositorio: https://github.com/Angeliteh/escuelas_flujo_estadistica
 - Rama activa: main
-- Último commit funcional verificado en producción antes de esta documentación: ca493db (panel compatible y backend V10 activo).
+- Base funcional verificada en producción: `beb572d` (contrato operativo, permisos por rol y backend V11 activo). Los commits documentales posteriores no cambian esa base.
 - Despliegue: Vercel conectado al repositorio; cada push a main genera una nueva implementación.
 
 ### Escuela activa
@@ -52,7 +52,7 @@ POST API_URL
 { "action": "getAttendanceMonth", "group": "2B", "month": "2026-08" }
 ```
 
-La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`, `mode: "formatted-monthly-sheet"`, `storage: "historical-events-v1"` y un arreglo de 21 fechas hábiles para agosto de 2026. El `ping` debe indicar V10 e identidad lista.
+La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`, `mode: "formatted-monthly-sheet"`, `storage: "historical-events-v1"` y un arreglo de 21 fechas hábiles para agosto de 2026. El `ping` debe indicar V11, identidad e inscripciones listas.
 
 ### Estructura actual del Sheet
 
@@ -68,14 +68,15 @@ La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`,
 - Login por usuario.
 - Maestro limitado a su grupo.
 - Administración puede consultar todos los grupos.
-- Alta, edición y baja de alumnos desde el panel.
+- El maestro puede inscribir y editar únicamente alumnos de su grupo.
+- Dirección puede inscribir en cualquier grupo, editar, dar de baja y reactivar.
 - Los campos del alumno son opcionales para permitir captura progresiva.
 - Folio integrado en formulario, tablas, guardado e impresión.
 - Filtros, búsqueda, estadísticas e impresión de padrón.
 - Ficha individual en un modal central amplio, inicialmente en modo lectura y con botón separado para editar.
 - Impresión individual A4 con los datos existentes y un espacio reservado para fotografía física.
 - Los cambios del panel se escriben en la hoja maestra mediante Apps Script.
-- El frontend está preparado para preferir `alumnoId` cuando V10 esté activa y mantiene compatibilidad temporal con el `rowId` de V9.
+- El frontend usa `alumnoId` cuando V11 está activa y mantiene compatibilidad temporal con `rowId` sólo para datos heredados.
 
 ### Asistencia
 
@@ -184,7 +185,7 @@ Esto es aceptable únicamente para una prueba interna controlada. Antes de opera
 - Los cambios de alumnos hechos por otra persona no aparecen hasta recargar o volver a consultar.
 - La asistencia offline depende del navegador y dispositivo donde se capturó.
 - Personal sigue siendo consulta; antes de habilitar edición hay que confirmar el flujo administrativo.
-- Todavía no existen módulos de calificaciones, documentos, expedientes, constancias ni eventos de altas y bajas.
+- Todavía no existen módulos de calificaciones, documentos, expedientes ni constancias. Alta, baja y reingreso ya producen movimientos; transferencia y cambio de grupo siguen pendientes.
 
 ## 8. Orden recomendado para escalar
 
@@ -192,21 +193,24 @@ Esto es aceptable únicamente para una prueba interna controlada. Antes de opera
 
 1. Probar los 12 grupos con el usuario de cada maestro.
 2. Confirmar que cada grupo tiene su pestaña maestra y su pestaña mensual.
-3. Probar alta, edición, folio, impresión, asistencia diaria e historial.
-4. Definir quién puede corregir asistencia pasada.
-5. Confirmar que el primer respaldo nocturno se creó después del snapshot inicial ya instalado con V9.
-6. Verificar con operación real que septiembre no sobrescribe el historial de agosto.
-7. Entregar la URL a la subdirectora y capacitarla con un flujo corto.
+3. Hacer un alta controlada y comprobar fila, `ALUMNO_ID`, inscripción `ACTIVO` y movimiento `ALTA`.
+4. Probar edición, folio, ficha, padrón, asistencia diaria e historial.
+5. Probar baja y reingreso desde dirección comprobando que no se pierda el historial.
+6. Definir quién puede corregir asistencia pasada y validar el rechazo de operaciones fuera del rol.
+7. Confirmar el primer respaldo nocturno posterior al snapshot inicial.
+8. Verificar con operación real que septiembre no sobrescribe el historial de agosto.
+9. Hacer la prueba no destructiva de restauración sobre una copia aislada.
+10. Probar desde teléfono y capacitar a la subdirectora y a un maestro con un flujo corto.
 
 ### Fase 1 — Estabilizar el modelo de datos
 
-1. Conservar los IDs permanentes de alumno ya instalados.
-2. Crear inscripciones por ciclo.
-3. Modelar altas, bajas, transferencias, reingresos y cambios de grupo como eventos.
-4. Implementar cierre de ciclo, promoción, repetición y egreso.
+1. Mantener los IDs permanentes, inscripciones por ciclo y movimientos ya instalados.
+2. Completar transferencia y cambio de grupo como acciones atómicas con origen, destino, fecha y motivo.
+3. Implementar cierre de ciclo, promoción, repetición y egreso con vista previa y confirmación.
+4. Crear una bitácora append-only para edición de fichas y correcciones de asistencia.
 5. Definir catálogos controlados para género, beca, estatus y tipos de documento.
-6. Crear una hoja append-only de auditoría con usuario, acción, fecha, entidad y valores anteriores/nuevos.
-7. Probar restauración sobre una copia aislada.
+6. Aplicar autenticación y autorización real en el backend por usuario, rol y grupo.
+7. Añadir exportación administrativa y procedimientos de recuperación verificables.
 
 ### Fase 2 — Backend real
 
@@ -249,7 +253,7 @@ La evolución de interfaz acordada parte de dos entidades principales:
 
 La ficha individual imprimible ya reutiliza el drawer y la infraestructura actual de impresión, sin duplicar datos ni agregar columnas. La fotografía es únicamente un espacio reservado en papel; todavía no existe carga o almacenamiento digital de imágenes.
 
-El siguiente incremento técnico recomendado es introducir `alumnoId` permanente y estatus del alumno antes de construir constancias, credenciales o calificaciones que dependan de identidad histórica.
+El siguiente incremento técnico recomendado es completar transferencia/cambio de grupo y cierre de ciclo sobre V11. Después se pueden construir expedientes, constancias, credenciales y calificaciones sobre una identidad histórica ya estable.
 
 ## 9. Multi escuela
 

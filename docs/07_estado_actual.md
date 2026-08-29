@@ -65,7 +65,7 @@
 - [x] Simulación local superada: agosto se conserva al guardar septiembre y borrar septiembre no afecta agosto.
 - [x] `setupAttendanceHistoryV9()` ejecutado en el Sheet real y V9 publicado; API verificada con `historical-events-v1`.
 - [x] Corrección desde el panel preparada: tocar de nuevo ✓ o X limpia la marca y la devuelve a pendiente.
-- [ ] **Verificar que el drawer de edición guarda correctamente** — probar ciclo completo: editar alumno → guardar → verificar en Sheet
+- [ ] **Verificar que la ficha modal guarda correctamente** — probar ciclo completo: editar alumno → guardar → verificar en Sheet
 - [ ] **Probar un alta controlada** — confirmar fila, ID, inscripción `ACTIVO` y movimiento `ALTA`
 - [ ] **Probar desde dispositivo móvil** — abrir `index.html` en el teléfono para ver si el layout responde bien
 - [ ] Probar los 12 grupos y sus hojas mensuales de asistencia
@@ -138,7 +138,7 @@
 
 ---
 
-## Identidad V10 instalada
+## Identidad permanente — migración V10 completada
 
 - [x] Código V10 publicado conserva respaldos e historial mensual V9.
 - [x] Migración no destructiva diseñada para mantener intactas las columnas visibles `A:T`.
@@ -147,15 +147,15 @@
 - [x] API pública verificada: 272 alumnos activos y 0 inconsistencias de grado/grupo.
 - [x] Auditoría estricta posterior detectó 21 valores heredados inválidos en `2A`; fueron reparados y la comprobación final confirmó 272 IDs permanentes válidos de 272 alumnos.
 - [x] V10 publicada conservando la misma URL `/exec`.
-- [x] El frontend cambia automáticamente “Eliminar” por “Dar de baja” cuando detecta V10 lista.
-- [ ] Agregar la consulta y reactivación de alumnos inactivos después de confirmar V10.
+- [x] El frontend y V11 usan `alumnoId` como identidad estable y conservan la ubicación física sólo como compatibilidad.
+- [x] Dirección dispone de consulta y reactivación de alumnos inactivos.
 
-### Fase siguiente acordada
+### Modelo de control escolar acordado
 
 - [x] Modelo de control escolar y criterios de migración definidos en [11_modelo_control_escolar_y_movimientos.md](./11_modelo_control_escolar_y_movimientos.md).
-- [ ] Crear `_INSCRIPCIONES` para separar alumno, ciclo y grupo.
-- [ ] Crear `_MOVIMIENTOS_ALUMNO` como historial append-only.
-- [ ] Implementar consulta/reactivación de bajas.
+- [x] Crear `_INSCRIPCIONES` para separar alumno, ciclo y grupo.
+- [x] Crear `_MOVIMIENTOS_ALUMNO` como historial append-only.
+- [x] Implementar alta, baja y consulta/reactivación conservando identidad e historial.
 - [ ] Implementar cambio de grupo y transferencia sin cambiar `ALUMNO_ID`.
 - [ ] Implementar cierre de ciclo, promoción, repetición y egreso con vista previa.
 - [ ] Añadir auditoría y exportación administrativa controlada.
