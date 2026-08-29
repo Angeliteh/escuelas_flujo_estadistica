@@ -1418,7 +1418,7 @@ function repairInvalidStudentIdsV11() {
       const visibleRows = sheet.getRange(HEADER_ROW + 1, 1, height, STUDENT_VISIBLE_COLUMNS).getValues();
       const metadataRows = sheet
         .getRange(HEADER_ROW + 1, STUDENT_META_START_COLUMN, height, STUDENT_META_HEADERS.length).getValues();
-      let sheetChanged = false;
+      const repairs = [];
       visibleRows.forEach((row, index) => {
         if (!row[4]) return;
         const sheetRow = HEADER_ROW + 1 + index;
@@ -1427,11 +1427,9 @@ function repairInvalidStudentIdsV11() {
         let alumnoId = previousId;
         if (!isPermanentStudentIdV11_(alumnoId) || seenIds[alumnoId]) {
           alumnoId = generateStudentId_();
-          metadata[0] = alumnoId;
-          metadata[5] = new Date().toISOString();
-          metadata[6] = 'REPARACION_IDENTIDAD_V11';
+          const repairedAt = new Date().toISOString();
+          repairs.push({ sheetRow, alumnoId, repairedAt });
           repairedStudents++;
-          sheetChanged = true;
         }
         seenIds[alumnoId] = true;
         legacyIdMap[`${group}-${sheetRow}`] = alumnoId;
@@ -1440,10 +1438,14 @@ function repairInvalidStudentIdsV11() {
         if (nameIdMap[nameKey] && nameIdMap[nameKey] !== alumnoId) nameIdMap[nameKey] = null;
         else if (nameIdMap[nameKey] !== null) nameIdMap[nameKey] = alumnoId;
       });
-      if (sheetChanged) {
-        sheet.getRange(HEADER_ROW + 1, STUDENT_META_START_COLUMN, height, STUDENT_META_HEADERS.length)
-          .setValues(metadataRows);
-      }
+      // Escribir únicamente U y Z:AA. Algunas plantillas heredadas contienen
+      // valores inválidos en V y Google rechaza reescribir el bloque U:AA
+      // completo aunque esos valores ya existieran antes de la validación.
+      repairs.forEach(repair => {
+        sheet.getRange(repair.sheetRow, STUDENT_META_START_COLUMN).setValue(repair.alumnoId);
+        sheet.getRange(repair.sheetRow, STUDENT_META_START_COLUMN + 5, 1, 2)
+          .setValues([[repair.repairedAt, 'REPARACION_IDENTIDAD_V11']]);
+      });
     });
     const migratedAttendanceRecords = migrateAttendanceStudentIdsV10_(legacyIdMap, nameIdMap);
     const analysis = analyzeStudentIdentityV11();

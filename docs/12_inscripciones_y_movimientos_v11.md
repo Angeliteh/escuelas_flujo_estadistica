@@ -61,6 +61,8 @@ Si encuentra una diferencia, devuelve `readyToMigrate: false` y **no crea ni mod
 
 No es necesario volver a ejecutar `setupStudentIdentityV10` ni `setupAttendanceHistoryV9`.
 
+> La primera revisión de la reparación intentaba reescribir `U:AA` completo y Google la bloqueó por un valor heredado inválido en `V24`. La revisión vigente escribe exclusivamente `U` y `Z:AA`; no toca `V` ni vuelve a someter esos datos heredados a validación.
+
 ## Pruebas posteriores
 
 1. Abrir **Bajas e inactivos** y confirmar que inicialmente esté vacío si no existen bajas.
