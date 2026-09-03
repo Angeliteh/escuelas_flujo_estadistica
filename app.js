@@ -137,7 +137,9 @@ function generateSampleStudents() {
 // DATA (caché de sesión; nunca se conserva después de cerrar el navegador)
 // =====================================================
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgkNLf-jc1uEdzIoIU73mSJzLYJNC3Sw/exec';
+// El panel habla con su propio origen. Vercel reenvía la petición a Apps Script
+// del lado servidor, evitando bloqueos de privacidad por la redirección de Google.
+const API_URL = '/api/control';
 const SESSION_KEY = 'ce_session_v2';
 const STUDENTS_CACHE_KEY = 'ce_students_cache_v2';
 
@@ -414,6 +416,7 @@ function showLoginError(message) {
 async function postApi(payload) {
   const response = await fetch(API_URL, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
   return response.json();

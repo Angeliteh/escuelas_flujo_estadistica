@@ -44,7 +44,16 @@ Haz el cambio fuera de horario escolar. Publicar primero el backend y luego el p
 5. Ejecuta `getAccessControlStatusV11`. Debe devolver `ready: true`, una lista de usuarios sin contraseñas y al menos una cuenta activa con rol `director`.
 6. Confirma en propiedades que `ACCESS_CONTROL_SEED_V11` ya no existe. El backend sólo conserva hashes y una clave interna privada; no recupera ni muestra las contraseñas.
 7. Publica una **nueva versión** de la Web App de Apps Script con la misma URL `/exec` y el acceso configurado para los usuarios previstos.
-8. Despliega juntos `app.js`, `index.html`, `styles.css` y `sw.js` en Vercel. La caché del panel cambia a V3 para forzar la actualización de la interfaz.
+8. Despliega juntos `app.js`, `index.html`, `styles.css`, `sw.js` y la carpeta `api/` en Vercel. La caché del panel cambia a V4 para forzar la actualización de la interfaz.
+
+El despliegue de Vercel también incluye `api/control.js`. El panel llama a esa
+ruta del mismo dominio y la función reenvía las peticiones a Apps Script desde
+el servidor. Esto evita que navegadores con prevención de rastreo estricta
+bloqueen la redirección temporal de `script.googleusercontent.com` que usa
+Google al responder una Web App. La URL actual de Apps Script funciona como
+valor predeterminado; si se sustituye la Web App en el futuro, configura
+`APPS_SCRIPT_URL` en las variables de entorno de Vercel con la nueva URL
+`/exec` y vuelve a desplegar.
 
 Si se cambia la lista de cuentas, repite pasos 3 a 6. Esto invalida todas las sesiones existentes, que es intencional.
 
