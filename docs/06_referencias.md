@@ -9,8 +9,8 @@ https://asistpanel.vercel.app/
 Repositorio:
 https://github.com/Angeliteh/escuelas_flujo_estadistica
 
-Último commit funcional verificado en producción:
-cb86bff
+Base actual de `main`:
+`b8eae64` — Actualiza la hoja de ruta posterior a V11
 
 Google Sheet:
 https://docs.google.com/spreadsheets/d/1jAPfaac3miW8izCGrq1rosCntdjAMw3TMKLCxHYtSzI/edit
@@ -31,13 +31,13 @@ TESTEOAMIGAMAMA/
 ├── index.html          ← Estructura HTML (login, vistas, modales)
 ├── styles.css          ← Estilos (glassmorphism, responsive, animaciones)
 ├── app.js              ← Toda la lógica JS (auth, API, render e impresión)
-├── AppsScript_V11.gs   ← Backend V11 publicado
+├── AppsScript_V11.gs   ← Backend V11.1 preparado; publicar junto con el panel
 └── docs/
     ├── README.md       ← Índice de documentación (este archivo)
     ├── 01_arquitectura.md
     ├── 02_roles.md
     ├── 03_google_sheets.md
-    ├── 04_apps_script.md  ← Código completo del Apps Script
+    ├── 04_apps_script.md  ← Archivo histórico V9; no usar para publicar
     ├── 05_deuda_tecnica.md
     ├── 06_referencias.md
     ├── 07_estado_actual.md
@@ -46,30 +46,16 @@ TESTEOAMIGAMAMA/
     ├── 10_identidad_alumnos_v10.md    ← Migración a identidad permanente
     ├── 11_modelo_control_escolar_y_movimientos.md
     ├── 12_inscripciones_y_movimientos_v11.md
-    └── 13_contrato_operativo.md          ← Reglas obligatorias
+    ├── 13_contrato_operativo.md          ← Reglas obligatorias
+    ├── 14_piloto_y_adopcion.md
+    └── 15_acceso_seguro.md               ← Instalación de cuentas y pruebas
 ```
 
 ---
 
-## Credenciales de Desarrollo
+## Accesos
 
-> Estas son las credenciales del prototipo. Para producción, cambiarlas en el objeto `USERS` de `app.js`.
-
-| Usuario | Contraseña | Rol | Nombre |
-|---------|------------|-----|--------|
-| `directora` | `director2025` | Subdirectora / administración | Norma Patricia Ortiz Cabrera |
-| `1A` | `maestro2025` | Maestro | Mtro. Carlos Mendoza |
-| `1B` | `maestro2025` | Maestro | Mtra. Ana López |
-| `2A` | `maestro2025` | Maestro | Mtro. José García |
-| `2B` | `maestro2025` | Maestro | Mtra. Carmen Torres |
-| `3A` | `maestro2025` | Maestro | Mtro. Alejandro Reyes |
-| `3B` | `maestro2025` | Maestro | Mtra. Gabriela Flores |
-| `4A` | `maestro2025` | Maestro | Mtro. Roberto Sánchez |
-| `4B` | `maestro2025` | Maestro | Mtra. Patricia Ruiz |
-| `5A` | `maestro2025` | Maestro | Mtro. Fernando Díaz |
-| `5B` | `maestro2025` | Maestro | Mtra. Sofía Morales |
-| `6A` | `maestro2025` | Maestro | Mtro. Miguel Herrera |
-| `6B` | `maestro2025` | Maestro | Mtra. Valeria Castro |
+Las credenciales no se almacenan en archivos del proyecto. La lista privada de usuarios se instala en Apps Script siguiendo [15_acceso_seguro.md](./15_acceso_seguro.md). Este repositorio sólo conserva perfiles visuales sin contraseñas; el servidor decide rol y grupo en cada operación.
 
 ---
 
@@ -91,10 +77,10 @@ Todas se cargan desde CDN en `index.html`. No hay `package.json` ni `node_module
 |----------|-------------|-------------------|
 | `HEADER_ROW` | `5` | Apps Script (línea 5) |
 | `TABS` | `['1A','1B','2A','2B','3A','3B','4A','4B','5A','5B','6A','6B']` | Apps Script |
-| `GROUPS_LIST` | Igual que `TABS` | `app.js` (aproximadamente línea 50) |
-| `API_URL` | La URL larga del Script | `app.js` (línea ~130) |
+| `GROUPS_LIST` | Igual que `TABS` | `app.js` (inicio del archivo) |
+| `API_URL` | La URL larga del Script | `app.js` (inicio del archivo) |
 
-> V10 está publicada. Conserva el respaldo inicial, activador diario alrededor de las 02:00 (`America/Mexico_City`), retención de 30 copias e historial mensual V9. Los 21 IDs heredados inválidos encontrados en `2A` ya fueron reparados; la auditoría final confirmó 272 de 272 IDs válidos.
+> V11.1 conserva respaldos e historial mensual, añade identidad permanente, inscripciones, movimientos y acceso validado por servidor. Los 21 IDs heredados inválidos encontrados en `2A` ya fueron reparados; la auditoría final confirmó 272 de 272 IDs válidos. El acceso no queda activo hasta ejecutar la instalación y pruebas de [15_acceso_seguro.md](./15_acceso_seguro.md).
 
 ---
 

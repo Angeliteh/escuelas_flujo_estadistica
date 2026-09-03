@@ -83,4 +83,4 @@ Conservar el ID del archivo oficial evita cambiar `API_URL`, la implementación 
 - La cola local del navegador protege capturas pendientes frente a una caída de red; no es un respaldo del archivo oficial.
 - Las copias viven en la cuenta de Drive que instaló el activador. Para protegerse también ante pérdida total de esa cuenta se necesita una política institucional adicional de propiedad compartida o exportación externa.
 - Los cierres mensuales del ciclo no deben depender de la retención nocturna: un cierre de agosto, septiembre, etc. necesita conservarse aparte durante todo el ciclo escolar.
-- La siguiente capa recomendada es una bitácora append-only con fecha, usuario, acción y valores anterior/nuevo. Debe diseñarse junto con autenticación real; las credenciales actuales del frontend no permiten atribución fuerte.
+- La siguiente capa recomendada es una bitácora append-only con fecha, usuario, acción y valores anterior/nuevo. V11.1 ya atribuye al usuario de sesión; la bitácora formal debe conservar también valores anterior/nuevo y diseñarse antes de operaciones más complejas.

@@ -2,7 +2,7 @@
 
 > Documento principal para retomar el proyecto en una sesión futura.
 >
-> Última actualización: 28 de agosto de 2026.
+> Última actualización: 2 de septiembre de 2026.
 
 ## 1. Resumen en una frase
 
@@ -15,7 +15,7 @@ Control de Asistencia es un panel web para que maestros y administración gestio
 - Sitio: https://asistpanel.vercel.app/
 - Repositorio: https://github.com/Angeliteh/escuelas_flujo_estadistica
 - Rama activa: main
-- Base funcional verificada en producción: `beb572d` (contrato operativo, permisos por rol y backend V11 activo). Los commits documentales posteriores no cambian esa base.
+- Base histórica verificada en producción: `beb572d` (contrato operativo, permisos por rol y backend V11 activo). La rama `main` llegó a `b8eae64`; cualquier cambio posterior debe desplegarse y verificarse antes de declararlo publicado.
 - Despliegue: Vercel conectado al repositorio; cada push a main genera una nueva implementación.
 
 ### Escuela activa
@@ -33,14 +33,14 @@ Control de Asistencia es un panel web para que maestros y administración gestio
 - API actual: Google Apps Script publicado como Web App.
 - URL de API:
   https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgkNLf-jc1uEdzIoIU73mSJzLYJNC3Sw/exec
-- Versión publicada por el propietario en Apps Script: V11, compatible con el contrato del panel, historial mensual técnico, identidad permanente, inscripciones y movimientos.
+- Versión publicada por el propietario en Apps Script: V11, compatible con el contrato del panel, historial mensual técnico, identidad permanente, inscripciones y movimientos. V11.1 con control de acceso por servidor está preparada localmente y pendiente de instalación coordinada; ver [15_acceso_seguro.md](./15_acceso_seguro.md).
 - La migración V10 se ejecutó el 28 de agosto de 2026: `migratedStudents=253`. Una auditoría estricta posterior encontró 21 valores heredados inválidos en `ALUMNO_ID` de `2A`; ya fueron reparados y la verificación final confirmó 272 alumnos con 272 IDs permanentes válidos.
 - V11 está instalada y publicada: 272 inscripciones activas, 272 movimientos iniciales y cero duplicados. El `ping` y una consulta real de ciclo de vida fueron verificados. Ver [12_inscripciones_y_movimientos_v11.md](./12_inscripciones_y_movimientos_v11.md).
 - La API fue verificada nuevamente después de la actualización:
   - ping respondió HTTP 200.
   - getAttendanceMonth respondió success=true.
   - ASISTENCIA (2B), agosto de 2026, devolvió 21 días en una sola petición.
-  - La respuesta indicó `mode=formatted-monthly-sheet`, `storage=historical-events-v1` y `historyReady=true`.
+  - La respuesta indicó `mode=formatted-monthly-sheet` y `storage=historical-events-v1`; el `ping` confirmó `attendanceHistoryReady=true`.
 
 Comprobación mínima de continuidad para futuras sesiones:
 
@@ -91,7 +91,9 @@ La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`,
 - Si una marca se elimina directamente en Sheets, el panel la elimina de su caché al volver a sincronizar en línea.
 - Las capturas locales pendientes se conservan hasta sincronizarse.
 
-**Actualización V9:** la migración mensual fue instalada y la API pública confirmó `historyReady=true` y `storage=historical-events-v1`. Las correcciones de asistencia pasan a realizarse desde el panel; la matriz visible es un reporte regenerable. Falta únicamente comprobar el cruce agosto → septiembre → agosto con operación real.
+**Actualización V9:** la migración mensual fue instalada y la API pública confirmó el almacenamiento `historical-events-v1`. Las correcciones de asistencia pasan a realizarse desde el panel; la matriz visible es un reporte regenerable. El cruce agosto → septiembre → agosto fue validado en la operación del piloto.
+
+**Validación de piloto (2 de septiembre):** la persona responsable confirmó el funcionamiento cotidiano de altas, edición, asistencia, historial e impresión. Permanecen pendientes solamente la prueba controlada de Baja → Reingreso y la restauración sobre una copia aislada.
 
 ### Administración
 
@@ -104,7 +106,7 @@ La segunda respuesta debe tener `success: true`, `sheetName: "ASISTENCIA (2B)"`,
 - Personal en modo solo lectura.
 - Impresión de padrones y asistencia.
 - Nombre actual mostrado: Norma Patricia Ortiz Cabrera.
-- La llave interna de acceso continúa siendo directora para no romper el login.
+- Las cuentas ya no se resuelven con una llave interna del frontend. V11.1 recibe la identidad, rol y grupo desde la sesión del servidor; no publicar ni conservar contraseñas en el repositorio.
 
 ## 4. Decisiones operativas vigentes
 
@@ -167,18 +169,18 @@ Apps Script puede tener arranques en frío y variación propia de la red. V7 red
 
 ### Seguridad
 
-- Las contraseñas están en app.js y son visibles para quien inspeccione el navegador.
-- La URL de Apps Script es pública y no tiene autenticación real por usuario.
-- El frontend oculta opciones por rol, pero el control de seguridad no debe depender solo del navegador.
+- V11.1 elimina contraseñas del frontend, guarda hashes privados y valida una sesión en Apps Script.
+- La URL de Apps Script mantiene público sólo `ping`; datos y modificaciones requieren sesión.
+- El servidor limita a cada docente a su grupo y reserva los cambios de situación para Dirección.
 
-Esto es aceptable únicamente para una prueba interna controlada. Antes de operar varias escuelas o datos sensibles se necesita autenticación real, autorización en servidor, tokens y registro de auditoría.
+La instalación aún debe publicarse y probarse antes de entregar cuentas; ver [15_acceso_seguro.md](./15_acceso_seguro.md). Para varias escuelas se necesitarán identidad centralizada, recuperación de contraseña y auditoría formal.
 
 ### Integridad y auditoría
 
 - No existe todavía un historial formal de quién cambió cada campo.
 - El Sheet puede ser modificado manualmente por alguien con permisos.
 - V9 fue actualizado por el propietario. `setupBackups()` creó correctamente la carpeta, el snapshot inicial y el activador nocturno el 28 de agosto de 2026. La prueba de recuperación queda pendiente y deberá hacerse sobre una copia aislada, nunca reemplazando el Sheet oficial.
-- localStorage ayuda ante una falla temporal, pero no reemplaza una base de datos ni un sistema de sincronización con resolución de conflictos.
+- La caché de sesión ayuda ante una falla temporal, pero se borra al cerrar pestaña/sesión y no reemplaza una base de datos ni un sistema de sincronización con resolución de conflictos.
 
 ### Operación
 
@@ -191,16 +193,11 @@ Esto es aceptable únicamente para una prueba interna controlada. Antes de opera
 
 ### Fase 0 — Entrega controlada de esta escuela
 
-1. Probar los 12 grupos con el usuario de cada maestro.
-2. Confirmar que cada grupo tiene su pestaña maestra y su pestaña mensual.
-3. Hacer un alta controlada y comprobar fila, `ALUMNO_ID`, inscripción `ACTIVO` y movimiento `ALTA`.
-4. Probar edición, folio, ficha, padrón, asistencia diaria e historial.
-5. Probar baja y reingreso desde dirección comprobando que no se pierda el historial.
-6. Definir quién puede corregir asistencia pasada y validar el rechazo de operaciones fuera del rol.
-7. Confirmar el primer respaldo nocturno posterior al snapshot inicial.
-8. Verificar con operación real que septiembre no sobrescribe el historial de agosto.
-9. Hacer la prueba no destructiva de restauración sobre una copia aislada.
-10. Probar desde teléfono y capacitar a la subdirectora y a un maestro con un flujo corto.
+1. Probar Baja → Reingreso desde Dirección, verificando identidad, inscripción y asistencia.
+2. Confirmar el primer respaldo nocturno posterior al snapshot inicial.
+3. Hacer la prueba no destructiva de restauración sobre una copia aislada.
+4. Presentar el piloto a la subdirectora y realizar una capacitación corta con un maestro.
+5. Recoger necesidades reales usando la plantilla de [14_piloto_y_adopcion.md](./14_piloto_y_adopcion.md), sin agregar columnas o pantallas improvisadas.
 
 ### Fase 1 — Estabilizar el modelo de datos
 
@@ -209,7 +206,7 @@ Esto es aceptable únicamente para una prueba interna controlada. Antes de opera
 3. Implementar cierre de ciclo, promoción, repetición y egreso con vista previa y confirmación.
 4. Crear una bitácora append-only para edición de fichas y correcciones de asistencia.
 5. Definir catálogos controlados para género, beca, estatus y tipos de documento.
-6. Aplicar autenticación y autorización real en el backend por usuario, rol y grupo.
+6. Mantener y ampliar el control V11.1 sin devolver contraseñas o permisos al frontend; planear identidad centralizada al crecer.
 7. Añadir exportación administrativa y procedimientos de recuperación verificables.
 
 ### Fase 2 — Backend real

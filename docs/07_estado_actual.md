@@ -1,14 +1,19 @@
 # 07 — Estado Actual del Proyecto
 
-> Última actualización: 28 de agosto 2026
+> Última actualización: 3 de septiembre 2026
 > Objetivo: Panorama completo para operar la primera escuela y preparar la evolución del sistema.
 
 ---
 
 ## ✅ Lo que ya está funcionando
 
+### Diseño institucional
+- [x] Base visual clara aplicada: azul institucional, superficies blancas, estados semánticos y eliminación de brillos/neón.
+- [x] Inicio de sesión con escudo, texto de acceso asignado y sin credenciales de ejemplo.
+- [x] Encabezados, navegación, tarjetas, tablas y gráficas alineados al lenguaje institucional. Ver [16_propuesta_diseno_institucional.md](./16_propuesta_diseno_institucional.md).
+
 ### Panel del Maestro
-- [x] Login con usuario/contraseña por grupo
+- [x] Interfaz de inicio de sesión preparada para cuentas asignadas por Dirección
 - [x] Pantalla inicial **Resumen** con identidad del grupo, docente, ciclo, estadísticas y accesos rápidos
 - [x] Vista del grupo con estadísticas (total, H, M, becas)
 - [x] Tabla de alumnos (solo los de su grupo)
@@ -27,7 +32,7 @@
 - [x] Logout
 
 ### Panel de la Directora
-- [x] Login con usuario/contraseña de directora
+- [x] Interfaz de inicio de sesión preparada para la cuenta de Dirección
 - [x] Dashboard con 4 métricas clave y 4 gráficas (Chart.js)
 - [x] **Pestaña "Grupos"** con tarjetas para 1A a 6B, docente asignado y estadísticas por grupo
 - [x] Cada tarjeta abre un modal de grupo con pestañas **Resumen**, **Alumnos** y **Asistencia mensual**
@@ -58,22 +63,25 @@
 ## 🟡 Pendiente / Por verificar antes de entregar
 
 ### Funcional
-- [x] **Resolver el cambio de agosto a septiembre** mediante el historial mensual V9.
+- [x] **Resolver y validar el cambio de agosto a septiembre** mediante el historial mensual V9.
 - [x] Ejecutar la migración inicial de agosto; no había registros pendientes por migrar (`migratedRecords: 0`).
-- [ ] Comprobar con uso real que consultar o imprimir agosto sigue funcionando después de iniciar septiembre.
+- [x] Comprobar con uso real que consultar o imprimir agosto sigue funcionando después de iniciar septiembre.
 - [x] V9 preparado localmente con una hoja técnica oculta por mes para todos los grupos.
 - [x] Simulación local superada: agosto se conserva al guardar septiembre y borrar septiembre no afecta agosto.
 - [x] `setupAttendanceHistoryV9()` ejecutado en el Sheet real y V9 publicado; API verificada con `historical-events-v1`.
 - [x] Corrección desde el panel preparada: tocar de nuevo ✓ o X limpia la marca y la devuelve a pendiente.
-- [ ] **Verificar que la ficha modal guarda correctamente** — probar ciclo completo: editar alumno → guardar → verificar en Sheet
-- [ ] **Probar un alta controlada** — confirmar fila, ID, inscripción `ACTIVO` y movimiento `ALTA`
-- [ ] **Probar desde dispositivo móvil** — abrir `index.html` en el teléfono para ver si el layout responde bien
-- [ ] Probar los 12 grupos y sus hojas mensuales de asistencia
+- [x] **Verificar que la ficha modal guarda correctamente** — validado por la persona responsable en el flujo real.
+- [x] **Probar un alta controlada** — validado por la persona responsable junto con la captura cotidiana.
+- [x] Validar vistas, edición, asistencia e historial en operación del piloto.
+- [ ] **Probar baja y reingreso desde Dirección** — la acción ya existe; desde esta revisión queda visible sin entrar antes a Editar.
+- [ ] Confirmar restauración no destructiva sobre una copia aislada del respaldo.
 
 ### Acceso para pruebas
 - [x] Sitio publicado en Vercel: `https://asistpanel.vercel.app/`
 - [x] Frontend con fichas y modal de grupos verificado en producción desde el commit `cb86bff`.
 - [x] V11 instalada y publicada con identidad permanente, inscripciones y movimientos.
+- [x] V11.1 preparada localmente: sesiones de servidor, permisos por rol/grupo, cierre de sesión y limpieza de copias locales.
+- [ ] Publicar V11.1, configurar las cuentas privadas y completar la prueba de entrega de [15_acceso_seguro.md](./15_acceso_seguro.md) antes de compartir accesos.
 
 | Opción | Esfuerzo | Acceso |
 |--------|---------|--------|
@@ -83,13 +91,14 @@
 
 > **Actual:** el repositorio está conectado a Vercel. Cada push a `main` genera una nueva implementación.
 
-### UX pendiente de revisión
+### UX ya validada / mejora aplicada
 - [x] Revisar que la ficha modal del maestro funcione para **Inscribir** (modo vacío) además de editar
 - [x] Verificar que al guardar desde el drawer se refresca la tabla del maestro correctamente
 - [x] Diseñar la primera vista diaria del módulo de asistencia a partir del formato Word
 - [x] Preparar cola local para captura sin internet
 - [x] Pegar y publicar V7 del Apps Script para usar las hojas mensuales `ASISTENCIA (GRUPO)` existentes y consultar el mes en una sola petición
 - [x] Diseñar reporte mensual con la matriz imprimible del formato Word
+- [x] Hacer visible **Dar de baja** directamente en la ficha de Dirección; la reactivación se gestiona desde **Bajas e inactivos**.
 
 ---
 
@@ -97,8 +106,9 @@
 
 | Limitación | Impacto | Solución futura |
 |------------|---------|-----------------|
-| Contraseñas en texto plano en app.js | Cualquier maestro técnico puede ver la de la directora | Autenticación real (Firebase, Google OAuth) |
-| Apps Script URL pública | Alguien con la URL puede leer todos los datos | Agregar token secreto en cada petición |
+| Control de acceso V11.1 aún no publicado | La producción conserva el riesgo del flujo anterior | Instalar y verificar [15_acceso_seguro.md](./15_acceso_seguro.md) antes de entregar usuarios |
+| Sesión en petición, no cookie `HttpOnly` | Una sesión copiada en un equipo abierto podría reutilizarse hasta vencer | Cerrar sesión, no compartir dispositivos y migrar a identidad centralizada al escalar |
+| Sin límite de intentos por IP | Un atacante externo podría provocar bloqueos temporales de cuentas conocidas | Mantener claves fuertes; al escalar, añadir identidad centralizada o un proxy con rate limit |
 | Sin sincronización automática | La directora necesita recargar para ver cambios de maestros | Polling cada 60 segundos |
 | Personal en blanco si la columna Nombre está vacía | La hoja oficial tiene funciones precargadas pero nombres pendientes | Capturar nombres en la columna B o ajustar la política de filas del Apps Script |
 | Restauración todavía no ensayada | Las copias existen, pero falta demostrar su recuperación | Abrir o duplicar un respaldo de forma aislada, sin reemplazar el Sheet oficial |
@@ -108,23 +118,9 @@
 
 ---
 
-## 📋 Cómo dar acceso para pruebas (paso a paso)
+## 📋 Cómo dar acceso a la escuela
 
-### Opción A — Compartir el archivo
-1. Copiar el `index.html`, `styles.css` y `app.js` en una carpeta ZIP
-2. Compartir la carpeta por WhatsApp / Drive
-3. El maestro descarga, abre el `.html` con doble clic
-4. **Limitación:** cada quien tiene sus propios datos en localStorage (no comparten datos entre dispositivos)
-> ⚠️ Esto no es útil para probar sincronización real. Es solo para revisar la interfaz.
-
-### Opción B — Vercel (actual)
-1. Crear cuenta en [github.com](https://github.com) si no tienes
-2. Crear repositorio nuevo (ej: `control-asistencia`)
-3. Subir: `index.html`, `styles.css`, `app.js`
-4. Hacer push a `main`; Vercel crea la implementación automáticamente
-5. Abrir `https://asistpanel.vercel.app/`
-6. Compartir la URL con maestros y directora
-> ✅ Todos acceden desde su celular/computadora al mismo panel. Los datos van al mismo Google Sheet.
+No compartir archivos HTML ni claves de prueba. El único procedimiento autorizado es instalar backend y panel juntos, crear cuentas privadas y ejecutar las pruebas de límite por rol/grupo de [15_acceso_seguro.md](./15_acceso_seguro.md). Después se comparte sólo la URL del panel y cada persona recibe su clave por canal privado.
 
 ---
 

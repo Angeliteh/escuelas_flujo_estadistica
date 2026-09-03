@@ -6,32 +6,17 @@ Esto documenta las limitaciones actuales del sistema y qué se necesitaría para
 
 ## 🔴 Crítico (si va a producción real con datos sensibles)
 
-### Seguridad: contraseñas en texto plano
-**Problema:** Las contraseñas están escritas directamente en `app.js`. Cualquiera que abra las DevTools del navegador (F12 → Sources → app.js) las ve.
+### Seguridad: instalar el control de acceso V11.1
+**Estado del código:** resuelto localmente. Las contraseñas dejaron de estar en `app.js`; Apps Script guarda hashes privados, emite sesiones temporales y valida rol y grupo en cada petición.
 
-**Impacto:** Un maestro técnico podría ver las credenciales de la directora o de otros maestros.
-
-**Solución posible:**
-- Autenticación con Google OAuth2 ("Iniciar sesión con Google")
-- O mover el login a un backend real (Firebase Authentication, por ejemplo)
-- Para un contexto escolar con datos no ultra-sensibles, la solución actual puede ser aceptable si la app no se hospeda públicamente
+**Pendiente operativo:** publicar e instalar las cuentas sin copiar contraseñas al repositorio. Hasta completar [15_acceso_seguro.md](./15_acceso_seguro.md), la producción existente conserva su riesgo anterior.
 
 ---
 
-### El Apps Script corre con permisos de "cualquier persona"
-**Problema:** La URL del Apps Script es pública. Cualquiera que conozca la URL puede leer todos los datos de la escuela.
+### URL pública de Apps Script
+**Estado del código:** V11.1 deja público únicamente `ping` sin datos sensibles. Cualquier consulta o modificación escolar exige una sesión válida; el servidor limita al docente a su grupo y a Dirección a sus operaciones administrativas.
 
-**Solución posible:** Agregar un token secreto en cada petición que el panel envíe y que el Apps Script valide antes de responder.
-
-```javascript
-// En app.js, agregar a cada fetch:
-body: JSON.stringify({ action: 'getStudents', token: 'MI_TOKEN_SECRETO' })
-
-// En Apps Script, verificar:
-if (params.token !== 'MI_TOKEN_SECRETO') return respond({ error: 'No autorizado' }, 403);
-```
-
-Esto no es seguridad perfecta pero es 10x mejor que nada para este contexto.
+**Límite futuro:** para múltiples escuelas, recuperación de contraseña, auditoría institucional o requisitos más estrictos se recomienda identidad centralizada y una base de datos con auditoría.
 
 ---
 
@@ -62,12 +47,9 @@ Abrir el HTML directamente sigue siendo útil para revisar la interfaz, pero no 
 ## 🟢 Mejoras deseables (para el futuro del ciclo escolar)
 
 ### Seguimiento de estado de alumnos a lo largo del ciclo
-**Necesidad expresada:** Los datos se usarán para marcar bajas, inscripciones, cambios de grupo, etc.
+**Estado:** resuelto como base en V11 sin modificar el formato administrativo visible. Las columnas técnicas ocultas `U:AA` ya almacenan identidad, estatus, ciclo y fechas; `_INSCRIPCIONES` y `_MOVIMIENTOS_ALUMNO` conservan la relación histórica.
 
-**Columnas a agregar en el Sheet y el formulario:**
-- `STATUS` — Activo / Baja / Transferido / Egresado
-- `FECHA_STATUS` — Cuándo cambió el estado
-- `OBSERVACIONES` — Notas libres
+**Pendiente:** implementar Transferencia, Cambio de grupo, Promoción, No promoción y Egreso como acciones completas. No se debe agregar un selector libre de estado ni duplicar `ESTATUS` en las columnas visibles.
 
 ### Historial de cambios
 **Necesidad:** Saber quién modificó qué y cuándo.
@@ -95,9 +77,9 @@ Abrir el HTML directamente sigue siendo útil para revisar la interfaz, pero no 
 
 Google Sheets funciona como fuente operativa para el tamaño actual, pero no debe ser el único respaldo. V9 tiene una copia completa inicial, respaldo automático nocturno y retención de 30 snapshots. La restauración no se probará sobre el archivo oficial; queda pendiente abrir o duplicar una copia de forma aislada. V10 conserva estas funciones. Ver [09_respaldos_y_restauracion.md](./09_respaldos_y_restauracion.md).
 
-V10 ya agregó `alumnoId`, `estatus`, `cicloEscolar`, fechas de alta/actualización y usuario responsable sin modificar las 20 columnas visibles. La auditoría de V11 descubrió 21 valores heredados en `2A` que V10 había aceptado como ID; fueron reparados y la comprobación final confirmó 272 de 272 IDs válidos. El procedimiento y la incidencia están registrados en [12_inscripciones_y_movimientos_v11.md](./12_inscripciones_y_movimientos_v11.md).
+V11 conserva `alumnoId`, `estatus`, `cicloEscolar`, fechas de alta/actualización y usuario responsable sin modificar las 20 columnas visibles. La auditoría de V11 descubrió 21 valores heredados en `2A` que V10 había aceptado como ID; fueron reparados y la comprobación final confirmó 272 de 272 IDs válidos. El procedimiento y la incidencia están registrados en [12_inscripciones_y_movimientos_v11.md](./12_inscripciones_y_movimientos_v11.md).
 
-Una base de datos como PostgreSQL/Neon o Supabase será recomendable cuando se necesiten varias escuelas, permisos reales, alta concurrencia, auditoría formal o integraciones. No es necesario migrar ahora: primero se implementarán inscripciones y movimientos con IDs permanentes. Sheets continuará después como reporte/exportación aunque cambie la fuente primaria. Ver [11_modelo_control_escolar_y_movimientos.md](./11_modelo_control_escolar_y_movimientos.md).
+Una base de datos como PostgreSQL/Neon o Supabase será recomendable cuando se necesiten varias escuelas, permisos reales, alta concurrencia, auditoría formal o integraciones. No es necesario migrar ahora: identidad, inscripciones y movimientos con IDs permanentes ya están implementados. Sheets continuará después como reporte/exportación aunque cambie la fuente primaria. Ver [11_modelo_control_escolar_y_movimientos.md](./11_modelo_control_escolar_y_movimientos.md).
 
 ### Asistencia: módulo separado
 

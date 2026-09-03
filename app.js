@@ -4,7 +4,7 @@ const ESCUDO_B64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAKACAIAAA
 
 /* =========================================================
    CONTROL DE ASISTENCIA — APP.JS
-   Prototype with localStorage persistence and Chart.js
+   Panel con caché temporal de sesión y Chart.js
    ========================================================= */
 
 // =====================================================
@@ -24,21 +24,21 @@ function getGrade(group) {
   return group.charAt(0) + '°';
 }
 
-// Usuarios base de demostración
+// Perfiles de interfaz. Las credenciales y permisos reales viven sólo en Apps Script.
 const USERS = {
-  directora: { password: 'director2025', role: 'director', name: 'Norma Patricia Ortiz Cabrera' },
-  '1A': { password: 'maestro2025', role: 'teacher', group: '1A', name: 'Mtro. Carlos Mendoza (1A)' },
-  '1B': { password: 'maestro2025', role: 'teacher', group: '1B', name: 'Mtra. Ana López (1B)' },
-  '2A': { password: 'maestro2025', role: 'teacher', group: '2A', name: 'Mtro. José García (2A)' },
-  '2B': { password: 'maestro2025', role: 'teacher', group: '2B', name: 'Mtra. Carmen Torres (2B)' },
-  '3A': { password: 'maestro2025', role: 'teacher', group: '3A', name: 'Mtro. Alejandro Reyes (3A)' },
-  '3B': { password: 'maestro2025', role: 'teacher', group: '3B', name: 'Mtra. Gabriela Flores (3B)' },
-  '4A': { password: 'maestro2025', role: 'teacher', group: '4A', name: 'Mtro. Roberto Sánchez (4A)' },
-  '4B': { password: 'maestro2025', role: 'teacher', group: '4B', name: 'Mtra. Patricia Ruiz (4B)' },
-  '5A': { password: 'maestro2025', role: 'teacher', group: '5A', name: 'Mtro. Fernando Díaz (5A)' },
-  '5B': { password: 'maestro2025', role: 'teacher', group: '5B', name: 'Mtra. Sofía Morales (5B)' },
-  '6A': { password: 'maestro2025', role: 'teacher', group: '6A', name: 'Mtro. Miguel Herrera (6A)' },
-  '6B': { password: 'maestro2025', role: 'teacher', group: '6B', name: 'Mtra. Valeria Castro (6B)' },
+  DIRECTORA: { role: 'director', name: 'Dirección escolar' },
+  '1A': { role: 'teacher', group: '1A', name: 'Docente 1A' },
+  '1B': { role: 'teacher', group: '1B', name: 'Docente 1B' },
+  '2A': { role: 'teacher', group: '2A', name: 'Docente 2A' },
+  '2B': { role: 'teacher', group: '2B', name: 'Docente 2B' },
+  '3A': { role: 'teacher', group: '3A', name: 'Docente 3A' },
+  '3B': { role: 'teacher', group: '3B', name: 'Docente 3B' },
+  '4A': { role: 'teacher', group: '4A', name: 'Docente 4A' },
+  '4B': { role: 'teacher', group: '4B', name: 'Docente 4B' },
+  '5A': { role: 'teacher', group: '5A', name: 'Docente 5A' },
+  '5B': { role: 'teacher', group: '5B', name: 'Docente 5B' },
+  '6A': { role: 'teacher', group: '6A', name: 'Docente 6A' },
+  '6B': { role: 'teacher', group: '6B', name: 'Docente 6B' },
 };
 
 // =====================================================
@@ -134,12 +134,12 @@ function generateSampleStudents() {
 }
 
 // =====================================================
-// DATA (localStorage)
+// DATA (caché de sesión; nunca se conserva después de cerrar el navegador)
 // =====================================================
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgkNLf-jc1uEdzIoIU73mSJzLYJNC3Sw/exec';
-const SESSION_KEY = 'ce_session';
-const STUDENTS_CACHE_KEY = 'ce_students_cache_v1';
+const SESSION_KEY = 'ce_session_v2';
+const STUDENTS_CACHE_KEY = 'ce_students_cache_v2';
 
 let allStudentsCache = [];
 let isDataLoaded = false;
@@ -147,15 +147,16 @@ let studentSoftDeleteEnabled = false;
 let studentLifecycleEnabled = false;
 
 function saveStudentsCache() {
-  try { localStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify(allStudentsCache)); }
+  if (!currentUser?.username) return;
+  try { sessionStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify({ owner: currentUser.username, data: allStudentsCache })); }
   catch (error) { console.warn('No se pudo guardar la copia local de alumnos:', error); }
 }
 
 function restoreStudentsCache() {
   try {
-    const cached = JSON.parse(localStorage.getItem(STUDENTS_CACHE_KEY) || 'null');
-    if (!Array.isArray(cached)) return false;
-    allStudentsCache = cached;
+    const cached = JSON.parse(sessionStorage.getItem(STUDENTS_CACHE_KEY) || 'null');
+    if (!currentUser?.username || !cached || cached.owner !== currentUser.username || !Array.isArray(cached.data)) return false;
+    allStudentsCache = cached.data;
     isDataLoaded = true;
     return true;
   } catch (error) {
@@ -165,12 +166,13 @@ function restoreStudentsCache() {
 }
 
 async function fetchAllStudents() {
+  if (!currentUser?.sessionToken) return false;
   try {
-    const response = await fetch(API_URL);
-    const result = await response.json();
+    const result = await apiRequest('getStudents');
     if (result.success) {
-      studentSoftDeleteEnabled = result.version === 'V10' && result.identityReady === true;
-      studentLifecycleEnabled = result.version === 'V11' && result.enrollmentHistoryReady === true;
+      const isV11 = String(result.version || '').startsWith('V11');
+      studentSoftDeleteEnabled = (result.version === 'V10' && result.identityReady === true) || isV11;
+      studentLifecycleEnabled = isV11 && result.enrollmentHistoryReady === true;
       if (studentLifecycleEnabled) studentSoftDeleteEnabled = true;
       document.getElementById('director-inactive-btn')?.classList.toggle('hidden', !studentLifecycleEnabled);
       allStudentsCache = result.data.map(s => {
@@ -181,13 +183,14 @@ async function fetchAllStudents() {
       });
       saveStudentsCache();
       isDataLoaded = true;
+      return true;
     } else {
       console.error('Error fetching students:', result.error);
-      restoreStudentsCache();
+      return restoreStudentsCache();
     }
   } catch (error) {
     console.error('Network error fetching students:', error);
-    restoreStudentsCache();
+    return restoreStudentsCache();
   }
 }
 
@@ -295,11 +298,7 @@ async function upsertStudent(data, id = null) {
 
   // Send to API
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'saveStudent', data: data }),
-    });
-    const result = await response.json();
+    const result = await apiRequest('saveStudent', { data });
     if (!result.success) {
       allStudentsCache = previousCache;
       refreshStudentViews();
@@ -341,18 +340,12 @@ async function removeStudent(id) {
 
   // Send to API
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'deleteStudent',
-        grupo: sheetTab,
-        id: realRowId,
-        rowId: realRowId,
-        alumnoId: student.alumnoId || '',
-        usuario: currentUser?.username || ''
-      }),
+    const result = await apiRequest('deleteStudent', {
+      grupo: sheetTab,
+      id: realRowId,
+      rowId: realRowId,
+      alumnoId: student.alumnoId || ''
     });
-    const result = await response.json();
     if (!result.success) {
       allStudentsCache = previousCache;
       refreshStudentViews();
@@ -368,65 +361,134 @@ async function removeStudent(id) {
   }
 }
 
-async function initData() {
-  // Only fetch if not already loaded
-  if (!isDataLoaded) {
-    await fetchAllStudents();
-  }
-}
-
 // =====================================================
 // AUTH
 // =====================================================
 
 let currentUser = null;
+let sessionExpiryTimer = null;
 
 function getSession() {
   try {
     const session = JSON.parse(sessionStorage.getItem(SESSION_KEY));
-    const config = session && USERS[session.username];
-    return config ? { username: session.username, ...config } : session;
+    const expiresAt = Date.parse(session && session.expiresAt || '');
+    if (!session || !session.sessionToken || !session.username || !session.role || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      sessionStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+    return session;
   }
   catch { return null; }
 }
 
-function login() {
-  const username = document.getElementById('login-user').value.trim();
-  const password = document.getElementById('login-pass').value;
-  const errorEl  = document.getElementById('login-error');
+function clearSensitiveLocalData() {
+  [STUDENTS_CACHE_KEY, ATTENDANCE_STORAGE_KEY].forEach(key => sessionStorage.removeItem(key));
+  ['ce_students_cache_v1', 'ce_attendance_cache_v1'].forEach(key => localStorage.removeItem(key));
+  allStudentsCache = [];
+  inactiveStudentsCache = [];
+  attendanceCache = {};
+  isDataLoaded = false;
+}
 
-  const config = USERS[username];
-  if (!config || config.password !== password) {
-    errorEl.classList.remove('hidden');
-    document.getElementById('login-pass').value = '';
-    setTimeout(() => errorEl.classList.add('hidden'), 3500);
-    // Shake animation re-trigger
-    errorEl.style.animation = 'none';
-    requestAnimationFrame(() => { errorEl.style.animation = ''; });
+function scheduleSessionExpiry() {
+  if (sessionExpiryTimer) clearTimeout(sessionExpiryTimer);
+  const expiresAt = Date.parse(currentUser?.expiresAt || '');
+  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+    expireSession('Tu sesión terminó. Inicia sesión de nuevo.');
     return;
   }
+  sessionExpiryTimer = setTimeout(() => {
+    expireSession('Tu sesión terminó. Inicia sesión de nuevo.');
+  }, expiresAt - Date.now() + 50);
+}
 
-  currentUser = { username, ...config };
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+function showLoginError(message) {
+  const errorEl = document.getElementById('login-error');
+  errorEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${escHtml(message)}`;
+  errorEl.classList.remove('hidden');
+  setTimeout(() => errorEl.classList.add('hidden'), 4500);
+  errorEl.style.animation = 'none';
+  requestAnimationFrame(() => { errorEl.style.animation = ''; });
+}
 
-  if (currentUser.role === 'director') showDirectorView();
-  else showTeacherView();
+async function postApi(payload) {
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return response.json();
+}
+
+async function apiRequest(action, payload = {}) {
+  if (!currentUser?.sessionToken) {
+    expireSession();
+    return { success: false, code: 'AUTH_REQUIRED', error: 'Inicia sesión para continuar.' };
+  }
+  const result = await postApi({ action, ...payload, sessionToken: currentUser.sessionToken });
+  if (result.code === 'AUTH_REQUIRED') expireSession('Tu sesión terminó. Inicia sesión de nuevo.');
+  return result;
+}
+
+function expireSession(message = '') {
+  if (sessionExpiryTimer) clearTimeout(sessionExpiryTimer);
+  sessionExpiryTimer = null;
+  sessionStorage.removeItem(SESSION_KEY);
+  currentUser = null;
+  clearSensitiveLocalData();
+  destroyCharts();
+  showView('view-login');
+  if (message) showLoginError(message);
+}
+
+async function login() {
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  const button = document.getElementById('login-btn');
+  if (!username || !password) {
+    showLoginError('Escribe tu usuario y contraseña.');
+    return;
+  }
+  button.disabled = true;
+  try {
+    const result = await postApi({ action: 'login', username, password });
+    if (!result.success || !result.sessionToken || !result.user) {
+      showLoginError(result.error || 'No fue posible iniciar sesión.');
+      document.getElementById('login-pass').value = '';
+      return;
+    }
+    currentUser = { ...result.user, sessionToken: result.sessionToken, expiresAt: result.expiresAt || '' };
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+    scheduleSessionExpiry();
+    restoreAttendanceCache();
+    const loaded = await fetchAllStudents();
+    if (!currentUser) return;
+    if (!loaded) {
+      expireSession('No se pudieron cargar los datos. Revisa tu conexión e inténtalo de nuevo.');
+      return;
+    }
+    if (currentUser.role === 'director') showDirectorView();
+    else showTeacherView();
+  } catch (error) {
+    showLoginError('No fue posible conectar. Inténtalo de nuevo.');
+    document.getElementById('login-pass').value = '';
+  } finally {
+    button.disabled = false;
+  }
 }
 
 function logout() {
+  const sessionToken = currentUser?.sessionToken;
+  if (sessionToken) postApi({ action: 'logout', sessionToken }).catch(() => {});
+  if (sessionExpiryTimer) clearTimeout(sessionExpiryTimer);
+  sessionExpiryTimer = null;
   sessionStorage.removeItem(SESSION_KEY);
   currentUser = null;
+  clearSensitiveLocalData();
   destroyCharts();
   showView('view-login');
   document.getElementById('login-user').value = '';
   document.getElementById('login-pass').value = '';
   document.getElementById('filter-grupo').innerHTML = '<option value="">Todos los grupos</option>';
-}
-
-function fillDemo(user, pass) {
-  document.getElementById('login-user').value = user;
-  document.getElementById('login-pass').value = pass;
-  document.getElementById('login-user').focus();
 }
 
 // =====================================================
@@ -461,7 +523,7 @@ function showDirectorView() {
 // TEACHER VIEW
 // =====================================================
 
-const ATTENDANCE_STORAGE_KEY = 'ce_attendance_cache_v1';
+const ATTENDANCE_STORAGE_KEY = 'ce_attendance_cache_v2';
 const ATTENDANCE_STATUS_META = {
   present: { label: 'Asistió', short: '✓', className: 'attendance-present' },
   absent: { label: 'No asistió', short: 'X', className: 'attendance-absent' },
@@ -472,15 +534,22 @@ let attendanceLoadedDate = null;
 let attendanceLoadedMonth = null;
 let attendanceApiReady = null;
 
-try {
-  attendanceCache = JSON.parse(localStorage.getItem(ATTENDANCE_STORAGE_KEY) || '{}') || {};
-} catch (error) {
-  attendanceCache = {};
+function saveAttendanceCache() {
+  if (!currentUser?.username) return;
+  try { sessionStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify({ owner: currentUser.username, data: attendanceCache })); }
+  catch (error) { console.warn('No se pudo guardar la asistencia local:', error); }
 }
 
-function saveAttendanceCache() {
-  try { localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(attendanceCache)); }
-  catch (error) { console.warn('No se pudo guardar la asistencia local:', error); }
+function restoreAttendanceCache() {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(ATTENDANCE_STORAGE_KEY) || 'null');
+    if (!currentUser?.username || !cached || cached.owner !== currentUser.username || typeof cached.data !== 'object') return false;
+    attendanceCache = cached.data;
+    return true;
+  } catch (error) {
+    console.warn('No se pudo leer la asistencia local:', error);
+    return false;
+  }
 }
 
 function localDateString(date = new Date()) {
@@ -539,11 +608,7 @@ function setAttendanceDateLimits() {
 async function ensureAttendanceApiReady() {
   if (attendanceApiReady !== null) return attendanceApiReady;
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'getAttendanceConfig' }),
-    });
-    const result = await response.json();
+    const result = await apiRequest('getAttendanceConfig');
     attendanceApiReady = Boolean(result.success && result.mode === 'formatted-monthly-sheet');
   } catch (error) {
     attendanceApiReady = false;
@@ -802,11 +867,7 @@ function changeAttendanceMonth() {
 }
 
 async function requestAttendanceMonthBatch(group, month) {
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'getAttendanceMonth', group, month }),
-  });
-  const result = await response.json();
+  const result = await apiRequest('getAttendanceMonth', { group, month });
   if (!result.success && result.error === 'Acción no válida') return null;
   if (!result.success) throw new Error(result.error || 'No se pudo consultar el historial');
   if (result.mode !== 'formatted-monthly-sheet' || result.sheetName !== `ASISTENCIA (${group})`) {
@@ -893,11 +954,7 @@ async function fetchAttendanceMonthLegacy() {
     for (let index = 0; index < daysToFetch.length; index += 4) {
       const batch = daysToFetch.slice(index, index + 4);
       const batchResponses = await Promise.all(batch.map(async day => {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'getAttendance', group, date: day.date }),
-        });
-        const result = await response.json();
+        const result = await apiRequest('getAttendance', { group, date: day.date });
         if (!result.success) throw new Error(result.error || 'No se pudo consultar el historial');
         if (result.sheetName !== `ASISTENCIA (${group})`) throw new Error('La API no está conectada a la hoja mensual del grupo');
         return { date: day.date, records: result.data || [] };
@@ -1177,11 +1234,7 @@ async function fetchAttendanceDay() {
   }
 
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'getAttendance', group, date }),
-    });
-    const result = await response.json();
+    const result = await apiRequest('getAttendance', { group, date });
     if (!result.success) throw new Error(result.error || 'La asistencia aún no está habilitada en la API');
     if (result.sheetName !== `ASISTENCIA (${group})`) throw new Error('La API no está conectada a la hoja mensual del grupo');
 
@@ -1249,7 +1302,6 @@ async function saveAttendanceDay() {
       studentName: student.nombre || '',
       status: existing.status || '',
       note: existing.note || '',
-      usuario: currentUser.username,
       updatedAt: new Date().toISOString(),
       synced: false,
     };
@@ -1278,11 +1330,7 @@ async function saveAttendanceDay() {
   }
 
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'saveAttendance', records }),
-    });
-    const result = await response.json();
+    const result = await apiRequest('saveAttendance', { records });
     if (!result.success) throw new Error(result.error || 'La asistencia aún no está habilitada en la API');
     if (result.mode !== 'formatted-monthly-sheet' || result.sheetName !== `ASISTENCIA (${group})`) {
       throw new Error('La API no está conectada a la hoja mensual del grupo');
@@ -1317,11 +1365,7 @@ async function syncPendingAttendance() {
     return;
   }
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'saveAttendance', records: pending }),
-    });
-    const result = await response.json();
+    const result = await apiRequest('saveAttendance', { records: pending });
     if (!result.success) throw new Error(result.error || 'La asistencia aún no está habilitada en la API');
     if (result.mode !== 'formatted-monthly-sheet' || result.sheetName !== `ASISTENCIA (${currentUser.group})`) {
       throw new Error('La API no está conectada a la hoja mensual del grupo');
@@ -1695,11 +1739,7 @@ async function fetchDirectorAttendanceMonthLegacy() {
     for (let index = 0; index < daysToFetch.length; index += 4) {
       const batch = daysToFetch.slice(index, index + 4);
       const batchResponses = await Promise.all(batch.map(async day => {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'getAttendance', group, date: day.date }),
-        });
-        const result = await response.json();
+        const result = await apiRequest('getAttendance', { group, date: day.date });
         if (!result.success) throw new Error(result.error || 'No se pudo consultar el historial');
         if (result.sheetName !== `ASISTENCIA (${group})`) throw new Error('La API no está conectada a la hoja mensual del grupo');
         return { date: day.date, records: result.data || [] };
@@ -2055,7 +2095,7 @@ function destroyCharts() {
 }
 
 const CHART_DEFAULTS = {
-  color: '#94a3b8',
+  color: '#51636a',
   font: { family: 'Inter', size: 12 },
 };
 
@@ -2079,7 +2119,7 @@ function initCharts() {
         labels: ['Masculino','Femenino','Otro'],
         datasets: [{
           data: [h, m, o],
-          backgroundColor: ['#6366f1','#ec4899','#f59e0b'],
+          backgroundColor: ['#31546e','#9b4d65','#a96518'],
           borderWidth: 0,
           hoverOffset: 10,
         }]
@@ -2098,7 +2138,7 @@ function initCharts() {
   // --- Bar: Students per group ---
   const groupCounts = GROUPS_LIST.map(g => all.filter(s => s.grupoId === g || s.grupo === g).length);
   const groupColors = GROUPS_LIST.map((_, i) =>
-    `hsla(${230 + i * 10}, 65%, 62%, 0.85)`
+    ['#173b5c', '#1f6f78', '#277a5d', '#a96518'][i % 4]
   );
 
   charts.groups = new Chart(
@@ -2121,7 +2161,7 @@ function initCharts() {
         scales: {
           y: {
             beginAtZero: true,
-            grid: { color:'rgba(255,255,255,0.04)' },
+            grid: { color:'rgba(23,59,92,0.10)' },
             ticks: { stepSize:1, precision:0 },
           },
           x: { grid: { display:false } }
@@ -2142,15 +2182,15 @@ function initCharts() {
       data: {
         labels: grades.map(g => `${g} Grado`),
         datasets: [
-          { label:'Con Beca',  data:becaData, backgroundColor:'#10b981', borderRadius:6 },
-          { label:'Sin Beca',  data:noBeca,   backgroundColor:'rgba(255,255,255,0.07)', borderRadius:6 },
+          { label:'Con Beca',  data:becaData, backgroundColor:'#277a5d', borderRadius:6 },
+          { label:'Sin Beca',  data:noBeca,   backgroundColor:'#dbe5e0', borderRadius:6 },
         ]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend:{ position:'bottom', labels:{ usePointStyle:true, padding:12 } } },
         scales: {
-          y: { stacked:true, beginAtZero:true, grid:{ color:'rgba(255,255,255,0.04)' } },
+          y: { stacked:true, beginAtZero:true, grid:{ color:'rgba(23,59,92,0.10)' } },
           x: { stacked:true, grid:{ display:false } }
         }
       }
@@ -2185,7 +2225,7 @@ function initCharts() {
           y1: {
             type:'linear', position:'left',
             beginAtZero:false, min:30,
-            grid:{ color:'rgba(255,255,255,0.04)' },
+            grid:{ color:'rgba(23,59,92,0.10)' },
             title:{ display:true, text:'kg', color:'#fcd34d' },
           },
           y2: {
@@ -2284,10 +2324,9 @@ function setStudentDrawerMode(mode) {
   document.getElementById('detail-print-btn').classList.toggle('hidden', !isExisting);
   document.getElementById('detail-edit-btn').classList.toggle('hidden', !isView || !studentDrawerCanEdit);
   document.getElementById('detail-save-btn').classList.toggle('hidden', isView || !studentDrawerCanEdit);
-  document.getElementById('detail-delete-btn').classList.toggle(
-    'hidden',
-    isView || !studentDrawerCanEdit || !isExisting || currentUser?.role !== 'director'
-  );
+  const canManageDeletion = isExisting && currentUser?.role === 'director' &&
+    (studentSoftDeleteEnabled || (!isView && studentDrawerCanEdit));
+  document.getElementById('detail-delete-btn').classList.toggle('hidden', !canManageDeletion);
   const deleteButton = document.getElementById('detail-delete-btn');
   const saveButton = document.getElementById('detail-save-btn');
   saveButton.innerHTML = isExisting
@@ -2328,6 +2367,11 @@ function openStudentDrawer(id = null) {
     statusBadge.className = `badge ${status === 'ACTIVO' ? 'badge-active' : 'badge-inactive'}`;
     statusBadge.innerHTML = `<i class="fa-solid ${status === 'ACTIVO' ? 'fa-circle-check' : 'fa-circle-minus'}"></i> ${escHtml(status)}`;
     statusBadge.title = 'Situación escolar vigente';
+    const statusHelp = document.getElementById('detail-status-help');
+    statusHelp.textContent = status === 'ACTIVO'
+      ? 'Activo: aparece en su grupo y puede registrarse asistencia.'
+      : 'Baja: se conserva en Bajas e inactivos; no aparece en las listas activas.';
+    statusHelp.classList.remove('hidden');
     document.getElementById('detail-avatar-icon').className =
       `detail-avatar ${getGenderCategory(s.genero) === 'male' ? 'avatar-male' : 'avatar-female'}`;
 
@@ -2356,6 +2400,9 @@ function openStudentDrawer(id = null) {
     statusBadge.className = 'badge badge-active';
     statusBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> NUEVA ALTA · ACTIVO';
     statusBadge.title = 'Al guardar se creará automáticamente la inscripción del ciclo vigente';
+    const statusHelp = document.getElementById('detail-status-help');
+    statusHelp.textContent = 'Al guardar, el alumno quedará activo en el grupo seleccionado.';
+    statusHelp.classList.remove('hidden');
   }
 
   setStudentDrawerMode(id ? 'view' : 'edit');
@@ -2436,7 +2483,6 @@ async function saveStudent(e) {
     correo:          document.getElementById('f-correo').value.trim().toUpperCase(),
     domicilio:       document.getElementById('f-domicilio').value.trim().toUpperCase(),
     ocupacion:       document.getElementById('f-ocupacion').value.trim().toUpperCase(),
-    usuario:         currentUser?.username || '',
   };
 
   const saved = await upsertStudent(data, savedId);
@@ -2462,11 +2508,7 @@ async function openInactiveStudents() {
   document.body.style.overflow = 'hidden';
   document.getElementById('inactive-students-status').textContent = 'Consultando historial...';
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'getInactiveStudents' }),
-    });
-    const result = await response.json();
+    const result = await apiRequest('getInactiveStudents');
     if (!result.success) throw new Error(result.error || 'No fue posible consultar los inactivos');
     inactiveStudentsCache = Array.isArray(result.data) ? result.data : [];
     document.getElementById('inactive-students-status').textContent = '';
@@ -2507,18 +2549,12 @@ async function reactivateStudentFromAdmin(id) {
   if (!student) return;
   if (!window.confirm(`¿Reactivar a ${student.nombre}? El alumno volverá a aparecer en su grupo actual.`)) return;
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'reactivateStudent',
-        alumnoId: student.alumnoId || student.id,
-        rowId: student.rowId,
-        grupo: student.grupoId,
-        motivo: 'REACTIVACION ADMINISTRATIVA',
-        usuario: currentUser?.username || ''
-      }),
+    const result = await apiRequest('reactivateStudent', {
+      alumnoId: student.alumnoId || student.id,
+      rowId: student.rowId,
+      grupo: student.grupoId,
+      motivo: 'REACTIVACION ADMINISTRATIVA'
     });
-    const result = await response.json();
     if (!result.success) throw new Error(result.error || 'No fue posible reactivar al alumno');
     inactiveStudentsCache = inactiveStudentsCache.filter(item => item.alumnoId !== id && item.id !== id);
     renderInactiveStudents();
@@ -2910,11 +2946,7 @@ const STAFF_READ_ONLY = true;
 
 async function fetchAllStaff() {
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'getStaff' }),
-    });
-    const result = await response.json();
+    const result = await apiRequest('getStaff');
     if (result.success) {
       allStaffCache = result.data || [];
       isStaffLoaded = true;
@@ -3072,10 +3104,7 @@ function saveStaffRecord(e) {
   showToast(editingStaffId ? 'Personal actualizado' : 'Personal agregado', 'success');
 
   // Send to API
-  fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'saveStaff', data: { ...data } }),
-  }).then(r => r.json()).then(result => {
+  apiRequest('saveStaff', { data: { ...data } }).then(result => {
     if (!result.success) showToast('Error al guardar: ' + result.error, 'error');
   }).catch(() => showToast('Error de conexión', 'error'));
 }
@@ -3110,11 +3139,7 @@ async function removeStaffRecord(id) {
   renderStaffTable();
 
   try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'deleteStaff', id: staff.rowId }),
-    });
-    const result = await response.json();
+    const result = await apiRequest('deleteStaff', { id: staff.rowId });
     if (!result.success) {
       allStaffCache.push(staff);
       renderStaffTable();
@@ -3145,12 +3170,22 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 }
 
 (async function init() {
-  await initData();
+  localStorage.removeItem('ce_students_cache_v1');
+  localStorage.removeItem('ce_attendance_cache_v1');
   const session = getSession();
-  if (session) {
-    currentUser = session;
-    if (currentUser.role === 'director') showDirectorView();
-    else showTeacherView();
+  if (!session) {
+    clearSensitiveLocalData();
+    return;
   }
+  currentUser = session;
+  scheduleSessionExpiry();
+  restoreAttendanceCache();
+  const loaded = await fetchAllStudents();
+  if (!currentUser || !loaded) {
+    expireSession('Tu sesión no pudo restaurarse. Inicia sesión de nuevo.');
+    return;
+  }
+  if (currentUser.role === 'director') showDirectorView();
+  else showTeacherView();
 })();
 

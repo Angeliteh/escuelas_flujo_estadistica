@@ -82,15 +82,15 @@ Si se agrega un grado nuevo, también hay que actualizar el Apps Script y `app.j
 
 ## Ver el Sheet e imprimir desde el panel
 
-## Hojas formateadas de asistencia (V10)
+## Hojas formateadas de asistencia (V11)
 
 Cada grupo debe tener una hoja formateada con el nombre exacto `ASISTENCIA (1A)`, `ASISTENCIA (1B)`, hasta `ASISTENCIA (6B)`. La plantilla usa la fila 6 para las iniciales de los días, la fila 7 para los números del mes, la fila 8 en adelante para los alumnos y la columna B para sus nombres.
 
 El panel registra `✓` o `X` por alumno y fecha. Apps Script no crea las plantillas visibles: si la hoja del grupo no existe, devuelve un aviso. Las fechas futuras no se pueden capturar y el historial mensual se consulta en una sola petición optimizada.
 
-La fuente histórica son las hojas técnicas mensuales instaladas en V9 y conservadas por V10. Las correcciones deben hacerse desde el panel; la matriz visible puede regenerarse. Las capturas hechas sin internet se conservan localmente hasta sincronizarse.
+La fuente histórica son las hojas técnicas mensuales instaladas en V9 y conservadas por V11. Las correcciones deben hacerse desde el panel; la matriz visible puede regenerarse. Las capturas hechas sin internet se conservan localmente hasta sincronizarse.
 
-> El cambio de mes ya está resuelto técnicamente. Sigue pendiente comprobarlo con operación real al cruzar agosto → septiembre → agosto.
+> El cambio de mes ya está resuelto técnicamente y fue validado en la operación del piloto. La matriz visible no es la única fuente histórica.
 
 ### Estructura histórica instalada desde V9
 
@@ -111,7 +111,7 @@ Para corregir una marca en V9 se usa el panel: seleccionar la otra opción cambi
 
 V11 conserva exactamente las 20 columnas oficiales visibles `A:T` y utiliza metadatos ocultos en `U:AA`: `ALUMNO_ID`, `ESTATUS`, `CICLO_ESCOLAR`, `FECHA_ALTA_SISTEMA`, `FECHA_ESTATUS`, `ACTUALIZADO_EN` y `ACTUALIZADO_POR`. Además relaciona cada alumno con `_INSCRIPCIONES` y `_MOVIMIENTOS_ALUMNO`.
 
-Estas columnas no deben borrarse ni usarse para captura manual. `ESTATUS` sí existe en `V`, pero se cambia desde el panel mediante Alta, Baja, Reingreso, Transferencia o Egreso para que la inscripción y el movimiento correspondiente se actualicen juntos. La instalación está descrita en [12_inscripciones_y_movimientos_v11.md](./12_inscripciones_y_movimientos_v11.md).
+Estas columnas no deben borrarse ni usarse para captura manual. `ESTATUS` sí existe en `V`, pero se cambia desde el panel mediante acciones controladas. V11 ya opera Alta, Baja y Reingreso; Transferencia, Cambio de grupo y Egreso permanecen deshabilitados hasta que exista su flujo completo con origen, destino, fecha, motivo e historial. La instalación está descrita en [12_inscripciones_y_movimientos_v11.md](./12_inscripciones_y_movimientos_v11.md).
 
 | Acción | Cómo hacerlo | Resultado |
 |--------|-------------|-----------|
@@ -130,5 +130,5 @@ Estas columnas no deben borrarse ni usarse para captura manual. `ESTATUS` sí ex
 | Persona | Permiso en Drive | Por qué |
 |---------|-----------------|---------|
 | Desarrollador (tú) | Editor | Crear pestañas, ajustar formato, publicar Apps Script |
-| Directora | Editor o Lector | Para auditar y ver el Sheet directamente si lo necesita |
+| Directora | Lector por defecto; Editor sólo para una corrección autorizada | Para auditar y ver el Sheet directamente si lo necesita sin convertirlo en la interfaz diaria |
 | Maestros | ❌ Sin acceso | Solo usan el panel web. No necesitan ver el Sheet. |

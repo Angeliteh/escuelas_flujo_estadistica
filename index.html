@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Control de Asistencia — Sistema centralizado de registro de alumnos por grupo para directivos y maestros.">
-  <meta name="theme-color" content="#6366f1">
-  <title>Control de Asistencia | Gestión Escolar</title>
+  <meta name="theme-color" content="#173B5C">
+  <title>Control escolar | Escuela Primaria</title>
   <link rel="icon" type="image/png" href="escudo.png">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,17 +27,18 @@
       <div class="login-card">
         <div class="login-logo">
           <div class="logo-icon">
-            <i class="fa-solid fa-graduation-cap"></i>
+            <img src="escudo.png" alt="Escudo de la escuela">
           </div>
-          <h1 class="login-title">Control de Asistencia</h1>
-          <p class="login-subtitle">Sistema de Registro Escolar</p>
+          <p class="login-school">Escuela Primaria Gral. Elpidio G. Velázquez</p>
+          <h1 class="login-title">Control escolar</h1>
+          <p class="login-subtitle">Registro de alumnos y asistencia</p>
         </div>
         <div class="login-form">
           <div class="form-group">
             <label for="login-user">Usuario</label>
             <div class="input-wrapper">
               <i class="fa-solid fa-user"></i>
-              <input type="text" id="login-user" placeholder="Ej: directora  ó  1A" autocomplete="username">
+              <input type="text" id="login-user" placeholder="Tu usuario asignado" autocomplete="username">
             </div>
           </div>
           <div class="form-group">
@@ -54,23 +55,7 @@
             <i class="fa-solid fa-arrow-right-to-bracket"></i> Iniciar Sesión
           </button>
         </div>
-        <div class="login-demo">
-          <p class="demo-label">Accesos de prueba — clic para autocompletar:</p>
-          <div class="demo-badges">
-            <span class="demo-badge badge-director" onclick="fillDemo('directora','director2025')" tabindex="0">
-              <i class="fa-solid fa-shield-halved"></i> Subdirectora
-            </span>
-            <span class="demo-badge badge-teacher" onclick="fillDemo('1A','maestro2025')" tabindex="0">
-              <i class="fa-solid fa-chalkboard-user"></i> Maestro 1A
-            </span>
-            <span class="demo-badge badge-teacher" onclick="fillDemo('2B','maestro2025')" tabindex="0">
-              <i class="fa-solid fa-chalkboard-user"></i> Maestro 2B
-            </span>
-            <span class="demo-badge badge-teacher" onclick="fillDemo('6A','maestro2025')" tabindex="0">
-              <i class="fa-solid fa-chalkboard-user"></i> Maestro 6A
-            </span>
-          </div>
-        </div>
+        <p class="login-access-note"><i class="fa-solid fa-shield-halved"></i> Acceso asignado por Dirección. Si aún no tienes usuario, solicítalo a la subdirección.</p>
       </div>
     </div>
   </div>
@@ -79,9 +64,9 @@
   <div id="view-teacher" class="view">
     <header class="app-header">
       <div class="header-left">
-        <div class="header-logo"><i class="fa-solid fa-graduation-cap"></i></div>
+        <div class="header-logo"><img src="escudo.png" alt=""></div>
         <div>
-          <h1 class="header-title">Mi Grupo</h1>
+          <h1 class="header-title">Control escolar</h1>
           <p id="teacher-subtitle" class="header-subtitle"></p>
         </div>
       </div>
@@ -316,10 +301,10 @@
   <div id="view-director" class="view">
     <header class="app-header">
       <div class="header-left">
-        <div class="header-logo"><i class="fa-solid fa-graduation-cap"></i></div>
+        <div class="header-logo"><img src="escudo.png" alt=""></div>
         <div>
-          <h1 class="header-title">Control de Asistencia</h1>
-          <p class="header-subtitle">Panel de Dirección</p>
+          <h1 class="header-title">Control escolar</h1>
+          <p class="header-subtitle">Dirección · Ciclo 2026-2027</p>
         </div>
       </div>
       <div class="header-right">
@@ -341,13 +326,13 @@
 
     <nav class="tab-nav" role="tablist">
       <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')" role="tab" id="tab-btn-dashboard">
-        <i class="fa-solid fa-chart-pie"></i> Dashboard
+        <i class="fa-solid fa-house"></i> Inicio
       </button>
       <button class="tab-btn" data-tab="groups" onclick="switchTab('groups')" role="tab" id="tab-btn-groups">
         <i class="fa-solid fa-people-group"></i> Grupos
       </button>
       <button class="tab-btn" data-tab="students" onclick="switchTab('students')" role="tab" id="tab-btn-students">
-        <i class="fa-solid fa-list"></i> Todos los Alumnos
+        <i class="fa-solid fa-list"></i> Alumnos
       </button>
       <button class="tab-btn" data-tab="staff" onclick="switchTab('staff')" role="tab" id="tab-btn-staff">
         <i class="fa-solid fa-chalkboard-user"></i> Personal
@@ -804,6 +789,7 @@
             <span id="detail-status-badge" class="badge badge-active hidden"><i class="fa-solid fa-circle-check"></i> Activo</span>
             <span id="detail-mode-badge" class="badge badge-view hidden"><i class="fa-solid fa-eye"></i> Ficha de alumno</span>
           </div>
+          <p id="detail-status-help" class="detail-status-help hidden"></p>
         </div>
         <button class="detail-close" onclick="closeStudentDrawer()" aria-label="Cerrar">
           <i class="fa-solid fa-xmark"></i>

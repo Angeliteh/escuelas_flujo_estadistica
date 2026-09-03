@@ -208,17 +208,15 @@ No se duplicará todavía el catálogo personal completo en `_ALUMNOS`: V10 mant
 - integraciones oficiales;
 - operación multi escuela.
 
-## 9. Orden de construcción acordado
+## 9. Orden de construcción vigente después de V11
 
-1. Consulta de alumnos inactivos y reactivación.
-2. Tabla técnica de inscripciones del ciclo actual.
-3. Bitácora de movimientos.
-4. Baja, reingreso y transferencia mediante eventos.
-5. Cambio de grupo seguro.
-6. Cierre/promoción de ciclo con vista previa y confirmación.
-7. Auditoría de cambios.
-8. Exportación administrativa a Excel/Sheets.
-9. Definición del expediente con la escuela.
-10. Seguridad y autenticación antes de ampliar usuarios o escuelas.
+Ya están instaladas la consulta/reactivación de inactivos, las inscripciones del ciclo actual, los movimientos iniciales y las acciones de alta, baja y reingreso. El siguiente orden evita construir módulos sobre relaciones ambiguas:
+
+1. Cambio de grupo y transferencia como operaciones atómicas, con origen, destino, fecha, motivo y vista previa.
+2. Cierre de ciclo, promoción, repetición y egreso con confirmación y reinscripción controlada.
+3. Bitácora append-only de edición de fichas y correcciones de asistencia.
+4. Catálogos controlados para valores repetibles y exportación administrativa aprobada.
+5. Definir con la escuela expedientes, documentos, reportes y calificaciones antes de crear tablas o formularios.
+6. Mantener la autorización V11.1 por sesión, rol y grupo; antes de ampliar usuarios, escuelas o acceso sensible, migrar a identidad centralizada y auditoría formal.
 
 Cada incremento debe ser compatible con el anterior, idempotente en su instalación, respaldado y probado primero sin reemplazar datos oficiales.

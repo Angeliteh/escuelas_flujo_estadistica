@@ -1,8 +1,9 @@
 // ==============================================================================
-// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V11 (INSCRIPCIONES + MOVIMIENTOS)
+// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V11.1 (INSCRIPCIONES + MOVIMIENTOS + ACCESO)
 // ==============================================================================
 
 const HEADER_ROW = 5;
+const API_VERSION = 'V11.1';
 const TABS = ['1A','1B','2A','2B','3A','3B','4A','4B','5A','5B','6A','6B'];
 const STUDENT_VISIBLE_COLUMNS = 20;
 const STUDENT_META_START_COLUMN = 21;
@@ -59,51 +60,398 @@ const BACKUP_SOURCE_ID_PROPERTY = 'BACKUP_SOURCE_SPREADSHEET_ID';
 const BACKUP_FOLDER_ID_PROPERTY = 'BACKUP_FOLDER_ID';
 const BACKUP_LAST_SUCCESS_PROPERTY = 'BACKUP_LAST_SUCCESS_AT';
 
+// CONTROL DE ACCESO V11.1. Las contraseñas nunca viven en el frontend ni en
+// este archivo. Se cargan una sola vez desde una propiedad privada temporal y
+// se guardan como HMAC; las sesiones son opacas, temporales y del servidor.
+const AUTH_USERS_PROPERTY = 'ACCESS_USERS_V11';
+const AUTH_SECRET_PROPERTY = 'ACCESS_SECRET_V11';
+const AUTH_READY_PROPERTY = 'ACCESS_CONTROL_READY_V11';
+const AUTH_REVISION_PROPERTY = 'ACCESS_CONTROL_REVISION_V11';
+const AUTH_SEED_PROPERTY = 'ACCESS_CONTROL_SEED_V11';
+const AUTH_SESSION_PREFIX = 'ACCESS_SESSION_V11_';
+const AUTH_FAILURE_PREFIX = 'ACCESS_FAILURE_V11_';
+const AUTH_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
+const AUTH_LOCK_MS = 15 * 60 * 1000;
+const AUTH_MAX_FAILURES = 5;
+const AUTH_MIN_PASSWORD_LENGTH = 12;
+
 function doPost(e) {
   try {
-    const params = JSON.parse(e.postData.contents);
-    const action = params.action;
-    // ALUMNOS
-    if (action === 'getStudents') return respond(getStudents(params));
-    if (action === 'saveStudent') return respond(saveStudent(params.data));
-    if (action === 'deleteStudent') return respond(deleteStudent(
-      params.grupo,
-      params.alumnoId || params.id,
-      params.rowId || params.id,
-      params.usuario
-    ));
-    if (action === 'setStudentStatus') return respond(setStudentStatus(params));
-    if (action === 'getInactiveStudents') return respond(getInactiveStudents());
-    if (action === 'reactivateStudent') return respond(reactivateStudent(params));
-    if (action === 'getStudentLifecycle') return respond(getStudentLifecycle(params));
-    // ASISTENCIA
-    if (action === 'getAttendanceConfig') return respond(getAttendanceConfig(params));
-    if (action === 'getAttendance') return respond(getAttendance(params));
-    if (action === 'getAttendanceMonth') return respond(getAttendanceMonth(params));
-    if (action === 'saveAttendance') return respond(saveAttendance(params.records || []));
-    // PERSONAL
-    if (action === 'getStaff') return respond(getStaff());
-    if (action === 'saveStaff') return respond(saveStaff(params.data));
-    if (action === 'deleteStaff') return respond(deleteStaff(params.id));
-
-    return respond({ error: 'Acción no válida' }, 400);
+    const params = JSON.parse(e.postData.contents || '{}');
+    const action = String(params.action || '').trim();
+    if (action === 'login') return respond(loginAccessV11_(params));
+    if (action === 'ping') return respond(getPublicStatusV11_());
+    const principal = getAuthenticatedPrincipalV11_(params.sessionToken);
+    if (!principal) return respond({ success: false, code: 'AUTH_REQUIRED', error: 'Sesión inválida o vencida' });
+    if (action === 'logout') return respond(logoutAccessV11_(params.sessionToken));
+    return respond(dispatchAuthenticatedActionV11_(action, params, principal));
   } catch (error) {
-    return respond({ error: error.message }, 500);
+    return respond({ success: false, error: error.message || 'No fue posible procesar la solicitud' });
   }
 }
 
 function doGet(e) {
-  if (e.parameter && e.parameter.action === 'ping') {
-    return respond({
-      status: 'ok',
-      version: 'V11',
-      studentIdentityReady: studentIdentityIsReady_(),
-      enrollmentHistoryReady: enrollmentHistoryIsReady_(),
-      attendanceHistoryReady: attendanceHistoryIsReady_(),
-      message: 'API funcionando'
+  if (e && e.parameter && e.parameter.action === 'ping') return respond(getPublicStatusV11_());
+  return respond({ success: false, code: 'AUTH_REQUIRED', error: 'Usa una sesión autenticada para consultar datos' });
+}
+
+function getPublicStatusV11_() {
+  return {
+    status: 'ok',
+    version: API_VERSION,
+    accessControlReady: accessControlIsReadyV11_(),
+    studentIdentityReady: studentIdentityIsReady_(),
+    enrollmentHistoryReady: enrollmentHistoryIsReady_(),
+    attendanceHistoryReady: attendanceHistoryIsReady_(),
+    message: 'API funcionando'
+  };
+}
+
+function accessControlIsReadyV11_() {
+  return PropertiesService.getScriptProperties().getProperty(AUTH_READY_PROPERTY) === 'true';
+}
+
+function normalizeAuthUsernameV11_(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function authHexV11_(bytes) {
+  return bytes.map(byte => {
+    const hex = (byte & 0xff).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  }).join('');
+}
+
+function passwordHashV11_(username, password, secret) {
+  return authHexV11_(Utilities.computeHmacSha256Signature(
+    String(username) + ':' + String(password),
+    String(secret)
+  ));
+}
+
+function constantTimeEqualsV11_(left, right) {
+  const first = String(left || '');
+  const second = String(right || '');
+  let difference = first.length ^ second.length;
+  const length = Math.max(first.length, second.length);
+  for (let index = 0; index < length; index++) {
+    difference |= (first.charCodeAt(index) || 0) ^ (second.charCodeAt(index) || 0);
+  }
+  return difference === 0;
+}
+
+function readAccessUsersV11_() {
+  const raw = PropertiesService.getScriptProperties().getProperty(AUTH_USERS_PROPERTY);
+  if (!raw) return {};
+  try {
+    const users = JSON.parse(raw);
+    return users && typeof users === 'object' && !Array.isArray(users) ? users : {};
+  } catch (error) {
+    throw new Error('La configuración privada de accesos no es válida');
+  }
+}
+
+function nextAuthRevisionV11_() {
+  const properties = PropertiesService.getScriptProperties();
+  const next = Number(properties.getProperty(AUTH_REVISION_PROPERTY) || '0') + 1;
+  properties.setProperty(AUTH_REVISION_PROPERTY, String(next));
+  return next;
+}
+
+function clearAuthSessionsV11_() {
+  const properties = PropertiesService.getScriptProperties();
+  properties.getKeys()
+    .filter(key => key.indexOf(AUTH_SESSION_PREFIX) === 0)
+    .forEach(key => properties.deleteProperty(key));
+}
+
+function pruneAuthSessionsV11_(usernameToKeep) {
+  const properties = PropertiesService.getScriptProperties();
+  const now = Date.now();
+  properties.getKeys()
+    .filter(key => key.indexOf(AUTH_SESSION_PREFIX) === 0)
+    .forEach(key => {
+      try {
+        const session = JSON.parse(properties.getProperty(key) || '{}');
+        if (!session.expiresAt || Number(session.expiresAt) <= now ||
+            (usernameToKeep && String(session.username) === String(usernameToKeep))) {
+          properties.deleteProperty(key);
+        }
+      } catch (error) {
+        properties.deleteProperty(key);
+      }
+    });
+}
+
+// Ejecutar desde el editor de Apps Script después de crear temporalmente la
+// propiedad ACCESS_CONTROL_SEED_V11. La función elimina esa propiedad al terminar.
+function setupAccessControlV11() {
+  const properties = PropertiesService.getScriptProperties();
+  const rawSeed = properties.getProperty(AUTH_SEED_PROPERTY);
+  if (!rawSeed) {
+    throw new Error('Falta ACCESS_CONTROL_SEED_V11. Consulta docs/15_acceso_seguro.md antes de instalar accesos.');
+  }
+  let seed;
+  try {
+    seed = JSON.parse(rawSeed);
+  } catch (error) {
+    throw new Error('ACCESS_CONTROL_SEED_V11 debe contener un arreglo JSON válido');
+  }
+  if (!Array.isArray(seed) || !seed.length) {
+    throw new Error('ACCESS_CONTROL_SEED_V11 debe incluir al menos una cuenta');
+  }
+
+  const secret = properties.getProperty(AUTH_SECRET_PROPERTY) ||
+    Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+  const users = readAccessUsersV11_();
+  seed.forEach(entry => {
+    const username = normalizeAuthUsernameV11_(entry && entry.username);
+    const role = String(entry && entry.role || '').trim().toLowerCase();
+    const group = String(entry && entry.group || '').trim().toUpperCase();
+    const name = String(entry && entry.name || '').trim().slice(0, 120);
+    const enabled = !(entry && entry.enabled === false);
+    if (!/^[A-Z0-9._-]{2,40}$/.test(username)) throw new Error('Usuario inválido en la configuración privada');
+    if (!['director', 'teacher'].includes(role)) throw new Error('Rol inválido para ' + username);
+    if (role === 'teacher' && !TABS.includes(group)) throw new Error('Grupo inválido para ' + username);
+    if (role === 'director' && group) throw new Error('La cuenta de Dirección no debe tener grupo asignado');
+    if (!name) throw new Error('Falta el nombre visible para ' + username);
+    const existing = users[username] || {};
+    const password = String(entry && entry.password || '');
+    if (enabled && password.length < AUTH_MIN_PASSWORD_LENGTH) {
+      throw new Error('La contraseña de ' + username + ' debe tener al menos ' + AUTH_MIN_PASSWORD_LENGTH + ' caracteres');
+    }
+    users[username] = {
+      username,
+      name,
+      role,
+      group: role === 'teacher' ? group : '',
+      enabled,
+      passwordHash: enabled ? passwordHashV11_(username, password, secret) : String(existing.passwordHash || '')
+    };
+  });
+  if (!Object.keys(users).some(username => users[username].role === 'director' && users[username].enabled)) {
+    throw new Error('Debe existir al menos una cuenta activa de Dirección');
+  }
+
+  properties.setProperty(AUTH_SECRET_PROPERTY, secret);
+  properties.setProperty(AUTH_USERS_PROPERTY, JSON.stringify(users));
+  properties.setProperty(AUTH_READY_PROPERTY, 'true');
+  properties.deleteProperty(AUTH_SEED_PROPERTY);
+  clearAuthSessionsV11_();
+  const revision = nextAuthRevisionV11_();
+  return {
+    success: true,
+    version: API_VERSION,
+    revision,
+    users: Object.keys(users).sort().map(username => ({
+      username,
+      name: users[username].name,
+      role: users[username].role,
+      group: users[username].group,
+      enabled: users[username].enabled
+    }))
+  };
+}
+
+function getAccessControlStatusV11() {
+  const users = readAccessUsersV11_();
+  return {
+    success: true,
+    ready: accessControlIsReadyV11_(),
+    version: API_VERSION,
+    revision: Number(PropertiesService.getScriptProperties().getProperty(AUTH_REVISION_PROPERTY) || '0'),
+    users: Object.keys(users).sort().map(username => ({
+      username,
+      name: users[username].name,
+      role: users[username].role,
+      group: users[username].group,
+      enabled: users[username].enabled
+    }))
+  };
+}
+
+function authFailurePropertyV11_(username) {
+  return AUTH_FAILURE_PREFIX + username;
+}
+
+function getLoginFailureV11_(username) {
+  const properties = PropertiesService.getScriptProperties();
+  const key = authFailurePropertyV11_(username);
+  const raw = properties.getProperty(key);
+  if (!raw) return null;
+  try {
+    const state = JSON.parse(raw);
+    if (!state.expiresAt || Number(state.expiresAt) <= Date.now()) {
+      properties.deleteProperty(key);
+      return null;
+    }
+    return state;
+  } catch (error) {
+    properties.deleteProperty(key);
+    return null;
+  }
+}
+
+function registerLoginFailureV11_(username) {
+  const properties = PropertiesService.getScriptProperties();
+  const previous = getLoginFailureV11_(username) || { count: 0 };
+  const count = Number(previous.count || 0) + 1;
+  const now = Date.now();
+  const state = {
+    count,
+    lockedUntil: count >= AUTH_MAX_FAILURES ? now + AUTH_LOCK_MS : 0,
+    expiresAt: now + AUTH_LOCK_MS
+  };
+  properties.setProperty(authFailurePropertyV11_(username), JSON.stringify(state));
+}
+
+function clearLoginFailuresV11_(username) {
+  PropertiesService.getScriptProperties().deleteProperty(authFailurePropertyV11_(username));
+}
+
+function createAuthSessionV11_(user) {
+  const properties = PropertiesService.getScriptProperties();
+  // Una cuenta conserva una sola sesión activa y cada nuevo inicio elimina
+  // sesiones vencidas, evitando acumular propiedades indefinidamente.
+  pruneAuthSessionsV11_(user.username);
+  const token = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '').toUpperCase();
+  const now = Date.now();
+  const session = {
+    username: user.username,
+    name: user.name,
+    role: user.role,
+    group: user.group || '',
+    revision: Number(properties.getProperty(AUTH_REVISION_PROPERTY) || '0'),
+    expiresAt: now + AUTH_SESSION_TTL_MS
+  };
+  properties.setProperty(AUTH_SESSION_PREFIX + token, JSON.stringify(session));
+  return { token, session };
+}
+
+function getAuthenticatedPrincipalV11_(tokenValue) {
+  const token = String(tokenValue || '').trim().toUpperCase();
+  if (!accessControlIsReadyV11_() || !/^[A-F0-9]{64}$/.test(token)) return null;
+  const properties = PropertiesService.getScriptProperties();
+  const key = AUTH_SESSION_PREFIX + token;
+  const raw = properties.getProperty(key);
+  if (!raw) return null;
+  try {
+    const session = JSON.parse(raw);
+    const revision = Number(properties.getProperty(AUTH_REVISION_PROPERTY) || '0');
+    if (!session || Number(session.expiresAt) <= Date.now() || Number(session.revision) !== revision) {
+      properties.deleteProperty(key);
+      return null;
+    }
+    const user = readAccessUsersV11_()[session.username];
+    if (!user || !user.enabled || user.role !== session.role || String(user.group || '') !== String(session.group || '')) {
+      properties.deleteProperty(key);
+      return null;
+    }
+    return { username: user.username, name: user.name, role: user.role, group: user.group || '' };
+  } catch (error) {
+    properties.deleteProperty(key);
+    return null;
+  }
+}
+
+function loginAccessV11_(params) {
+  if (!accessControlIsReadyV11_()) {
+    return { success: false, code: 'ACCESS_NOT_CONFIGURED', error: 'El control de acceso todavía no está configurado' };
+  }
+  const username = normalizeAuthUsernameV11_(params.username);
+  const password = String(params.password || '');
+  const users = readAccessUsersV11_();
+  const user = users[username];
+  const failure = user ? getLoginFailureV11_(username) : null;
+  if (failure && Number(failure.lockedUntil || 0) > Date.now()) {
+    return { success: false, code: 'AUTH_INVALID', error: 'Usuario o contraseña incorrectos' };
+  }
+  const secret = PropertiesService.getScriptProperties().getProperty(AUTH_SECRET_PROPERTY) || '';
+  const valid = Boolean(user && user.enabled && secret && password.length &&
+    constantTimeEqualsV11_(passwordHashV11_(username, password, secret), user.passwordHash));
+  if (!valid) {
+    if (user) registerLoginFailureV11_(username);
+    return { success: false, code: 'AUTH_INVALID', error: 'Usuario o contraseña incorrectos' };
+  }
+  clearLoginFailuresV11_(username);
+  const created = createAuthSessionV11_(user);
+  return {
+    success: true,
+    version: API_VERSION,
+    sessionToken: created.token,
+    expiresAt: new Date(created.session.expiresAt).toISOString(),
+    user: {
+      username: created.session.username,
+      name: created.session.name,
+      role: created.session.role,
+      group: created.session.group
+    }
+  };
+}
+
+function logoutAccessV11_(tokenValue) {
+  const token = String(tokenValue || '').trim().toUpperCase();
+  if (/^[A-F0-9]{64}$/.test(token)) {
+    PropertiesService.getScriptProperties().deleteProperty(AUTH_SESSION_PREFIX + token);
+  }
+  return { success: true };
+}
+
+function isDirectorV11_(principal) {
+  return principal && principal.role === 'director';
+}
+
+function canAccessGroupV11_(principal, group) {
+  return Boolean(principal && (isDirectorV11_(principal) || String(principal.group || '') === String(group || '').toUpperCase()));
+}
+
+function forbiddenAccessV11_() {
+  return { success: false, code: 'FORBIDDEN', error: 'Tu cuenta no tiene permiso para realizar esta acción' };
+}
+
+function dispatchAuthenticatedActionV11_(action, params, principal) {
+  if (action === 'getStudents') {
+    return getStudents({
+      group: isDirectorV11_(principal) ? '' : principal.group,
+      includeInactive: isDirectorV11_(principal) && Boolean(params.includeInactive)
     });
   }
-  return respond(getStudents());
+  if (action === 'saveStudent') {
+    const student = params.data || {};
+    if (!canAccessGroupV11_(principal, studentTargetGroup_(student))) return forbiddenAccessV11_();
+    return saveStudent({ ...student, usuario: principal.username, actualizadoPor: principal.username });
+  }
+  if (action === 'deleteStudent') {
+    if (!isDirectorV11_(principal)) return forbiddenAccessV11_();
+    return deleteStudent(params.grupo, params.alumnoId || params.id, params.rowId || params.id, principal.username);
+  }
+  if (action === 'setStudentStatus') {
+    if (!isDirectorV11_(principal)) return forbiddenAccessV11_();
+    return setStudentStatus({ ...params, usuario: principal.username });
+  }
+  if (action === 'getInactiveStudents') return isDirectorV11_(principal) ? getInactiveStudents() : forbiddenAccessV11_();
+  if (action === 'reactivateStudent') {
+    return isDirectorV11_(principal)
+      ? reactivateStudent({ ...params, usuario: principal.username })
+      : forbiddenAccessV11_();
+  }
+  if (action === 'getStudentLifecycle') return isDirectorV11_(principal) ? getStudentLifecycle(params) : forbiddenAccessV11_();
+  if (action === 'getAttendanceConfig') return getAttendanceConfig(params);
+  if (action === 'getAttendance' || action === 'getAttendanceMonth') {
+    if (!canAccessGroupV11_(principal, params.group)) return forbiddenAccessV11_();
+    return action === 'getAttendance' ? getAttendance(params) : getAttendanceMonth(params);
+  }
+  if (action === 'saveAttendance') {
+    const records = Array.isArray(params.records) ? params.records : [];
+    if (!records.length || records.some(record => !canAccessGroupV11_(principal, record.group))) return forbiddenAccessV11_();
+    if (!isDirectorV11_(principal) && records.some(record => String(record.group || '').toUpperCase() !== principal.group)) return forbiddenAccessV11_();
+    return saveAttendance(records.map(record => ({ ...record, usuario: principal.username })));
+  }
+  if (action === 'getStaff') return isDirectorV11_(principal) ? getStaff() : forbiddenAccessV11_();
+  // Personal es lectura en el piloto. Las funciones de escritura quedan sólo
+  // para mantenimiento técnico local, no expuestas en la API pública.
+  if (action === 'saveStaff' || action === 'deleteStaff') return forbiddenAccessV11_();
+  return { success: false, error: 'Acción no válida' };
 }
 
 // =====================================================
@@ -111,15 +459,17 @@ function doGet(e) {
 // =====================================================
 function getStudents(options) {
   const includeInactive = Boolean(options && options.includeInactive);
+  const requestedGroup = String(options && options.group || '').trim().toUpperCase();
+  const groups = requestedGroup && TABS.includes(requestedGroup) ? [requestedGroup] : TABS;
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let allStudents = [];
-  TABS.forEach(tabName => {
+  groups.forEach(tabName => {
     allStudents = allStudents.concat(getStudentsForGroup(tabName, includeInactive));
   });
   return {
     success: true,
     data: allStudents,
-    version: 'V11',
+    version: API_VERSION,
     identityReady: studentIdentityIsReady_(),
     enrollmentHistoryReady: enrollmentHistoryIsReady_(),
     cycle: CURRENT_SCHOOL_CYCLE
@@ -193,6 +543,25 @@ function findStudentRowById_(sheet, alumnoId) {
   return index >= 0 ? HEADER_ROW + 1 + index : null;
 }
 
+function findStudentIdentityLocations_(spreadsheet, alumnoId) {
+  const normalizedId = String(alumnoId || '').trim();
+  if (!normalizedId) return [];
+  const locations = [];
+  TABS.forEach(group => {
+    const sheet = spreadsheet.getSheetByName(group);
+    if (!sheet || sheet.getLastRow() <= HEADER_ROW || sheet.getMaxColumns() < STUDENT_META_START_COLUMN) return;
+    const values = sheet
+      .getRange(HEADER_ROW + 1, STUDENT_META_START_COLUMN, sheet.getLastRow() - HEADER_ROW, 1)
+      .getDisplayValues();
+    values.forEach((row, index) => {
+      if (String(row[0] || '').trim() === normalizedId) {
+        locations.push({ group, rowId: HEADER_ROW + 1 + index });
+      }
+    });
+  });
+  return locations;
+}
+
 function resolveStudentRow_(sheet, alumnoId, rowId) {
   const normalizedId = String(alumnoId || '').trim();
   const byId = findStudentRowById_(sheet, normalizedId);
@@ -205,22 +574,46 @@ function resolveStudentRow_(sheet, alumnoId, rowId) {
   return null;
 }
 
+function studentTargetGroup_(student) {
+  const gradoNum = String(student && student.grado || '').charAt(0);
+  const grupo = String(student && student.grupo || '').trim().toUpperCase();
+  return String(student && student.grupoId || ((grupo.length === 1 && gradoNum) ? gradoNum + grupo : grupo))
+    .trim().toUpperCase();
+}
+
 function saveStudent(student) {
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const gradoNum = String(student.grado || '').charAt(0);
-    const grupo = String(student.grupo || '').trim().toUpperCase();
-    const hojaNombre = String(student.grupoId || ((grupo.length === 1 && gradoNum) ? gradoNum + grupo : grupo)).toUpperCase();
+    const hojaNombre = studentTargetGroup_(student);
     if (!TABS.includes(hojaNombre)) return { success: false, error: 'Grupo no válido: ' + hojaNombre };
     const sheet = ss.getSheetByName(hojaNombre);
     if (!sheet) return { success: false, error: 'La hoja no existe: ' + hojaNombre };
     ensureStudentMetadataColumns_(sheet);
 
     const candidateId = String(student.alumnoId || student.id || '').trim();
-    const requestedId = candidateId.indexOf('ALU-') === 0 ? candidateId : '';
-    let targetRow = resolveStudentRow_(sheet, requestedId, student.rowId);
+    const suppliedPermanentId = candidateId.indexOf('ALU-') === 0 ? candidateId : '';
+    let requestedId = suppliedPermanentId;
+    let targetRow = null;
+    if (suppliedPermanentId) {
+      const locations = findStudentIdentityLocations_(ss, suppliedPermanentId);
+      if (locations.length > 1) {
+        return { success: false, error: 'La identidad del alumno está duplicada; requiere revisión técnica controlada' };
+      }
+      if (locations.length === 1) {
+        if (locations[0].group !== hojaNombre) {
+          return { success: false, error: 'No se puede cambiar de grupo desde la edición; requiere el flujo administrativo de cambio de grupo' };
+        }
+        targetRow = locations[0].rowId;
+      } else {
+        // Las altas siempre reciben su identidad desde el servidor. Nunca se acepta
+        // un ALUMNO_ID arbitrario enviado por el navegador.
+        requestedId = '';
+      }
+    } else {
+      targetRow = resolveStudentRow_(sheet, '', student.rowId);
+    }
     const isNew = !targetRow;
     if (isNew) targetRow = Math.max(sheet.getLastRow() + 1, HEADER_ROW + 1);
 
@@ -230,7 +623,7 @@ function saveStudent(student) {
     const now = new Date().toISOString();
     const metadata = {
       alumnoId: String(existingRow[20] || requestedId || generateStudentId_()),
-      estatus: normalizeStudentStatus_(existingRow[21] || student.estatus),
+      estatus: isNew ? STUDENT_ACTIVE_STATUS : normalizeStudentStatus_(existingRow[21]),
       cicloEscolar: String(existingRow[22] || student.cicloEscolar || CURRENT_SCHOOL_CYCLE),
       fechaAltaSistema: existingRow[23] || now,
       fechaEstatus: existingRow[24] || now,
@@ -286,6 +679,12 @@ function setStudentStatus(params) {
     if (!row) return { success: false, error: 'Alumno no encontrado' };
 
     const status = normalizeStudentStatus_(params.estatus);
+    if (![STUDENT_ACTIVE_STATUS, 'BAJA'].includes(status)) {
+      return {
+        success: false,
+        error: 'Transferencia, egreso y cambio de grupo requieren un flujo administrativo completo; no se pueden aplicar como un cambio genérico de estado'
+      };
+    }
     const now = new Date().toISOString();
     const existingMetadata = sheet
       .getRange(row, STUDENT_META_START_COLUMN, 1, STUDENT_META_HEADERS.length)

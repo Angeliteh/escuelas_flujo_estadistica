@@ -53,6 +53,15 @@ La cuenta interna `directora` representa actualmente a la subdirectora responsab
 
 El estado escolar no es un campo de captura común. Dirección ejecuta acciones con fecha y motivo; Apps Script actualiza el estado vigente, la inscripción y la bitácora en conjunto.
 
+### Ruta visible de baja y reingreso
+
+1. Abrir la ficha del alumno desde **Todos los Alumnos** o desde el grupo.
+2. Dirección ve directamente el botón **Dar de baja** aun cuando la ficha esté en modo lectura.
+3. Confirmar la baja. El alumno deja de aparecer en el padrón activo, pero no se elimina.
+4. Para revertirla, ir a **Todos los Alumnos → Bajas e inactivos** y pulsar **Reactivar**.
+
+La baja y el reingreso son las únicas transiciones administrativas activas en V11. Transferencia, cambio de grupo, promoción y egreso no se muestran ni se deben simular editando celdas.
+
 ## Responsable técnico
 
 Administra código, despliegues, respaldos, analizadores y migraciones. No debe usar acceso técnico para sustituir la operación escolar ordinaria. Toda corrección directa requiere:
@@ -70,14 +79,16 @@ Administra código, despliegues, respaldos, analizadores y migraciones. No debe 
 - Las columnas `U:AA` y las hojas que comienzan con `_` son técnicas; ocultarlas evita accidentes, pero no constituye seguridad.
 - Nadie debe cambiar manualmente `ALUMNO_ID`, `ESTATUS`, inscripciones, movimientos o asistencia histórica.
 
-## Credenciales actuales de prueba
+## Accesos asignados
 
-| Usuario | Contraseña | Alcance |
-|---|---|---|
-| `directora` | `director2025` | Toda la escuela |
-| `1A` … `6B` | `maestro2025` | Grupo igual al usuario |
+Las cuentas, contraseñas, roles y grupos se configuran de forma privada en Apps Script. El navegador no contiene credenciales ni decide permisos. Cada cuenta recibe sólo el alcance necesario:
 
-Estas credenciales están en `app.js` y son visibles desde el navegador. Sirven únicamente para operación interna controlada. Antes de una entrega con seguridad real se necesita autenticación y autorización en el backend; ocultar botones no sustituye ese control.
+| Rol | Alcance |
+|---|---|
+| Dirección | Consulta todos los grupos, administra altas/bajas/reingresos y consulta personal. |
+| Docente | Consulta y registra información únicamente de su grupo asignado. |
+
+La instalación, cambio de contraseña, alta/baja de una cuenta y prueba de límites se realizan con [15_acceso_seguro.md](./15_acceso_seguro.md). Nunca anotar contraseñas en el Sheet, repositorio, capturas o mensajes.
 
 ## Alta de un grupo nuevo
 

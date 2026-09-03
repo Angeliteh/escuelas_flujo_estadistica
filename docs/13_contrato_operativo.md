@@ -8,9 +8,12 @@ El orden de autoridad es:
 
 1. este contrato operativo;
 2. [11_modelo_control_escolar_y_movimientos.md](./11_modelo_control_escolar_y_movimientos.md), para datos e historia;
-3. [02_roles.md](./02_roles.md), para permisos funcionales;
-4. [01_arquitectura.md](./01_arquitectura.md), para componentes y conexiones;
-5. [07_estado_actual.md](./07_estado_actual.md), para saber qué está implementado hoy.
+3. [08_handoff_y_escalabilidad.md](./08_handoff_y_escalabilidad.md), para estado operativo y hoja de ruta;
+4. [02_roles.md](./02_roles.md), para permisos funcionales;
+5. [01_arquitectura.md](./01_arquitectura.md), para componentes y conexiones;
+6. [07_estado_actual.md](./07_estado_actual.md), para checklist de pruebas;
+7. [14_piloto_y_adopcion.md](./14_piloto_y_adopcion.md), para adopción y captura de necesidades nuevas.
+8. [15_acceso_seguro.md](./15_acceso_seguro.md), para instalación y prueba de accesos.
 
 Los bocetos, mensajes y pantallas pueden evolucionar; estas reglas sólo cambian mediante una decisión explícita registrada en documentación y código.
 
@@ -80,7 +83,7 @@ Transferencia, cambio de grupo y cierre de ciclo deberán respetar el mismo patr
 - Dirección: visión escolar, inscripciones en cualquier grupo y control de bajas/reingresos; después, transferencias y ciclos.
 - Responsable técnico: infraestructura y correcciones controladas, no operación cotidiana.
 
-La interfaz actual aplica estas diferencias funcionales, pero la autorización todavía depende del navegador. Antes de tratarlo como seguridad fuerte, el backend deberá autenticar al usuario y comprobar rol y grupo en cada operación.
+V11.1 autentica sesiones en Apps Script y comprueba rol y grupo en cada operación. No se entregan cuentas hasta instalar y validar [15_acceso_seguro.md](./15_acceso_seguro.md); ocultar botones nunca es la fuente de autorización.
 
 ## 5. Criterio de terminado para cambios futuros
 
@@ -95,6 +98,7 @@ Una funcionalidad no se considera terminada hasta cumplir, según corresponda:
 - respaldo/migración segura si modifica estructura;
 - documentación actualizada en el mismo cambio;
 - despliegue y verificación pública.
+- si el proceso escolar aún no está definido, una decisión documentada antes de crear campos, columnas o acciones.
 
 ## 6. Estado base confirmado
 
@@ -107,4 +111,5 @@ Al establecer este contrato:
 - existen 272 movimientos iniciales;
 - no hay IDs ni inscripciones activas duplicadas;
 - respaldos automáticos y manuales están habilitados;
-- el alta automática desde el panel está preparada y pendiente de una prueba operativa controlada.
+- altas, edición, asistencia, historial e impresión fueron validados en uso del piloto por la persona responsable;
+- Baja → Reingreso y restauración aislada de respaldo permanecen como pruebas operativas pendientes.
