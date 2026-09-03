@@ -2,7 +2,7 @@
 
 ## Visión general
 
-El sistema es una **aplicación web estática** (3 archivos: HTML + CSS + JS) que usa **Google Sheets como base de datos** a través de **Google Apps Script** como intermediario (API).
+El sistema es una aplicación web con interfaz estática (HTML + CSS + JS), una función ligera en Vercel y **Google Sheets como fuente operativa de datos**. Google Apps Script aplica las reglas y se comunica con Sheets y Drive.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -13,15 +13,23 @@ El sistema es una **aplicación web estática** (3 archivos: HTML + CSS + JS) qu
 │   │  (solo su     │       │ Dashboard + Todos + Personal    │   │
 │   │   grupo)      │       │                                 │   │
 │   └──────┬────────┘       └───────────────┬────────────────┘   │
-└──────────┼─────────────────────────────────┼────────────────────┘
-           │  fetch() POST/GET               │
-           ▼                                 ▼
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ POST /api/control
+                           ▼
+┌──────────────────────────────────────────────────────────────────┐
+│              VERCEL FUNCTION  (api/control.js)                   │
+│  Reenvía peticiones desde servidor y evita bloqueos de privacidad │
+│  del navegador hacia la redirección temporal de Google.           │
+└──────────────────────────────────┬───────────────────────────────┘
+                                   │ POST autenticado
+                                   ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │          GOOGLE APPS SCRIPT  (el "backend")                      │
-│  URL: script.google.com/macros/s/AKfycbyFPx.../exec             │
+│  Web App detrás de la ruta de Vercel                             │
 │                                                                  │
-│  doGet()  → lee todos los alumnos de las 12 pestañas            │
-│  doPost() → alumnos + asistencia + personal                    │
+│  doPost() → sesión, alumnos, asistencia, bajas y personal       │
+│  Propiedades → cuentas, claves internas, sesiones y estado       │
+│  Activador → respaldo nocturno en Drive                          │
 └──────────────────────────────────┬───────────────────────────────┘
                                    │  SpreadsheetApp
                                    ▼
@@ -52,25 +60,23 @@ El sistema es una **aplicación web estática** (3 archivos: HTML + CSS + JS) qu
 ## Flujo: agregar un alumno
 
 ```
-1. Maestro llena el formulario en el panel
-2. app.js inyecta automáticamente: grado = "1°", grupo = "A"
-3. fetch POST → Apps Script con { action: "saveStudent", data: {...} }
-4. Apps Script combina grado + grupo → determina hoja = "1A"
-5. Apps Script escribe la fila, asigna `ALUMNO_ID` y estado `ACTIVO`
-6. Apps Script crea la inscripción del ciclo vigente y agrega el movimiento `ALTA`
-7. El panel actualiza la tabla de forma optimista
-8. Si la API falla, el panel revierte el cambio y muestra un error
+1. Maestro llena el formulario en el panel.
+2. `app.js` manda la sesión y los datos a `/api/control`.
+3. Vercel la reenvía a Apps Script; el navegador no sigue la redirección temporal de Google.
+4. Apps Script valida que la sesión pertenezca a ese maestro y a su grupo.
+5. Determina la hoja, escribe la fila, asigna `ALUMNO_ID` y estado `ACTIVO`.
+6. Crea la inscripción del ciclo vigente y agrega el movimiento `ALTA`.
+7. Devuelve un resultado JSON; el panel actualiza la tabla o muestra un error.
 ```
 
 ## Flujo: cargar datos al abrir sesión
 
 ```
-1. init() → fetchAllStudents()
-2. fetch GET → Apps Script
-3. Apps Script lee las 12 hojas, fila por fila desde HEADER_ROW+1
-4. Devuelve un JSON array con todos los alumnos
-5. app.js procesa cada alumno: agrega grupoId (ej: "1" + "A" = "1A")
-6. El panel renderiza la vista según el rol del usuario
+1. La persona escribe usuario y contraseña en el panel.
+2. Apps Script valida la cuenta y devuelve una sesión temporal de ocho horas.
+3. `fetchAllStudents()` manda esa sesión a `/api/control`.
+4. Apps Script entrega todos los grupos a Dirección o solamente el asignado al docente.
+5. El panel conserva una copia temporal solo mientras la pestaña está abierta y renderiza la vista autorizada.
 ```
 
 ---

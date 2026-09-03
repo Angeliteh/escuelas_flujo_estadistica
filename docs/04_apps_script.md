@@ -10,12 +10,12 @@ Google Apps Script es un servicio de Google que permite ejecutar código JavaScr
 
 Dentro del Google Sheet: **Extensiones → Apps Script**
 
-URL de la implementación activa:
+URL técnica de la implementación activa:
 ```
 https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgkNLf-jc1uEdzIoIU73mSJzLYJNC3Sw/exec
 ```
 
-> **IMPORTANTE:** Si eliminas y recreas la implementación, esta URL cambia. Debes actualizar `API_URL` en `app.js`.
+> **IMPORTANTE:** Si eliminas y recreas la implementación, esta URL cambia. No modifiques `API_URL` en `app.js`: el panel usa `/api/control`. Actualiza la variable `APPS_SCRIPT_URL` en Vercel y vuelve a desplegar.
 
 ## Versión vigente y siguiente instalación
 

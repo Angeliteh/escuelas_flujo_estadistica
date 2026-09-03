@@ -22,6 +22,7 @@
 | [14_piloto_y_adopcion.md](./14_piloto_y_adopcion.md) | Guion de presentación, reglas de adopción y forma de incorporar necesidades futuras sin romper el modelo. |
 | [15_acceso_seguro.md](./15_acceso_seguro.md) | Instalación, administración y verificación del acceso por sesión, rol y grupo. |
 | [16_propuesta_diseno_institucional.md](./16_propuesta_diseno_institucional.md) | Dirección visual recomendada y plan de rediseño antes de modificar la interfaz. |
+| [17_entender_el_sistema_y_apps_script.md](./17_entender_el_sistema_y_apps_script.md) | Guía conceptual: componentes, permisos, capacidades y límites de Apps Script. |
 
 ---
 
@@ -30,9 +31,9 @@
 ```
 Abrir el panel:    https://asistpanel.vercel.app/
 Google Sheet:      https://docs.google.com/spreadsheets/d/1jAPfaac3miW8izCGrq1rosCntdjAMw3TMKLCxHYtSzI/edit
-Apps Script URL:   https://script.google.com/macros/s/AKfycbyFPxVLK2RpUPC91Y1JRfowXAf5aKThAk8ERFjgkNLf-jc1uEdzIoIU73mSJzLYJNC3Sw/exec
+Ruta interna API:  https://asistpanel.vercel.app/api/control
 ```
 
 > El panel en producción no debe usar claves de ejemplo. Antes de entregar accesos, instala la versión V11.1 y sigue [15_acceso_seguro.md](./15_acceso_seguro.md). No guardes ni compartas contraseñas en este repositorio.
 
-> Para retomar o modificar el proyecto, leer primero [13_contrato_operativo.md](./13_contrato_operativo.md), [15_acceso_seguro.md](./15_acceso_seguro.md), después [08_handoff_y_escalabilidad.md](./08_handoff_y_escalabilidad.md), [14_piloto_y_adopcion.md](./14_piloto_y_adopcion.md) y [07_estado_actual.md](./07_estado_actual.md).
+> Para comprender el sistema antes de modificarlo, empezar por [17_entender_el_sistema_y_apps_script.md](./17_entender_el_sistema_y_apps_script.md). Para retomar o cambiarlo, leer después [13_contrato_operativo.md](./13_contrato_operativo.md), [15_acceso_seguro.md](./15_acceso_seguro.md), [08_handoff_y_escalabilidad.md](./08_handoff_y_escalabilidad.md), [14_piloto_y_adopcion.md](./14_piloto_y_adopcion.md) y [07_estado_actual.md](./07_estado_actual.md).
