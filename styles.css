@@ -726,16 +726,39 @@ input, select, button, textarea {
   text-align: center;
 }
 
-.attendance-month-container { max-height: calc(100vh - 300px); }
+.attendance-month-container {
+  max-height: calc(100vh - 300px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
+}
 .attendance-month-table { min-width: max-content; }
 .attendance-month-table th,
 .attendance-month-table td { text-align: center; }
 .attendance-month-table th:nth-child(2),
 .attendance-month-table td:nth-child(2) { text-align: left; }
 .attendance-month-table th:first-child,
-.attendance-month-table td:first-child { position: sticky; left: 0; z-index: 3; background: var(--surface2); }
+.attendance-month-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  padding-left: 8px;
+  padding-right: 8px;
+  box-sizing: border-box;
+  background: var(--surface2);
+}
 .attendance-month-table th:nth-child(2),
-.attendance-month-table td:nth-child(2) { position: sticky; left: 36px; z-index: 2; background: var(--surface); }
+.attendance-month-table td:nth-child(2) {
+  position: sticky;
+  left: 44px;
+  z-index: 2;
+  background: var(--surface);
+  box-shadow: 7px 0 9px -10px rgba(16, 49, 64, 0.8);
+}
 .attendance-month-table thead th:nth-child(2) { background: var(--surface2); z-index: 4; }
 .attendance-month-day-head { min-width: 42px; padding: 8px 5px !important; }
 .attendance-month-day-head span,
@@ -1714,6 +1737,18 @@ input, select, button, textarea {
   .group-home-badge { width: 58px; height: 58px; border-radius: 15px; font-size: 1.15rem; }
   .group-summary-stat { padding: 14px; }
   .group-summary-stat span { font-size: 1.35rem; }
+  .attendance-month-name {
+    width: 176px;
+    min-width: 176px;
+    max-width: 176px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .attendance-month-table th:nth-child(2),
+  .attendance-month-table td:nth-child(2) { left: 44px; }
+  .attendance-month-day-head { min-width: 40px; }
+  .attendance-month-cell-wrap { padding: 4px 3px !important; }
+  .attendance-month-cell { width: 29px; height: 29px; }
 }
 
 /* =========================================================
