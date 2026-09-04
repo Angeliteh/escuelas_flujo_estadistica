@@ -2342,10 +2342,10 @@ const STUDENT_FORM_FIELD_IDS = [
 
 function studentProfileField(label, value, options = {}) {
   const text = String(value == null ? '' : value).trim();
-  if (!text) return '';
-  return `<div class="student-profile-field${options.wide ? ' student-profile-field-wide' : ''}${options.featured ? ' student-profile-field-featured' : ''}">
+  const span = Number(options.span) || 2;
+  return `<div class="student-profile-field student-profile-span-${span}${options.featured ? ' student-profile-field-featured' : ''}${text ? '' : ' student-profile-field-empty'}">
     <span>${escHtml(label)}</span>
-    <strong>${escHtml(text)}</strong>
+    <strong>${text ? escHtml(text) : 'Sin registrar'}</strong>
   </div>`;
 }
 
@@ -2366,48 +2366,46 @@ function renderStudentReadOnlyView(student) {
   const container = document.getElementById('student-readonly-view');
   if (!container) return;
   const groupId = String(student.grupoId || student.grupo || '').trim();
-  const gradeLabel = String(student.grado || getGrade(groupId) || '').trim();
-  const groupLabel = [gradeLabel, groupId ? `Grupo ${groupId.slice(-1)}` : ''].filter(Boolean).join(' · ');
-  const identity = [
-    studentProfileField('Folio', student.folio),
-    studentProfileField('Fecha de nacimiento', formatStudentDateForView(student.fechaNacimiento)),
-    studentProfileField('Género', student.genero),
-    studentProfileField('CURP del alumno', student.curpAlumno, { wide: true })
-  ].filter(Boolean);
-  const school = [
-    studentProfileField('Grupo actual', groupLabel, { featured: true }),
-    studentProfileField('Situación escolar', String(student.estatus || 'ACTIVO').toUpperCase()),
-    studentProfileField('Beca', student.beca),
-    studentProfileField('Barrera de aprendizaje', student.barreraAprendizaje),
-    studentProfileField('Nivel de estudio del tutor', student.nivelEstudio)
-  ].filter(Boolean);
+  const grade = String(student.grado || getGrade(groupId) || '').trim();
+  const group = String(student.grupo || groupId.slice(-1) || '').trim();
+  const registration = [
+    studentProfileField('Nombre completo', student.nombre, { span: 4, featured: true }),
+    studentProfileField('Grado', grade, { span: 1 }),
+    studentProfileField('Grupo', group, { span: 1 }),
+    studentProfileField('Folio', student.folio, { span: 2 }),
+    studentProfileField('Estado', String(student.estatus || 'ACTIVO').toUpperCase(), { span: 2 }),
+    studentProfileField('Ciclo escolar', student.cicloEscolar, { span: 2 }),
+    studentProfileField('Fecha de nacimiento', formatStudentDateForView(student.fechaNacimiento), { span: 2 }),
+    studentProfileField('Género', student.genero, { span: 2 }),
+    studentProfileField('CURP del alumno', student.curpAlumno, { span: 4 }),
+    studentProfileField('Beca', student.beca, { span: 4 })
+  ];
+  const studentData = [
+    studentProfileField('Barrera de aprendizaje', student.barreraAprendizaje, { span: 6 }),
+    studentProfileField('Peso', studentProfileValueWithUnit(student.peso, 'kg', /kg|kilo/i), { span: 2 }),
+    studentProfileField('Estatura', studentProfileValueWithUnit(student.estatura, 'cm', /cm|metro|\dm\b/i), { span: 2 }),
+    studentProfileField('Talla', student.talla, { span: 2 })
+  ];
   const contact = [
-    studentProfileField('Nombre del tutor', student.tutor, { wide: true, featured: true }),
-    studentProfileField('Teléfono', student.telefono),
-    studentProfileField('Correo electrónico', student.correo, { wide: true }),
-    studentProfileField('Domicilio', student.domicilio, { wide: true }),
-    studentProfileField('CURP del tutor', student.curpTutor),
-    studentProfileField('Ocupación', student.ocupacion)
-  ].filter(Boolean);
-  const physical = [
-    studentProfileField('Peso', studentProfileValueWithUnit(student.peso, 'kg', /kg|kilo/i)),
-    studentProfileField('Estatura', studentProfileValueWithUnit(student.estatura, 'cm', /cm|metro|\dm\b/i)),
-    studentProfileField('Talla', student.talla)
-  ].filter(Boolean);
+    studentProfileField('Nombre del tutor', student.tutor, { span: 4, featured: true }),
+    studentProfileField('Teléfono', student.telefono, { span: 3 }),
+    studentProfileField('Correo electrónico', student.correo, { span: 5 }),
+    studentProfileField('Domicilio', student.domicilio, { span: 4 }),
+    studentProfileField('CURP del tutor', student.curpTutor, { span: 4 }),
+    studentProfileField('Nivel de estudio', student.nivelEstudio, { span: 2 }),
+    studentProfileField('Ocupación', student.ocupacion, { span: 2 })
+  ];
 
-  const panel = (title, icon, fields, className) => !fields.length ? '' : `<section class="student-profile-panel ${className}">
+  const panel = (title, icon, fields, className) => `<section class="student-profile-panel ${className}">
     <h3><i class="fa-solid ${icon}"></i> ${escHtml(title)}</h3>
     <div class="student-profile-fields">${fields.join('')}</div>
   </section>`;
 
-  const html = [
-    panel('Identificación', 'fa-id-card', identity, 'student-profile-identity'),
-    panel('Situación escolar', 'fa-school', school, 'student-profile-school'),
-    panel('Tutor y contacto', 'fa-people-roof', contact, 'student-profile-contact'),
-    panel('Datos físicos', 'fa-ruler', physical, 'student-profile-physical')
-  ].filter(Boolean).join('');
-  container.innerHTML = html ? `<div class="student-profile-layout">${html}</div>` :
-    '<p class="student-readonly-empty">No hay datos complementarios registrados para este alumno.</p>';
+  container.innerHTML = `<div class="student-profile-layout">
+    ${panel('Inscripción e identificación', 'fa-id-card', registration, 'student-profile-registration')}
+    ${panel('Datos del alumno', 'fa-user-graduate', studentData, 'student-profile-student-data')}
+    ${panel('Tutor y contacto', 'fa-people-roof', contact, 'student-profile-contact')}
+  </div>`;
 }
 
 function setStudentDrawerMode(mode) {
