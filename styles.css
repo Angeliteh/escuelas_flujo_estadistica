@@ -212,6 +212,32 @@ input, select, button, textarea {
 }
 
 .hidden { display: none !important; }
+
+.app-booting { overflow: hidden; }
+.app-bootstrap {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #eef2f0;
+}
+.app-booting .app-bootstrap { display: flex; }
+.bootstrap-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: #173b5c;
+  text-align: center;
+}
+.bootstrap-logo { width: 66px; height: 66px; object-fit: contain; margin-bottom: 5px; }
+.bootstrap-card > i { color: #1f7a83; font-size: 1.25rem; }
+.bootstrap-card > strong { font-size: 0.95rem; }
+.bootstrap-card > span { color: #65777c; font-size: 0.8rem; }
+.login-progress { margin: -5px 0 0; color: #42646a; font-size: 0.79rem; text-align: center; }
 .uppercase { text-transform: uppercase; }
 .req { color: var(--accent2); }
 

@@ -73,10 +73,10 @@ El sistema es una aplicación web con interfaz estática (HTML + CSS + JS), una 
 
 ```
 1. La persona escribe usuario y contraseña en el panel.
-2. Apps Script valida la cuenta y devuelve una sesión temporal de ocho horas.
-3. `fetchAllStudents()` manda esa sesión a `/api/control`.
-4. Apps Script entrega todos los grupos a Dirección o solamente el asignado al docente.
-5. El panel conserva una copia temporal solo mientras la pestaña está abierta y renderiza la vista autorizada.
+2. Apps Script valida la cuenta, crea una sesión temporal de ocho horas y entrega en esa misma respuesta el padrón autorizado.
+3. El panel conserva una copia temporal sólo durante la pestaña abierta y renderiza la vista autorizada.
+4. Al recargar con sesión vigente, muestra primero esa copia autorizada y actualiza el padrón en segundo plano.
+5. Si no existe copia temporal, muestra “Recuperando tu información” hasta completar la consulta autenticada.
 ```
 
 ---

@@ -172,20 +172,7 @@ async function fetchAllStudents() {
   try {
     const result = await apiRequest('getStudents');
     if (result.success) {
-      const isV11 = String(result.version || '').startsWith('V11');
-      studentSoftDeleteEnabled = (result.version === 'V10' && result.identityReady === true) || isV11;
-      studentLifecycleEnabled = isV11 && result.enrollmentHistoryReady === true;
-      if (studentLifecycleEnabled) studentSoftDeleteEnabled = true;
-      document.getElementById('director-inactive-btn')?.classList.toggle('hidden', !studentLifecycleEnabled);
-      allStudentsCache = result.data.map(s => {
-        let n = String(s.grado || '').charAt(0);
-        let l = String(s.grupo || '').trim();
-        s.grupoId = (l.length === 1 && n) ? (n + l) : l;
-        return s;
-      });
-      saveStudentsCache();
-      isDataLoaded = true;
-      return true;
+      return applyStudentsResult(result);
     } else {
       console.error('Error fetching students:', result.error);
       return restoreStudentsCache();
@@ -194,6 +181,23 @@ async function fetchAllStudents() {
     console.error('Network error fetching students:', error);
     return restoreStudentsCache();
   }
+}
+
+function applyStudentsResult(result) {
+  if (!result?.success || !Array.isArray(result.data)) return false;
+  const isV11 = String(result.version || '').startsWith('V11');
+  studentSoftDeleteEnabled = (result.version === 'V10' && result.identityReady === true) || isV11;
+  studentLifecycleEnabled = isV11 && result.enrollmentHistoryReady === true;
+  if (studentLifecycleEnabled) studentSoftDeleteEnabled = true;
+  document.getElementById('director-inactive-btn')?.classList.toggle('hidden', !studentLifecycleEnabled);
+  allStudentsCache = result.data.map(s => {
+    const n = String(s.grado || '').charAt(0);
+    const l = String(s.grupo || '').trim();
+    return { ...s, grupoId: (l.length === 1 && n) ? (n + l) : l };
+  });
+  saveStudentsCache();
+  isDataLoaded = true;
+  return true;
 }
 
 function getAllStudents() {
@@ -413,6 +417,30 @@ function showLoginError(message) {
   requestAnimationFrame(() => { errorEl.style.animation = ''; });
 }
 
+function setBootstrapState(visible, message = '') {
+  const messageEl = document.getElementById('bootstrap-message');
+  if (message && messageEl) messageEl.textContent = message;
+  document.body.classList.toggle('app-booting', Boolean(visible));
+}
+
+function setLoginLoading(loading, message = '') {
+  const button = document.getElementById('login-btn');
+  const progress = document.getElementById('login-progress');
+  button.disabled = Boolean(loading);
+  button.setAttribute('aria-busy', String(Boolean(loading)));
+  button.innerHTML = loading
+    ? '<i class="fa-solid fa-circle-notch fa-spin"></i> Iniciando…'
+    : '<i class="fa-solid fa-arrow-right-to-bracket"></i> Iniciar Sesión';
+  progress.textContent = message;
+  progress.classList.toggle('hidden', !loading || !message);
+}
+
+function showCurrentUserView() {
+  if (!currentUser) return;
+  if (currentUser.role === 'director') showDirectorView();
+  else showTeacherView();
+}
+
 async function postApi(payload) {
   const response = await fetch(API_URL, {
     method: 'POST',
@@ -439,6 +467,7 @@ function expireSession(message = '') {
   currentUser = null;
   clearSensitiveLocalData();
   destroyCharts();
+  setBootstrapState(false);
   showView('view-login');
   if (message) showLoginError(message);
 }
@@ -446,12 +475,11 @@ function expireSession(message = '') {
 async function login() {
   const username = document.getElementById('login-user').value.trim();
   const password = document.getElementById('login-pass').value;
-  const button = document.getElementById('login-btn');
   if (!username || !password) {
     showLoginError('Escribe tu usuario y contraseña.');
     return;
   }
-  button.disabled = true;
+  setLoginLoading(true, 'Validando acceso…');
   try {
     const result = await postApi({ action: 'login', username, password });
     if (!result.success || !result.sessionToken || !result.user) {
@@ -463,19 +491,19 @@ async function login() {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
     scheduleSessionExpiry();
     restoreAttendanceCache();
-    const loaded = await fetchAllStudents();
+    setLoginLoading(true, 'Preparando tu información…');
+    const loaded = applyStudentsResult(result.initialStudents) || await fetchAllStudents();
     if (!currentUser) return;
     if (!loaded) {
       expireSession('No se pudieron cargar los datos. Revisa tu conexión e inténtalo de nuevo.');
       return;
     }
-    if (currentUser.role === 'director') showDirectorView();
-    else showTeacherView();
+    showCurrentUserView();
   } catch (error) {
     showLoginError('No fue posible conectar. Inténtalo de nuevo.');
     document.getElementById('login-pass').value = '';
   } finally {
-    button.disabled = false;
+    setLoginLoading(false);
   }
 }
 
@@ -488,6 +516,7 @@ function logout() {
   currentUser = null;
   clearSensitiveLocalData();
   destroyCharts();
+  setBootstrapState(false);
   showView('view-login');
   document.getElementById('login-user').value = '';
   document.getElementById('login-pass').value = '';
@@ -3178,17 +3207,29 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   const session = getSession();
   if (!session) {
     clearSensitiveLocalData();
+    setBootstrapState(false);
     return;
   }
   currentUser = session;
   scheduleSessionExpiry();
   restoreAttendanceCache();
+  if (restoreStudentsCache()) {
+    // En una recarga de la misma pestaña, mostrar de inmediato la última copia
+    // autorizada y actualizarla silenciosamente después.
+    showCurrentUserView();
+    setBootstrapState(false);
+    fetchAllStudents().then(loaded => {
+      if (currentUser && loaded) refreshStudentViews();
+    });
+    return;
+  }
+  setBootstrapState(true, 'Recuperando tu información…');
   const loaded = await fetchAllStudents();
   if (!currentUser || !loaded) {
     expireSession('Tu sesión no pudo restaurarse. Inicia sesión de nuevo.');
     return;
   }
-  if (currentUser.role === 'director') showDirectorView();
-  else showTeacherView();
+  showCurrentUserView();
+  setBootstrapState(false);
 })();
 

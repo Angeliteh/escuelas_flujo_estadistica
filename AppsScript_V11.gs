@@ -1,9 +1,9 @@
 // ==============================================================================
-// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V11.4 (INSCRIPCIONES + MOVIMIENTOS + ACCESO)
+// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V11.5 (INSCRIPCIONES + MOVIMIENTOS + ACCESO)
 // ==============================================================================
 
 const HEADER_ROW = 5;
-const API_VERSION = 'V11.4';
+const API_VERSION = 'V11.5';
 const TABS = ['1A','1B','2A','2B','3A','3B','4A','4B','5A','5B','6A','6B'];
 const STUDENT_VISIBLE_COLUMNS = 20;
 const STUDENT_META_START_COLUMN = 21;
@@ -375,6 +375,20 @@ function loginAccessV11_(params) {
   }
   clearLoginFailuresV11_(username);
   const created = createAuthSessionV11_(user);
+  // El primer padrón viaja en la misma respuesta autenticada. Antes se hacía
+  // una segunda llamada inmediata (login → getStudents), lo que duplicaba la
+  // espera visible al entrar sin aportar una barrera de seguridad adicional.
+  let initialStudents;
+  try {
+    initialStudents = getStudents({
+      group: user.role === 'director' ? '' : user.group,
+      includeInactive: false
+    });
+  } catch (error) {
+    // La sesión sigue siendo válida; el panel hará la consulta normal como
+    // respaldo y podrá mostrar un mensaje de conexión si también falla.
+    initialStudents = { success: false, error: 'No se pudo cargar el padrón inicial' };
+  }
   return {
     success: true,
     version: API_VERSION,
@@ -385,7 +399,8 @@ function loginAccessV11_(params) {
       name: created.session.name,
       role: created.session.role,
       group: created.session.group
-    }
+    },
+    initialStudents
   };
 }
 
