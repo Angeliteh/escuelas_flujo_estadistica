@@ -214,17 +214,14 @@ function normalizeDataToken(value) {
 
 function getGenderCategory(value) {
   const token = normalizeDataToken(value);
-  if (['h', 'hombre', 'masculino'].includes(token)) return 'male';
-  if (['m', 'f', 'mujer', 'femenino'].includes(token)) return 'female';
+  if (token === 'masculino') return 'male';
+  if (token === 'femenino') return 'female';
   return 'other';
 }
 
 function hasScholarship(value) {
   const token = normalizeDataToken(value);
-  return Boolean(token) && ![
-    'no', 'ninguna', 'ninguno', 'sin beca', 'no aplica',
-    'pendiente', 'pendiente de confirmar', 'sin confirmar'
-  ].includes(token);
+  return Boolean(token) && !['no', 'ninguna', 'ninguno', 'sin beca', 'no aplica'].includes(token);
 }
 
 function getGroupStats(group) {
@@ -2311,99 +2308,8 @@ let studentDrawerCanEdit = false;
 const STUDENT_FORM_FIELD_IDS = [
   'f-nombre', 'f-folio', 'f-barrera', 'f-fecha', 'f-curp', 'f-genero', 'f-beca', 'f-nivel',
   'f-peso', 'f-estatura', 'f-talla', 'f-tutor', 'f-telefono', 'f-curp-tutor',
-  'f-correo', 'f-domicilio', 'f-ocupacion', 'f-beca-detalle', 'f-beca-otro', 'f-nivel-detalle'
+  'f-correo', 'f-domicilio', 'f-ocupacion'
 ];
-
-function normalizeGenderForForm(value) {
-  const token = normalizeDataToken(value);
-  if (['h', 'hombre', 'masculino'].includes(token)) return 'Masculino';
-  if (['m', 'f', 'mujer', 'femenino'].includes(token)) return 'Femenino';
-  return token ? 'No especificado' : '';
-}
-
-function normalizeSizeForForm(value) {
-  const numeric = Number(String(value || '').trim());
-  return Number.isFinite(numeric) ? String(numeric) : String(value || '').trim();
-}
-
-function parseScholarshipForForm(value) {
-  const raw = String(value || '').trim();
-  const token = normalizeDataToken(raw);
-  if (!token) return { status: '', detail: '', other: '' };
-  if (['no', 'ninguna', 'ninguno', 'sin beca', 'no aplica'].includes(token)) return { status: 'No', detail: '', other: '' };
-  if (['pendiente', 'pendiente de confirmar', 'sin confirmar'].includes(token)) return { status: 'Pendiente de confirmar', detail: '', other: '' };
-  if (token.includes('rita') && (token.includes('caja') || token.includes('hipodromo'))) {
-    return { status: 'Sí', detail: 'Otro', other: 'Rita Cetina y Caja Hipódromo' };
-  }
-  if (token.includes('rita')) return { status: 'Sí', detail: 'Rita Cetina', other: '' };
-  if (token.includes('benito') || token.includes('juarez')) return { status: 'Sí', detail: 'Benito Juárez', other: '' };
-  if (token.includes('caja') || token.includes('hipodromo')) return { status: 'Sí', detail: 'Caja Hipódromo', other: '' };
-  if (token === 'si' || token === 'sí') return { status: 'Sí', detail: '', other: '' };
-  const separator = raw.match(/^sí\s*[—-]\s*(.+)$/i);
-  return separator
-    ? { status: 'Sí', detail: 'Otro', other: separator[1].trim() }
-    : { status: 'Pendiente de confirmar', detail: '', other: '' };
-}
-
-function toggleScholarshipOther() {
-  const detail = document.getElementById('f-beca-detalle')?.value;
-  document.getElementById('f-beca-otro')?.classList.toggle('hidden', detail !== 'Otro');
-}
-
-function toggleScholarshipDetail() {
-  const status = document.getElementById('f-beca')?.value;
-  document.getElementById('f-beca-detail-wrap')?.classList.toggle('hidden', status !== 'Sí');
-  if (status !== 'Sí') {
-    document.getElementById('f-beca-detalle').value = '';
-    document.getElementById('f-beca-otro').value = '';
-  }
-  toggleScholarshipOther();
-}
-
-function setScholarshipFormValue(value) {
-  const scholarship = parseScholarshipForForm(value);
-  document.getElementById('f-beca').value = scholarship.status;
-  document.getElementById('f-beca-detalle').value = scholarship.detail;
-  document.getElementById('f-beca-otro').value = scholarship.other;
-  toggleScholarshipDetail();
-}
-
-function scholarshipFormValue() {
-  const status = document.getElementById('f-beca').value;
-  if (status !== 'Sí') return status;
-  const detail = document.getElementById('f-beca-detalle').value;
-  if (!detail) return 'Sí';
-  if (detail === 'Otro') {
-    const other = document.getElementById('f-beca-otro').value.trim();
-    return other ? `Sí — ${other}` : 'Sí — Otro';
-  }
-  return `Sí — ${detail}`;
-}
-
-function toggleEducationDetail() {
-  const isOther = document.getElementById('f-nivel')?.value === 'Otro';
-  document.getElementById('f-nivel-detail-wrap')?.classList.toggle('hidden', !isOther);
-  if (!isOther) document.getElementById('f-nivel-detalle').value = '';
-}
-
-function setEducationFormValue(value) {
-  const field = document.getElementById('f-nivel');
-  const raw = String(value || '').trim();
-  const options = Array.from(field.options).map(option => option.value);
-  if (!raw || options.includes(raw)) {
-    field.value = raw;
-    document.getElementById('f-nivel-detalle').value = '';
-  } else {
-    field.value = 'Otro';
-    document.getElementById('f-nivel-detalle').value = raw;
-  }
-  toggleEducationDetail();
-}
-
-function educationFormValue() {
-  const value = document.getElementById('f-nivel').value;
-  return value === 'Otro' ? document.getElementById('f-nivel-detalle').value.trim() : value;
-}
 
 function setStudentDrawerMode(mode) {
   const isExisting = editingId !== null;
@@ -2477,12 +2383,12 @@ function openStudentDrawer(id = null) {
     document.getElementById('f-barrera').value   = s.barreraAprendizaje || '';
     document.getElementById('f-fecha').value     = s.fechaNacimiento || '';
     document.getElementById('f-curp').value      = s.curpAlumno   || '';
-    document.getElementById('f-genero').value    = normalizeGenderForForm(s.genero);
-    setScholarshipFormValue(s.beca);
-    setEducationFormValue(s.nivelEstudio);
+    document.getElementById('f-genero').value    = s.genero       || '';
+    document.getElementById('f-beca').value      = s.beca         || '';
+    document.getElementById('f-nivel').value     = s.nivelEstudio || '';
     document.getElementById('f-peso').value      = s.peso         || '';
     document.getElementById('f-estatura').value  = s.estatura     || '';
-    document.getElementById('f-talla').value     = normalizeSizeForForm(s.talla);
+    document.getElementById('f-talla').value     = s.talla        || '';
     document.getElementById('f-tutor').value     = s.tutor        || '';
     document.getElementById('f-telefono').value  = s.telefono     || '';
     document.getElementById('f-curp-tutor').value= s.curpTutor    || '';
@@ -2500,8 +2406,6 @@ function openStudentDrawer(id = null) {
     const statusHelp = document.getElementById('detail-status-help');
     statusHelp.textContent = 'Al guardar, el alumno quedará activo en el grupo seleccionado.';
     statusHelp.classList.remove('hidden');
-    toggleScholarshipDetail();
-    toggleEducationDetail();
   }
 
   setStudentDrawerMode(id ? 'view' : 'edit');
@@ -2571,8 +2475,8 @@ async function saveStudent(e) {
     fechaNacimiento: document.getElementById('f-fecha').value,
     curpAlumno:      document.getElementById('f-curp').value.trim().toUpperCase(),
     genero:          document.getElementById('f-genero').value,
-    beca:            scholarshipFormValue(),
-    nivelEstudio:    educationFormValue(),
+    beca:            document.getElementById('f-beca').value.trim(),
+    nivelEstudio:    document.getElementById('f-nivel').value.trim().toUpperCase(),
     peso:            document.getElementById('f-peso').value,
     estatura:        document.getElementById('f-estatura').value,
     talla:           document.getElementById('f-talla').value,

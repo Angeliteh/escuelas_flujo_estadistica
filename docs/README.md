@@ -23,7 +23,6 @@
 | [15_acceso_seguro.md](./15_acceso_seguro.md) | Instalación, administración y verificación del acceso por sesión, rol y grupo. |
 | [16_propuesta_diseno_institucional.md](./16_propuesta_diseno_institucional.md) | Dirección visual recomendada y plan de rediseño antes de modificar la interfaz. |
 | [17_entender_el_sistema_y_apps_script.md](./17_entender_el_sistema_y_apps_script.md) | Guía conceptual: componentes, permisos, capacidades y límites de Apps Script. |
-| [18_auditoria_y_canonizacion_de_datos.md](./18_auditoria_y_canonizacion_de_datos.md) | Auditoría del padrón, reglas de captura V12 y migración segura sin cambiar columnas. |
 
 ---
 

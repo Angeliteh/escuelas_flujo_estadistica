@@ -14,7 +14,6 @@ El orden de autoridad es:
 6. [07_estado_actual.md](./07_estado_actual.md), para checklist de pruebas;
 7. [14_piloto_y_adopcion.md](./14_piloto_y_adopcion.md), para adopción y captura de necesidades nuevas.
 8. [15_acceso_seguro.md](./15_acceso_seguro.md), para instalación y prueba de accesos.
-9. [18_auditoria_y_canonizacion_de_datos.md](./18_auditoria_y_canonizacion_de_datos.md), para las reglas de calidad y captura del padrón.
 
 Los bocetos, mensajes y pantallas pueden evolucionar; estas reglas sólo cambian mediante una decisión explícita registrada en documentación y código.
 
@@ -32,7 +31,6 @@ Los bocetos, mensajes y pantallas pueden evolucionar; estas reglas sólo cambian
 10. Ninguna migración se publica sin respaldo, preanálisis, totales esperados y prueba posterior.
 11. Las instalaciones deben ser idempotentes: repetirlas no crea duplicados.
 12. Sheets sigue siendo la fuente operativa actual, pero Apps Script es el backend que valida y relaciona los datos.
-13. Los valores canónicos de ficha se capturan desde el panel; un dato no confirmado permanece vacío o pendiente, nunca se infiere.
 
 ## 3. Contrato de una inscripción
 

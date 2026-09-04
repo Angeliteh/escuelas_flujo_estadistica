@@ -1,9 +1,9 @@
 // ==============================================================================
-// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V11.1 (INSCRIPCIONES + MOVIMIENTOS + ACCESO)
+// SCRIPT PARA GOOGLE SHEETS - CONTROL ESCOLAR V11.4 (INSCRIPCIONES + MOVIMIENTOS + ACCESO)
 // ==============================================================================
 
 const HEADER_ROW = 5;
-const API_VERSION = 'V11.2';
+const API_VERSION = 'V11.4';
 const TABS = ['1A','1B','2A','2B','3A','3B','4A','4B','5A','5B','6A','6B'];
 const STUDENT_VISIBLE_COLUMNS = 20;
 const STUDENT_META_START_COLUMN = 21;
@@ -16,26 +16,6 @@ const STUDENT_IDENTITY_READY_PROPERTY = 'STUDENT_IDENTITY_READY_V1';
 const CURRENT_SCHOOL_CYCLE = '2026-2027';
 const STUDENT_ACTIVE_STATUS = 'ACTIVO';
 const STUDENT_ALLOWED_STATUSES = ['ACTIVO', 'BAJA', 'TRANSFERIDO', 'EGRESADO'];
-// Catálogos V12 de captura. Se mantienen en texto legible porque A:T continúa
-// siendo el formato administrativo que la escuela puede consultar en Sheets.
-// La normalización se hace en el servidor: el panel es la vía cotidiana de
-// captura, pero una llamada directa a la API no puede volver a introducir
-// variantes como "H", "mujer" o "Rita cetina".
-const STUDENT_GENDER_VALUES_V12 = ['Masculino', 'Femenino', 'No especificado'];
-const STUDENT_SCHOLARSHIP_STATUS_VALUES_V12 = ['Sí', 'No', 'Pendiente de confirmar'];
-const STUDENT_SCHOLARSHIP_PROGRAM_VALUES_V12 = [
-  'Rita Cetina', 'Benito Juárez', 'Caja Hipódromo', 'Otro'
-];
-const STUDENT_SCHOLARSHIP_VALUES_V12 = [
-  'Sí',
-  'Sí — Rita Cetina',
-  'Sí — Benito Juárez',
-  'Sí — Caja Hipódromo',
-  'Sí — Otro',
-  'No',
-  'Pendiente de confirmar'
-];
-const STUDENT_SIZE_VALUES_V12 = ['2', '4', '6', '8', '10', '12', '14', '14-16', '16', '18', '20', '22', 'CH', 'M', 'G', 'XG'];
 const SCHOOL_ID = '10DPR0519X';
 const ENROLLMENTS_SHEET_NAME = '_INSCRIPCIONES';
 const ENROLLMENT_HEADERS = [
@@ -531,167 +511,47 @@ function normalizeStudentStatus_(status) {
   return STUDENT_ALLOWED_STATUSES.includes(normalized) ? normalized : STUDENT_ACTIVE_STATUS;
 }
 
-function normalizeComparableTextV12_(value) {
-  return String(value == null ? '' : value)
-    .trim()
-    .toUpperCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, ' ');
-}
-
-function normalizeGenderV12_(value) {
-  const token = normalizeComparableTextV12_(value);
-  if (['H', 'HOMBRE', 'MASCULINO'].includes(token)) return 'Masculino';
-  // En los padrones mexicanos M se usa habitualmente para Mujer; se conserva
-  // esa interpretación para la información existente de esta escuela.
-  if (['M', 'F', 'MUJER', 'FEMENINO'].includes(token)) return 'Femenino';
-  return token ? 'No especificado' : '';
-}
-
-function normalizeScholarshipV12_(value) {
-  const original = String(value == null ? '' : value).trim();
-  const token = normalizeComparableTextV12_(original);
-  if (!token) return '';
-  if (['NO', 'NINGUNA', 'NINGUNO', 'SIN BECA', 'NO APLICA'].includes(token)) return 'No';
-  if (['PENDIENTE', 'PENDIENTE DE CONFIRMAR', 'SIN CONFIRMAR'].includes(token)) return 'Pendiente de confirmar';
-  if (token === 'SI' || token === 'SÍ') return 'Sí';
-  if (token.indexOf('RITA') !== -1 && token.indexOf('CAJA') !== -1) return 'Sí — Rita Cetina y Caja Hipódromo';
-  if (token.indexOf('RITA') !== -1) return 'Sí — Rita Cetina';
-  if (token.indexOf('BENITO') !== -1 || token.indexOf('JUAREZ') !== -1) return 'Sí — Benito Juárez';
-  if (token.indexOf('CAJA') !== -1 || token.indexOf('HIPODROMO') !== -1) return 'Sí — Caja Hipódromo';
-  const detailedMatch = original.match(/^s[ií]\s*(?:—|-)\s*(.+)$/i);
-  if (detailedMatch && detailedMatch[1].trim()) return 'Sí — ' + detailedMatch[1].trim();
-  if (token === 'SI — OTRO' || token === 'SI - OTRO') return 'Sí — Otro';
-  return 'Pendiente de confirmar';
-}
-
-function normalizeSizeV12_(value) {
-  const raw = String(value == null ? '' : value).trim();
-  if (!raw) return '';
-  const numeric = Number(raw);
-  const normalized = Number.isFinite(numeric) ? String(numeric) : raw.replace(/\s+/g, '');
-  return STUDENT_SIZE_VALUES_V12.includes(normalized) ? normalized : '';
-}
-
-function extractNumericV12_(value) {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  const match = String(value == null ? '' : value).replace(',', '.').match(/\d+(?:\.\d+)?/);
-  return match ? Number(match[0]) : null;
-}
-
-function normalizeWeightV12_(value) {
-  if (value === '' || value == null) return '';
-  const numeric = extractNumericV12_(value);
-  return numeric != null && numeric >= 10 && numeric <= 200 ? numeric : '';
-}
-
-function normalizeHeightV12_(value) {
-  if (value === '' || value == null) return '';
-  const numeric = extractNumericV12_(value);
-  if (numeric == null) return '';
-  // 1.37 y 1.37 m representan metros; todo lo demás se conserva en cm.
-  const centimeters = numeric > 0 && numeric <= 3 ? numeric * 100 : numeric;
-  return centimeters >= 50 && centimeters <= 250 ? Math.round(centimeters * 10) / 10 : '';
-}
-
-function normalizeEducationLevelV12_(value) {
-  const token = normalizeComparableTextV12_(value);
-  if (!token) return '';
-  if (token.indexOf('SIN ESTUDIO') !== -1) return 'Sin estudios';
-  if (token.indexOf('PRIMARIA') !== -1) return 'Primaria';
-  if (token.indexOf('SECUNDARIA') !== -1) return 'Secundaria';
-  if (token.indexOf('TRUNCA') !== -1 && (token.indexOf('PREPA') !== -1 || token.indexOf('BACHILLER') !== -1)) return 'Preparatoria trunca';
-  if (token.indexOf('PREPA') !== -1 || token.indexOf('BACHILLER') !== -1) return 'Preparatoria';
-  if (token.indexOf('TECNIC') !== -1) return 'Carrera técnica';
-  if (token.indexOf('INGENIER') !== -1 || token.indexOf('LICENCIAT') !== -1) return 'Licenciatura';
-  if (token.indexOf('MAESTR') !== -1 || token.indexOf('ESPECIALIDAD') !== -1 || token.indexOf('POSGRADO') !== -1) return 'Posgrado';
-  if (token.indexOf('DOCTOR') !== -1) return 'Doctorado';
-  return String(value).trim();
-}
-
-function canonicalizeStudentInputV12_(student) {
-  const normalized = Object.assign({}, student || {});
-  normalized.genero = normalizeGenderV12_(normalized.genero);
-  normalized.beca = normalizeScholarshipV12_(normalized.beca);
-  normalized.peso = normalizeWeightV12_(normalized.peso);
-  normalized.estatura = normalizeHeightV12_(normalized.estatura);
-  normalized.talla = normalizeSizeV12_(normalized.talla);
-  normalized.nivelEstudio = normalizeEducationLevelV12_(normalized.nivelEstudio);
-  return normalized;
-}
-
 /**
- * Prepara el padrón para la captura controlada V12.
- * Ejecutar una sola vez DESPUÉS de crear un respaldo manual. Es idempotente:
- * repetirla únicamente vuelve a aplicar las mismas reglas y repara validaciones.
+ * Quita únicamente los selectores de captura no aprobados (beca y talla) y
+ * conserva los valores tal como están. Género queda como el único catálogo
+ * visible; ESTATUS continúa siendo técnico. No convierte, borra ni infiere
+ * información de ningún alumno.
  */
-function setupDataStandardizationV12() {
+function restoreManualFieldsV11() {
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    const report = { success: true, groups: {}, studentsReviewed: 0, studentsChanged: 0 };
+    const genderValidation = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['Masculino', 'Femenino', 'No especificado'], true)
+      .setAllowInvalid(false)
+      .build();
+    const statusValidation = SpreadsheetApp.newDataValidation()
+      .requireValueInList(STUDENT_ALLOWED_STATUSES, true)
+      .setAllowInvalid(false)
+      .build();
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const report = { success: true, groups: [] };
     TABS.forEach(group => {
       const sheet = ss.getSheetByName(group);
       if (!sheet) return;
       ensureStudentMetadataColumns_(sheet);
-      const lastRow = sheet.getLastRow();
-      const groupReport = { reviewed: 0, changed: 0 };
-      if (lastRow > HEADER_ROW) {
-        const range = sheet.getRange(HEADER_ROW + 1, 1, lastRow - HEADER_ROW, STUDENT_VISIBLE_COLUMNS);
-        const values = range.getValues();
-        const normalized = values.map(row => {
-          if (!row[4] && !row[20]) return row;
-          groupReport.reviewed += 1;
-          report.studentsReviewed += 1;
-          const student = canonicalizeStudentInputV12_({
-            genero: row[8], beca: row[9], peso: row[10], estatura: row[11],
-            talla: row[12], nivelEstudio: row[18]
-          });
-          const next = row.slice();
-          next[8] = student.genero;
-          next[9] = student.beca;
-          next[10] = student.peso;
-          next[11] = student.estatura;
-          next[12] = student.talla;
-          next[18] = student.nivelEstudio;
-          if (next.some((value, index) => value !== row[index])) {
-            groupReport.changed += 1;
-            report.studentsChanged += 1;
-          }
-          return next;
-        });
-        range.setValues(normalized);
-      }
-      applyStudentFieldValidationsV12_(sheet);
-      report.groups[group] = groupReport;
+      const height = Math.max(sheet.getMaxRows() - HEADER_ROW, 1);
+      // Beca y talla vuelven a ser texto libre.
+      sheet.getRange(HEADER_ROW + 1, 10, height, 1).clearDataValidations();
+      sheet.getRange(HEADER_ROW + 1, 13, height, 1).clearDataValidations();
+      // Corrige también la contaminación previa de validaciones técnicas en 2A.
+      sheet.getRange(HEADER_ROW + 1, STUDENT_META_START_COLUMN, height, STUDENT_META_HEADERS.length)
+        .clearDataValidations();
+      sheet.getRange(HEADER_ROW + 1, 9, height, 1).setDataValidation(genderValidation);
+      sheet.getRange(HEADER_ROW + 1, STUDENT_META_START_COLUMN + 1, height, 1)
+        .setDataValidation(statusValidation);
+      sheet.hideColumns(STUDENT_META_START_COLUMN, STUDENT_META_HEADERS.length);
+      report.groups.push(group);
     });
     return report;
   } finally {
     lock.releaseLock();
   }
-}
-
-function applyStudentFieldValidationsV12_(sheet) {
-  const height = Math.max(sheet.getMaxRows() - HEADER_ROW, 1);
-  const listValidation = (values, allowInvalid) => SpreadsheetApp.newDataValidation()
-    .requireValueInList(values, true)
-    .setAllowInvalid(Boolean(allowInvalid))
-    .build();
-  sheet.getRange(HEADER_ROW + 1, 9, height, 1).setDataValidation(listValidation(STUDENT_GENDER_VALUES_V12, false));
-  // El catálogo propone programas frecuentes. Se permite una observación para
-  // "Otro" porque el nombre exacto de un apoyo puede variar por convocatoria.
-  sheet.getRange(HEADER_ROW + 1, 10, height, 1).setDataValidation(listValidation(STUDENT_SCHOLARSHIP_VALUES_V12, true));
-  sheet.getRange(HEADER_ROW + 1, 13, height, 1).setDataValidation(listValidation(STUDENT_SIZE_VALUES_V12, false));
-
-  // Esta limpieza repara el rango U:AA contaminado de 2A. Las columnas
-  // técnicas no son campos de captura; sólo ESTATUS (V) conserva su catálogo.
-  sheet.getRange(HEADER_ROW + 1, STUDENT_META_START_COLUMN, height, STUDENT_META_HEADERS.length)
-    .clearDataValidations();
-  sheet.getRange(HEADER_ROW + 1, STUDENT_META_START_COLUMN + 1, height, 1)
-    .setDataValidation(listValidation(STUDENT_ALLOWED_STATUSES, false));
-  sheet.hideColumns(STUDENT_META_START_COLUMN, STUDENT_META_HEADERS.length);
 }
 
 function ensureStudentMetadataColumns_(sheet) {
@@ -768,7 +628,6 @@ function saveStudent(student) {
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    student = canonicalizeStudentInputV12_(student);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const hojaNombre = studentTargetGroup_(student);
     if (!TABS.includes(hojaNombre)) return { success: false, error: 'Grupo no válido: ' + hojaNombre };
