@@ -2340,71 +2340,74 @@ const STUDENT_FORM_FIELD_IDS = [
   'f-correo', 'f-domicilio', 'f-ocupacion'
 ];
 
-function studentReadOnlyField(label, value, options = {}) {
+function studentProfileField(label, value, options = {}) {
   const text = String(value == null ? '' : value).trim();
   if (!text) return '';
-  return `<article class="student-readonly-field${options.wide ? ' student-readonly-field-wide' : ''}">
+  return `<div class="student-profile-field${options.wide ? ' student-profile-field-wide' : ''}${options.featured ? ' student-profile-field-featured' : ''}">
     <span>${escHtml(label)}</span>
     <strong>${escHtml(text)}</strong>
-  </article>`;
+  </div>`;
 }
 
-function studentReadOnlyValueWithUnit(value, unit, unitPattern) {
+function studentProfileValueWithUnit(value, unit, unitPattern) {
   const text = String(value == null ? '' : value).trim();
   if (!text) return '';
   return unitPattern.test(text) ? text : `${text} ${unit}`;
 }
 
+function formatStudentDateForView(value) {
+  const raw = String(value == null ? '' : value).trim();
+  if (!raw) return '';
+  const formatted = fmtDate(raw);
+  return /undefined|invalid/i.test(formatted) ? raw : formatted;
+}
+
 function renderStudentReadOnlyView(student) {
   const container = document.getElementById('student-readonly-view');
   if (!container) return;
-  const sections = [
-    {
-      icon: 'fa-school', title: 'Información escolar',
-      fields: [
-        studentReadOnlyField('Folio', student.folio),
-        studentReadOnlyField('Barrera de aprendizaje', student.barreraAprendizaje, { wide: true }),
-        studentReadOnlyField('Beca', student.beca),
-        studentReadOnlyField('Nivel de estudio', student.nivelEstudio)
-      ]
-    },
-    {
-      icon: 'fa-id-card', title: 'Datos del alumno',
-      fields: [
-        studentReadOnlyField('Fecha de nacimiento', student.fechaNacimiento ? fmtDate(student.fechaNacimiento) : ''),
-        studentReadOnlyField('CURP del alumno', student.curpAlumno, { wide: true }),
-        studentReadOnlyField('Género', student.genero)
-      ]
-    },
-    {
-      icon: 'fa-ruler', title: 'Datos físicos',
-      fields: [
-        studentReadOnlyField('Peso', studentReadOnlyValueWithUnit(student.peso, 'kg', /kg|kilo/i)),
-        studentReadOnlyField('Estatura', studentReadOnlyValueWithUnit(student.estatura, 'cm', /cm|metro|\dm\b/i)),
-        studentReadOnlyField('Talla', student.talla)
-      ]
-    },
-    {
-      icon: 'fa-people-roof', title: 'Tutor y contacto',
-      fields: [
-        studentReadOnlyField('Nombre del tutor', student.tutor, { wide: true }),
-        studentReadOnlyField('Teléfono', student.telefono),
-        studentReadOnlyField('Correo electrónico', student.correo, { wide: true }),
-        studentReadOnlyField('CURP del tutor', student.curpTutor, { wide: true }),
-        studentReadOnlyField('Domicilio', student.domicilio, { wide: true }),
-        studentReadOnlyField('Ocupación', student.ocupacion)
-      ]
-    }
-  ];
-  const html = sections.map(section => {
-    const fields = section.fields.filter(Boolean);
-    if (!fields.length) return '';
-    return `<section class="student-readonly-section">
-      <h3><i class="fa-solid ${section.icon}"></i> ${escHtml(section.title)}</h3>
-      <div class="student-readonly-grid">${fields.join('')}</div>
-    </section>`;
-  }).filter(Boolean).join('');
-  container.innerHTML = html || '<p class="student-readonly-empty">No hay datos complementarios registrados para este alumno.</p>';
+  const groupId = String(student.grupoId || student.grupo || '').trim();
+  const gradeLabel = String(student.grado || getGrade(groupId) || '').trim();
+  const groupLabel = [gradeLabel, groupId ? `Grupo ${groupId.slice(-1)}` : ''].filter(Boolean).join(' · ');
+  const identity = [
+    studentProfileField('Folio', student.folio),
+    studentProfileField('Fecha de nacimiento', formatStudentDateForView(student.fechaNacimiento)),
+    studentProfileField('Género', student.genero),
+    studentProfileField('CURP del alumno', student.curpAlumno, { wide: true })
+  ].filter(Boolean);
+  const school = [
+    studentProfileField('Grupo actual', groupLabel, { featured: true }),
+    studentProfileField('Situación escolar', String(student.estatus || 'ACTIVO').toUpperCase()),
+    studentProfileField('Beca', student.beca),
+    studentProfileField('Barrera de aprendizaje', student.barreraAprendizaje),
+    studentProfileField('Nivel de estudio del tutor', student.nivelEstudio)
+  ].filter(Boolean);
+  const contact = [
+    studentProfileField('Nombre del tutor', student.tutor, { wide: true, featured: true }),
+    studentProfileField('Teléfono', student.telefono),
+    studentProfileField('Correo electrónico', student.correo, { wide: true }),
+    studentProfileField('Domicilio', student.domicilio, { wide: true }),
+    studentProfileField('CURP del tutor', student.curpTutor),
+    studentProfileField('Ocupación', student.ocupacion)
+  ].filter(Boolean);
+  const physical = [
+    studentProfileField('Peso', studentProfileValueWithUnit(student.peso, 'kg', /kg|kilo/i)),
+    studentProfileField('Estatura', studentProfileValueWithUnit(student.estatura, 'cm', /cm|metro|\dm\b/i)),
+    studentProfileField('Talla', student.talla)
+  ].filter(Boolean);
+
+  const panel = (title, icon, fields, className) => !fields.length ? '' : `<section class="student-profile-panel ${className}">
+    <h3><i class="fa-solid ${icon}"></i> ${escHtml(title)}</h3>
+    <div class="student-profile-fields">${fields.join('')}</div>
+  </section>`;
+
+  const html = [
+    panel('Identificación', 'fa-id-card', identity, 'student-profile-identity'),
+    panel('Situación escolar', 'fa-school', school, 'student-profile-school'),
+    panel('Tutor y contacto', 'fa-people-roof', contact, 'student-profile-contact'),
+    panel('Datos físicos', 'fa-ruler', physical, 'student-profile-physical')
+  ].filter(Boolean).join('');
+  container.innerHTML = html ? `<div class="student-profile-layout">${html}</div>` :
+    '<p class="student-readonly-empty">No hay datos complementarios registrados para este alumno.</p>';
 }
 
 function setStudentDrawerMode(mode) {
@@ -2892,7 +2895,7 @@ function printStudentProfile(student) {
         <h3><i class="fa-solid fa-user-graduate"></i> Datos del alumno</h3>
         <div class="student-profile-grid profile-grid-3">
           ${printProfileField('Nombre completo', printProfileValue(student.nombre), 'profile-span-3')}
-          ${printProfileField('Fecha de nacimiento', student.fechaNacimiento ? escHtml(fmtDate(student.fechaNacimiento)) : '—')}
+          ${printProfileField('Fecha de nacimiento', printProfileValue(formatStudentDateForView(student.fechaNacimiento)))}
           ${printProfileField('Género', printProfileValue(student.genero))}
           ${printProfileField('CURP', printProfileValue(student.curpAlumno))}
           ${printProfileField('Peso', printProfileValue(student.peso, student.peso ? ' kg' : ''))}
