@@ -2340,6 +2340,73 @@ const STUDENT_FORM_FIELD_IDS = [
   'f-correo', 'f-domicilio', 'f-ocupacion'
 ];
 
+function studentReadOnlyField(label, value, options = {}) {
+  const text = String(value == null ? '' : value).trim();
+  if (!text) return '';
+  return `<article class="student-readonly-field${options.wide ? ' student-readonly-field-wide' : ''}">
+    <span>${escHtml(label)}</span>
+    <strong>${escHtml(text)}</strong>
+  </article>`;
+}
+
+function studentReadOnlyValueWithUnit(value, unit, unitPattern) {
+  const text = String(value == null ? '' : value).trim();
+  if (!text) return '';
+  return unitPattern.test(text) ? text : `${text} ${unit}`;
+}
+
+function renderStudentReadOnlyView(student) {
+  const container = document.getElementById('student-readonly-view');
+  if (!container) return;
+  const sections = [
+    {
+      icon: 'fa-school', title: 'Información escolar',
+      fields: [
+        studentReadOnlyField('Folio', student.folio),
+        studentReadOnlyField('Barrera de aprendizaje', student.barreraAprendizaje, { wide: true }),
+        studentReadOnlyField('Beca', student.beca),
+        studentReadOnlyField('Nivel de estudio', student.nivelEstudio)
+      ]
+    },
+    {
+      icon: 'fa-id-card', title: 'Datos del alumno',
+      fields: [
+        studentReadOnlyField('Fecha de nacimiento', student.fechaNacimiento ? fmtDate(student.fechaNacimiento) : ''),
+        studentReadOnlyField('CURP del alumno', student.curpAlumno, { wide: true }),
+        studentReadOnlyField('Género', student.genero)
+      ]
+    },
+    {
+      icon: 'fa-ruler', title: 'Datos físicos',
+      fields: [
+        studentReadOnlyField('Peso', studentReadOnlyValueWithUnit(student.peso, 'kg', /kg|kilo/i)),
+        studentReadOnlyField('Estatura', studentReadOnlyValueWithUnit(student.estatura, 'cm', /cm|metro|\dm\b/i)),
+        studentReadOnlyField('Talla', student.talla)
+      ]
+    },
+    {
+      icon: 'fa-people-roof', title: 'Tutor y contacto',
+      fields: [
+        studentReadOnlyField('Nombre del tutor', student.tutor, { wide: true }),
+        studentReadOnlyField('Teléfono', student.telefono),
+        studentReadOnlyField('Correo electrónico', student.correo, { wide: true }),
+        studentReadOnlyField('CURP del tutor', student.curpTutor, { wide: true }),
+        studentReadOnlyField('Domicilio', student.domicilio, { wide: true }),
+        studentReadOnlyField('Ocupación', student.ocupacion)
+      ]
+    }
+  ];
+  const html = sections.map(section => {
+    const fields = section.fields.filter(Boolean);
+    if (!fields.length) return '';
+    return `<section class="student-readonly-section">
+      <h3><i class="fa-solid ${section.icon}"></i> ${escHtml(section.title)}</h3>
+      <div class="student-readonly-grid">${fields.join('')}</div>
+    </section>`;
+  }).filter(Boolean).join('');
+  container.innerHTML = html || '<p class="student-readonly-empty">No hay datos complementarios registrados para este alumno.</p>';
+}
+
 function setStudentDrawerMode(mode) {
   const isExisting = editingId !== null;
   const isView = mode === 'view' && isExisting;
@@ -2352,6 +2419,7 @@ function setStudentDrawerMode(mode) {
   });
 
   form.classList.toggle('readonly-mode', isView);
+  document.getElementById('student-readonly-view').classList.toggle('hidden', !isView);
   document.getElementById('detail-mode-badge').classList.toggle('hidden', !isView);
   document.getElementById('detail-print-btn').classList.toggle('hidden', !isExisting);
   document.getElementById('detail-edit-btn').classList.toggle('hidden', !isView || !studentDrawerCanEdit);
@@ -2424,6 +2492,7 @@ function openStudentDrawer(id = null) {
     document.getElementById('f-correo').value    = s.correo       || '';
     document.getElementById('f-domicilio').value = s.domicilio    || '';
     document.getElementById('f-ocupacion').value = s.ocupacion    || '';
+    renderStudentReadOnlyView(s);
   } else {
     document.getElementById('detail-name').textContent = 'Nuevo Alumno';
     document.getElementById('detail-grupo-badge').textContent = `${getGrade(admissionGroup)} Grado — Grupo ${admissionGroup}`;
@@ -2435,6 +2504,7 @@ function openStudentDrawer(id = null) {
     const statusHelp = document.getElementById('detail-status-help');
     statusHelp.textContent = 'Al guardar, el alumno quedará activo en el grupo seleccionado.';
     statusHelp.classList.remove('hidden');
+    document.getElementById('student-readonly-view').innerHTML = '';
   }
 
   setStudentDrawerMode(id ? 'view' : 'edit');

@@ -1589,6 +1589,10 @@ input, select, button, textarea {
   opacity: 0;
   transition: transform 0.28s cubic-bezier(.4,0,.2,1), opacity 0.2s ease;
 }
+.student-detail-modal {
+  width: min(1180px, calc(100vw - 48px));
+  max-height: min(820px, calc(100vh - 48px));
+}
 .drawer-open { transform: scale(1) translateY(0) !important; opacity: 1; }
 
 .detail-header {
@@ -1652,6 +1656,56 @@ input, select, button, textarea {
 }
 
 /* Readonly Mode */
+.readonly-mode .form-section { display: none; }
+.student-readonly-view { display: flex; flex-direction: column; gap: 18px; }
+.student-readonly-section {
+  padding: 15px;
+  border: 1px solid #dce7e2;
+  border-radius: 12px;
+  background: #f9fcfb;
+}
+.student-readonly-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: #1a4b69;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.student-readonly-section h3 i { color: #1f7a83; }
+.student-readonly-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+.student-readonly-field {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid #e2ebe7;
+  border-radius: 9px;
+  background: #fff;
+}
+.student-readonly-field-wide { grid-column: span 2; }
+.student-readonly-field span {
+  display: block;
+  margin-bottom: 5px;
+  color: #61747b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+.student-readonly-field strong {
+  display: block;
+  color: #263844;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.student-readonly-empty { margin: 0; color: #61747b; font-size: 0.9rem; }
 .readonly-mode input:disabled, 
 .readonly-mode select:disabled {
   background: transparent !important;
@@ -1749,9 +1803,11 @@ input, select, button, textarea {
   .director-group-modal-body { padding: 14px; }
   .detail-overlay { padding: 0; align-items: flex-end; }
   .detail-drawer { width: 100%; max-width: none; max-height: 96vh; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .student-detail-modal { width: 100%; max-height: 96vh; }
   .detail-header { padding: 18px 16px; }
   .detail-body { padding: 18px 16px; }
   .detail-footer { flex-wrap: wrap; padding: 12px 16px; }
+  .student-readonly-field-wide { grid-column: span 1; }
 }
 
 @media (max-width: 480px) {
