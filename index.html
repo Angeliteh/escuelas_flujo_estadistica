@@ -834,15 +834,44 @@
               </div>
               <div class="form-group">
                 <label for="f-beca">Beca</label>
-                <select id="f-beca">
-                  <option value="">Seleccionar...</option>
+                <select id="f-beca" onchange="toggleScholarshipDetail()">
+                  <option value="">Sin registrar</option>
                   <option value="Sí">Sí</option>
                   <option value="No">No</option>
+                  <option value="Pendiente de confirmar">Pendiente de confirmar</option>
                 </select>
+                <small class="form-help">Selecciona sólo si la información está confirmada.</small>
+              </div>
+              <div class="form-group hidden" id="f-beca-detail-wrap">
+                <label for="f-beca-detalle">Programa o tipo <span class="optional">(opcional)</span></label>
+                <select id="f-beca-detalle" onchange="toggleScholarshipOther()">
+                  <option value="">No especificado</option>
+                  <option value="Rita Cetina">Rita Cetina</option>
+                  <option value="Benito Juárez">Benito Juárez</option>
+                  <option value="Caja Hipódromo">Caja Hipódromo</option>
+                  <option value="Otro">Otro</option>
+                </select>
+                <input type="text" id="f-beca-otro" class="hidden" placeholder="Especificar programa o tipo">
               </div>
               <div class="form-group">
                 <label for="f-nivel">Nivel de Estudio</label>
-                <input type="text" id="f-nivel" placeholder="Ej: Primaria">
+                <select id="f-nivel" onchange="toggleEducationDetail()">
+                  <option value="">Sin registrar</option>
+                  <option value="Sin estudios">Sin estudios</option>
+                  <option value="Primaria">Primaria</option>
+                  <option value="Secundaria">Secundaria</option>
+                  <option value="Preparatoria">Preparatoria</option>
+                  <option value="Preparatoria trunca">Preparatoria trunca</option>
+                  <option value="Carrera técnica">Carrera técnica</option>
+                  <option value="Licenciatura">Licenciatura</option>
+                  <option value="Posgrado">Posgrado</option>
+                  <option value="Doctorado">Doctorado</option>
+                  <option value="Otro">Otro (especificar)</option>
+                </select>
+              </div>
+              <div class="form-group hidden" id="f-nivel-detail-wrap">
+                <label for="f-nivel-detalle">Otro nivel de estudio</label>
+                <input type="text" id="f-nivel-detalle" placeholder="Especificar">
               </div>
             </div>
           </div>
@@ -863,7 +892,8 @@
                 <select id="f-talla">
                   <option value="">—</option>
                   <option>2</option><option>4</option><option>6</option><option>8</option>
-                  <option>10</option><option>12</option><option>14</option><option>16</option>
+                  <option>10</option><option>12</option><option>14</option><option>14-16</option><option>16</option>
+                  <option>18</option><option>20</option><option>22</option>
                   <option>CH</option><option>M</option><option>G</option><option>XG</option>
                 </select>
               </div>
@@ -895,7 +925,18 @@
               </div>
               <div class="form-group">
                 <label for="f-ocupacion">Ocupación</label>
-                <input type="text" id="f-ocupacion" placeholder="Ej: Empleado, Hogar...">
+                <input type="text" id="f-ocupacion" list="ocupacion-sugerencias" placeholder="Elige o escribe si no aparece">
+                <datalist id="ocupacion-sugerencias">
+                  <option value="Hogar"></option>
+                  <option value="Empleado(a)"></option>
+                  <option value="Comerciante"></option>
+                  <option value="Docente"></option>
+                  <option value="Profesional de la salud"></option>
+                  <option value="Profesionista"></option>
+                  <option value="Estudiante"></option>
+                  <option value="Jubilado(a) / Pensionado(a)"></option>
+                </datalist>
+                <small class="form-help">Puedes escribir una ocupación no incluida; se conservará tal cual.</small>
               </div>
             </div>
           </div>

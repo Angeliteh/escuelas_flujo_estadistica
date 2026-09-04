@@ -212,6 +212,9 @@ input, select, button, textarea {
 }
 
 .hidden { display: none !important; }
+.form-help { display: block; margin-top: 5px; color: #65777c; font-size: 0.73rem; line-height: 1.35; }
+.optional { color: #65777c; font-weight: 400; }
+#f-beca-otro { margin-top: 8px; }
 .uppercase { text-transform: uppercase; }
 .req { color: var(--accent2); }
 
